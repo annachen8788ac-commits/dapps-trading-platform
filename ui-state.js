@@ -88,8 +88,24 @@
       showToast('Deposit is not enabled in this demo build yet.');
     });
   });
-  document.querySelector('.top-actions .ghost-btn')?.addEventListener('click', () => showToast('Support center will open here.'));
-  document.querySelector('.avatar-btn')?.addEventListener('click', () => showToast('Profile center will open here.'));
+
+  const supportBtn = document.querySelector('.top-actions .ghost-btn');
+  if(supportBtn){
+    supportBtn.textContent = 'Support';
+    supportBtn.addEventListener('click', () => { location.href = 'support.html'; });
+  }
+
+  const avatarBtn = document.querySelector('.avatar-btn');
+  if(avatarBtn){
+    try{
+      const user = JSON.parse(localStorage.getItem('dapps:user') || 'null');
+      if(user?.displayName) avatarBtn.textContent = user.displayName.slice(0,1).toUpperCase();
+      avatarBtn.title = localStorage.getItem('dapps:token') ? 'Profile' : 'Sign in';
+    }catch{}
+    avatarBtn.addEventListener('click', () => {
+      location.href = localStorage.getItem('dapps:token') ? 'profile.html' : 'login.html';
+    });
+  }
 
   const tabs = [...document.querySelectorAll('.positions-heading .tab-row button')];
   const positionsList = document.querySelector('#positions-list');
