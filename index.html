@@ -18,7 +18,7 @@
       <div class="top-actions"><button class="ghost-btn">Support</button><button class="primary-btn">Deposit</button><button class="avatar-btn" aria-label="Profile">A</button></div>
     </header>
     <main>
-      <section class="page active" id="page-markets"><div class="page-header split-header"><div><span class="eyebrow">MARKETS</span><h1>Market Overview</h1><p>Track crypto and precious-metal markets from one workspace.</p></div><div class="market-summary"><div><span>24H Volume</span><strong>$4.82B</strong></div><div><span>Markets</span><strong>10</strong></div><div><span>Status</span><strong class="status-live">Live</strong></div></div></div><div class="market-tabs"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="crypto">Crypto</button><button class="filter" data-filter="metal">Metals</button></div><div class="panel market-panel"><div class="market-table-head"><span>Name</span><span>Latest Price</span><span>24h Change</span><span>24h High</span><span>Action</span></div><div id="market-list" class="market-list"></div></div></section>
+      <section class="page active" id="page-markets"><div class="page-header split-header"><div><span class="eyebrow">MARKETS</span><h1>Market Overview</h1><p>Track crypto and precious-metal markets from one workspace.</p></div><div class="market-summary"><div><span>24H Volume</span><strong>$4.82B</strong></div><div><span>Markets</span><strong>10</strong></div><div><span>Status</span><strong class="status-live">Live</strong></div></div></div><div class="market-tabs"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="crypto">Crypto</button><button class="filter" data-filter="metal">Metals</button></div><div class="panel market-panel"><div class="market-table-head"><span>Market</span><span>Last Price</span><span>24h Change</span><span>24h High</span></div><div id="market-list" class="market-list"></div></div></section>
       <section class="page" id="page-trade">
         <div class="trade-header panel"><div class="asset-title-wrap"><div class="coin-icon large" id="trade-icon">₿</div><div><div class="asset-title-line"><h2 id="trade-symbol">BTC/USDT</h2><span class="watch-star">☆</span></div><span class="muted" id="trade-name">Bitcoin</span></div></div><div class="trade-price-block"><strong id="trade-price">77,282.09</strong><span id="trade-change" class="positive">+0.12%</span></div><div class="trade-stat"><span>24h High</span><strong id="trade-high">78,424.15</strong></div><div class="trade-stat"><span>24h Low</span><strong id="trade-low">75,884.40</strong></div><div class="trade-stat"><span>24h Volume</span><strong>$842.6M</strong></div></div>
         <div class="trade-grid"><div class="panel chart-panel"><div class="panel-heading chart-heading"><div class="timeframes"><button>1m</button><button>5m</button><button>15m</button><button class="active">1H</button><button>4H</button><button>1D</button></div><div class="chart-tools">Market Chart</div></div><div class="chart-stage"><canvas id="price-chart"></canvas><div class="chart-price-badge" id="chart-price-badge">77,282.09</div></div></div>
@@ -35,6 +35,8 @@
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>
   <script src="chart-pro.js"></script>
+  <script src="trade-rules.js"></script>
+  <script src="market-trade-ui.js"></script>
   <script src="ui-state.js"></script>
 </body>
 </html>
