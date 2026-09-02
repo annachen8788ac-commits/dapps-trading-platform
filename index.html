@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#11131d" />
+  <title>DApps Platform | Trading</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" data-nav="home">
+        <div class="brand-mark">D</div>
+        <div class="brand-copy">
+          <strong>DApps Platform</strong>
+          <span>USA</span>
+        </div>
+      </div>
+
+      <nav class="desktop-nav" aria-label="Primary">
+        <button class="nav-link" data-nav="home">Home</button>
+        <button class="nav-link active" data-nav="markets">Markets</button>
+        <button class="nav-link" data-nav="trade">Trade</button>
+        <button class="nav-link" data-nav="pledge">Pledge</button>
+        <button class="nav-link" data-nav="assets">Assets</button>
+      </nav>
+
+      <div class="top-actions">
+        <button class="ghost-btn">Support</button>
+        <button class="primary-btn">Deposit</button>
+        <button class="avatar-btn" aria-label="Profile">A</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" id="page-markets">
+        <div class="page-header split-header">
+          <div>
+            <span class="eyebrow">MARKETS</span>
+            <h1>Market Overview</h1>
+            <p>Track crypto and precious-metal markets from one workspace.</p>
+          </div>
+          <div class="market-summary">
+            <div><span>24H Volume</span><strong>$4.82B</strong></div>
+            <div><span>Markets</span><strong>10</strong></div>
+            <div><span>Status</span><strong class="status-live">Live</strong></div>
+          </div>
+        </div>
+
+        <div class="market-tabs">
+          <button class="filter active" data-filter="all">All</button>
+          <button class="filter" data-filter="crypto">Crypto</button>
+          <button class="filter" data-filter="metal">Metals</button>
+        </div>
+
+        <div class="panel market-panel">
+          <div class="market-table-head">
+            <span>Name</span><span>Latest Price</span><span>24h Change</span><span>24h High</span><span>Action</span>
+          </div>
+          <div id="market-list" class="market-list"></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-trade">
+        <div class="trade-header panel">
+          <div class="asset-title-wrap">
+            <div class="coin-icon large" id="trade-icon">₿</div>
+            <div>
+              <div class="asset-title-line">
+                <h2 id="trade-symbol">BTC/USDT</h2>
+                <span class="watch-star">☆</span>
+              </div>
+              <span class="muted" id="trade-name">Bitcoin</span>
+            </div>
+          </div>
+          <div class="trade-price-block">
+            <strong id="trade-price">77,282.09</strong>
+            <span id="trade-change" class="positive">+0.12%</span>
+          </div>
+          <div class="trade-stat"><span>24h High</span><strong id="trade-high">78,424.15</strong></div>
+          <div class="trade-stat"><span>24h Low</span><strong id="trade-low">75,884.40</strong></div>
+          <div class="trade-stat"><span>24h Volume</span><strong>$842.6M</strong></div>
+        </div>
+
+        <div class="trade-grid">
+          <div class="panel chart-panel">
+            <div class="panel-heading chart-heading">
+              <div class="timeframes">
+                <button>1m</button><button>5m</button><button>15m</button><button class="active">1H</button><button>4H</button><button>1D</button>
+              </div>
+              <div class="chart-tools">Market Chart</div>
+            </div>
+            <div class="chart-stage">
+              <canvas id="price-chart"></canvas>
+              <div class="chart-price-badge" id="chart-price-badge">77,282.09</div>
+            </div>
+          </div>
+
+          <aside class="panel short-trade-card">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">SHORT-TERM TRADE</span>
+                <h3>Trade Direction</h3>
+              </div>
+              <span class="demo-pill">DEMO</span>
+            </div>
+
+            <div class="direction-grid">
+              <button id="up-btn" class="direction-btn up active"><span>↑</span><strong>Up</strong><small>Price will rise</small></button>
+              <button id="down-btn" class="direction-btn down"><span>↓</span><strong>Down</strong><small>Price will fall</small></button>
+            </div>
+
+            <label class="field-label">Duration</label>
+            <div class="duration-grid" id="duration-grid">
+              <button data-duration="30">30s</button>
+              <button data-duration="60" class="active">60s</button>
+              <button data-duration="120">120s</button>
+              <button data-duration="300">300s</button>
+            </div>
+
+            <label class="field-label" for="trade-amount">Amount</label>
+            <div class="input-wrap"><input id="trade-amount" type="number" min="10" step="10" value="100" /><span>USDT</span></div>
+            <div class="quick-amounts"><button data-amount="100">100</button><button data-amount="500">500</button><button data-amount="1000">1,000</button><button data-amount="5000">5,000</button></div>
+
+            <div class="trade-estimate">
+              <div><span>Available</span><strong id="available-balance">12,345.67 USDT</strong></div>
+              <div><span>Demo return</span><strong>+82%</strong></div>
+              <div><span>Potential return</span><strong id="potential-return">182.00 USDT</strong></div>
+            </div>
+
+            <button id="place-trade" class="submit-trade">Open Demo Trade</button>
+            <p class="fine-print">Simulation only. No real-money execution or settlement is enabled in this build.</p>
+          </aside>
+        </div>
+
+        <div class="panel positions-panel">
+          <div class="panel-heading positions-heading">
+            <div class="tab-row">
+              <button class="active">Active Trades</button>
+              <button>Trade History</button>
+            </div>
+            <span class="muted">Demo portfolio</span>
+          </div>
+          <div class="positions-table-head"><span>Pair</span><span>Direction</span><span>Entry</span><span>Amount</span><span>Time Left</span><span>Status</span></div>
+          <div id="positions-list" class="positions-list empty-state">No active trades yet.</div>
+        </div>
+      </section>
+
+      <section class="page" id="page-pledge">
+        <div class="page-header split-header">
+          <div>
+            <span class="eyebrow">PLEDGE</span>
+            <h1>Grow Your Digital Assets</h1>
+            <p>Explore flexible and fixed-term demo pledge products.</p>
+          </div>
+          <div class="pledge-total-card">
+            <span>Total Pledged</span>
+            <strong id="total-pledged">12,500.00 USDT</strong>
+            <small>Demo balance</small>
+          </div>
+        </div>
+
+        <div class="pledge-grid">
+          <article class="panel pledge-card featured">
+            <div class="pledge-topline"><span class="product-tag">FLEXIBLE</span><span class="popular-tag">Popular</span></div>
+            <h3>Flexible Pledge</h3>
+            <div class="apy">4.80<span>%</span></div>
+            <p>Estimated APY</p>
+            <div class="pledge-meta"><div><span>Term</span><strong>Flexible</strong></div><div><span>Minimum</span><strong>100 USDT</strong></div></div>
+            <button class="pledge-btn" data-product="Flexible" data-min="100">Pledge Now</button>
+          </article>
+          <article class="panel pledge-card">
+            <div class="pledge-topline"><span class="product-tag">FIXED</span></div>
+            <h3>30-Day Pledge</h3>
+            <div class="apy">6.50<span>%</span></div>
+            <p>Estimated APY</p>
+            <div class="pledge-meta"><div><span>Term</span><strong>30 Days</strong></div><div><span>Minimum</span><strong>500 USDT</strong></div></div>
+            <button class="pledge-btn" data-product="30-Day" data-min="500">Pledge Now</button>
+          </article>
+          <article class="panel pledge-card">
+            <div class="pledge-topline"><span class="product-tag">FIXED</span></div>
+            <h3>90-Day Pledge</h3>
+            <div class="apy">8.20<span>%</span></div>
+            <p>Estimated APY</p>
+            <div class="pledge-meta"><div><span>Term</span><strong>90 Days</strong></div><div><span>Minimum</span><strong>1,000 USDT</strong></div></div>
+            <button class="pledge-btn" data-product="90-Day" data-min="1000">Pledge Now</button>
+          </article>
+        </div>
+
+        <div class="panel my-pledges">
+          <div class="panel-heading"><div><span class="eyebrow">PORTFOLIO</span><h3>My Pledges</h3></div><span class="muted">Demo</span></div>
+          <div id="pledge-list" class="pledge-list">
+            <div class="pledge-row"><span>Flexible Pledge</span><strong>5,000.00 USDT</strong><span>4.80% APY</span><span class="positive">Active</span></div>
+            <div class="pledge-row"><span>90-Day Pledge</span><strong>7,500.00 USDT</strong><span>8.20% APY</span><span class="positive">Active</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-assets">
+        <div class="page-header split-header">
+          <div><span class="eyebrow">ASSETS</span><h1>Portfolio</h1><p>Demo balances for the first runnable build.</p></div>
+          <button class="primary-btn">Deposit</button>
+        </div>
+        <div class="asset-cards">
+          <div class="panel balance-card"><span>Total Assets</span><strong>$24,845.67</strong><small>≈ 24,845.67 USDT</small></div>
+          <div class="panel balance-card"><span>Available</span><strong id="asset-available">12,345.67</strong><small>USDT</small></div>
+          <div class="panel balance-card"><span>Pledged</span><strong id="asset-pledged">12,500.00</strong><small>USDT</small></div>
+        </div>
+        <div class="panel assets-table">
+          <div class="market-table-head"><span>Asset</span><span>Balance</span><span>Available</span><span>In Product</span><span>Action</span></div>
+          <div class="asset-row"><span><b class="coin-icon small">₮</b> USDT</span><strong>24,845.67</strong><span>12,345.67</span><span>12,500.00</span><button data-nav="trade">Trade</button></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-home">
+        <div class="home-hero">
+          <span class="eyebrow">DApps PLATFORM USA</span>
+          <h1>Trade. Pledge. Manage.</h1>
+          <p>A unified multi-asset workspace for market access, short-term demo trading and pledge products.</p>
+          <div class="hero-actions"><button class="primary-btn" data-nav="trade">Start Trading</button><button class="ghost-btn" data-nav="markets">View Markets</button></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="mobile-nav" aria-label="Mobile">
+      <button data-nav="home"><span>⌂</span>Home</button>
+      <button class="active" data-nav="markets"><span>▥</span>Markets</button>
+      <button data-nav="trade"><span>⇄</span>Trade</button>
+      <button data-nav="pledge"><span>◈</span>Pledge</button>
+      <button data-nav="assets"><span>▣</span>Assets</button>
+    </nav>
+  </div>
+
+  <div class="modal-backdrop" id="pledge-modal" aria-hidden="true">
+    <div class="modal panel">
+      <button class="modal-close" id="modal-close">×</button>
+      <span class="eyebrow">PLEDGE PRODUCT</span>
+      <h3 id="modal-title">Flexible Pledge</h3>
+      <p>Enter a demo amount to add this product to your portfolio.</p>
+      <label class="field-label" for="pledge-amount">Amount</label>
+      <div class="input-wrap"><input id="pledge-amount" type="number" value="500" min="100" step="100"><span>USDT</span></div>
+      <button id="confirm-pledge" class="submit-trade">Confirm Demo Pledge</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
