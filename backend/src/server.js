@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import pg from 'pg';
 import { initializeWalletSchema, registerWalletRoutes } from './wallet-routes.js';
+import { initializeKycSchema, registerKycRoutes } from './kyc-routes.js';
 
 const { Pool } = pg;
 const app = express();
@@ -28,49 +29,48 @@ async function bootstrapAdmin(){
   if(exists.rows[0])return;
   const hash=await bcrypt.hash(password,12);
   await pool.query(`INSERT INTO admins(email,display_name,password_hash,role) VALUES($1,$2,$3,'super_admin')`,[email,'Super Admin',hash]);
-  console.log('Bootstrap super admin created');
 }
 
 async function initializeDatabase(){
   if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL is not configured');
   await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
   await pool.query(`CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), public_id VARCHAR(16) UNIQUE NOT NULL,
-    registration_type VARCHAR(16) NOT NULL CHECK (registration_type IN ('email','mobile')),
-    identifier VARCHAR(190) UNIQUE NOT NULL, display_name VARCHAR(80) NOT NULL,
-    password_hash TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'active',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),public_id VARCHAR(16) UNIQUE NOT NULL,
+    registration_type VARCHAR(16) NOT NULL,identifier VARCHAR(190) UNIQUE NOT NULL,
+    display_name VARCHAR(80) NOT NULL,password_hash TEXT NOT NULL,status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_registration_type_check`);
+  await pool.query(`ALTER TABLE users ADD CONSTRAINT users_registration_type_check CHECK (registration_type IN ('email','mobile','username')) NOT VALID`);
   await pool.query(`CREATE TABLE IF NOT EXISTS support_tickets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), ticket_no VARCHAR(24) UNIQUE NOT NULL,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, category VARCHAR(40) NOT NULL,
-    subject VARCHAR(120) NOT NULL, message TEXT NOT NULL, status VARCHAR(24) NOT NULL DEFAULT 'open',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),ticket_no VARCHAR(24) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,category VARCHAR(40) NOT NULL,
+    subject VARCHAR(120) NOT NULL,message TEXT NOT NULL,status VARCHAR(24) NOT NULL DEFAULT 'open',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_tickets_user_created ON support_tickets(user_id,created_at DESC)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS admins (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email VARCHAR(190) UNIQUE NOT NULL,
-    display_name VARCHAR(80) NOT NULL, password_hash TEXT NOT NULL, role VARCHAR(32) NOT NULL DEFAULT 'super_admin',
-    status VARCHAR(20) NOT NULL DEFAULT 'active', last_login_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),email VARCHAR(190) UNIQUE NOT NULL,display_name VARCHAR(80) NOT NULL,
+    password_hash TEXT NOT NULL,role VARCHAR(32) NOT NULL DEFAULT 'super_admin',status VARCHAR(20) NOT NULL DEFAULT 'active',
+    last_login_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE TABLE IF NOT EXISTS admin_audit_logs (
-    id BIGSERIAL PRIMARY KEY, admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
-    action VARCHAR(80) NOT NULL, target_type VARCHAR(60) NOT NULL, target_id VARCHAR(190),
-    details JSONB NOT NULL DEFAULT '{}'::jsonb, ip_address VARCHAR(80), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    id BIGSERIAL PRIMARY KEY,admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,action VARCHAR(80) NOT NULL,
+    target_type VARCHAR(60) NOT NULL,target_id VARCHAR(190),details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ip_address VARCHAR(80),created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_logs(created_at DESC)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS platform_settings (
-    setting_key VARCHAR(80) PRIMARY KEY, setting_value JSONB NOT NULL,
-    updated_by UUID REFERENCES admins(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    setting_key VARCHAR(80) PRIMARY KEY,setting_value JSONB NOT NULL,updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE TABLE IF NOT EXISTS trade_products (
-    duration_seconds INTEGER PRIMARY KEY, minimum_amount NUMERIC(20,2) NOT NULL, profit_rate NUMERIC(8,2) NOT NULL,
-    enabled BOOLEAN NOT NULL DEFAULT TRUE, updated_by UUID REFERENCES admins(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    duration_seconds INTEGER PRIMARY KEY,minimum_amount NUMERIC(20,2) NOT NULL,profit_rate NUMERIC(8,2) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE TABLE IF NOT EXISTS pledge_products (
-    product_code VARCHAR(40) PRIMARY KEY, product_name VARCHAR(80) NOT NULL, term_days INTEGER NOT NULL,
-    apy NUMERIC(8,2) NOT NULL, minimum_amount NUMERIC(20,2) NOT NULL, enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    updated_by UUID REFERENCES admins(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    product_code VARCHAR(40) PRIMARY KEY,product_name VARCHAR(80) NOT NULL,term_days INTEGER NOT NULL,apy NUMERIC(8,2) NOT NULL,
+    minimum_amount NUMERIC(20,2) NOT NULL,enabled BOOLEAN NOT NULL DEFAULT TRUE,updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE TABLE IF NOT EXISTS market_settings (
-    symbol VARCHAR(30) PRIMARY KEY, display_name VARCHAR(60) NOT NULL, enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    sort_order INTEGER NOT NULL DEFAULT 0, updated_by UUID REFERENCES admins(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-  for(const [duration,min,rate] of [[30,200,21],[60,1000,29],[90,10000,37],[180,50000,45],[360,250000,53]])
-    await pool.query(`INSERT INTO trade_products(duration_seconds,minimum_amount,profit_rate) VALUES($1,$2,$3) ON CONFLICT(duration_seconds) DO NOTHING`,[duration,min,rate]);
+    symbol VARCHAR(30) PRIMARY KEY,display_name VARCHAR(60) NOT NULL,enabled BOOLEAN NOT NULL DEFAULT TRUE,sort_order INTEGER NOT NULL DEFAULT 0,
+    updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  for(const [d,m,r] of [[30,200,21],[60,1000,29],[90,10000,37],[180,50000,45],[360,250000,53]])
+    await pool.query(`INSERT INTO trade_products(duration_seconds,minimum_amount,profit_rate) VALUES($1,$2,$3) ON CONFLICT(duration_seconds) DO NOTHING`,[d,m,r]);
   for(const item of [['flexible','Flexible',0,4.8,100],['30-day','30-Day',30,6.5,500],['90-day','90-Day',90,8.2,1000]])
     await pool.query(`INSERT INTO pledge_products(product_code,product_name,term_days,apy,minimum_amount) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_code) DO NOTHING`,item);
   const markets=['BTC/USDT','ETH/USDT','XAU/USDT','XAG/USDT','XRP/USDT','LTC/USDT','BNB/USDT','SOL/USDT','DOGE/USDT','TRX/USDT'];
@@ -78,28 +78,29 @@ async function initializeDatabase(){
   await pool.query(`INSERT INTO platform_settings(setting_key,setting_value) VALUES('general',$1::jsonb) ON CONFLICT(setting_key) DO NOTHING`,[JSON.stringify({platformName:'DApps Platform',announcement:'',maintenanceMode:false})]);
   await bootstrapAdmin();
   await initializeWalletSchema(pool);
+  await initializeKycSchema(pool);
 }
 
-function normalizeIdentifier(type,value=''){const v=String(value).trim();return type==='email'?v.toLowerCase():v.replace(/\s+/g,'');}
-function maskIdentifier(type,value=''){if(type==='email'){const [a,b]=value.split('@');return b?`${a.slice(0,2)}***@${b}`:value;}return value.length>4?`${value.slice(0,3)}****${value.slice(-3)}`:value;}
+function normalizeIdentifier(type,value=''){const v=String(value||'').trim();return type==='email'?v.toLowerCase():v.replace(/\s+/g,'');}
+function maskIdentifier(type,value=''){if(type==='email'){const [a,b]=String(value).split('@');return b?`${a.slice(0,2)}***@${b}`:value;}if(type==='mobile')return String(value).length>5?`${String(value).slice(0,3)}****${String(value).slice(-3)}`:value;return value;}
 function makePublicId(){return 'DP'+crypto.randomInt(1000000000,9999999999).toString();}
 function makeTicketNo(){return 'TKT-'+new Date().toISOString().slice(0,10).replaceAll('-','')+'-'+crypto.randomInt(100000,999999);}
-function signUser(user){return jwt.sign({sub:user.id,publicId:user.public_id,type:'user'},JWT_SECRET,{expiresIn:'7d'});}
-function signAdmin(admin){return jwt.sign({sub:admin.id,role:admin.role,type:'admin'},ADMIN_JWT_SECRET,{expiresIn:'8h'});}
-function userPayload(row){return {publicId:row.public_id,displayName:row.display_name,registrationType:row.registration_type,identifierMasked:maskIdentifier(row.registration_type,row.identifier),status:row.status,createdAt:row.created_at};}
-function auth(req,res,next){const token=req.headers.authorization?.startsWith('Bearer ')?req.headers.authorization.slice(7):null;if(!token)return res.status(401).json({error:'Authentication required'});try{const decoded=jwt.verify(token,JWT_SECRET);if(decoded.type&&decoded.type!=='user')throw new Error();req.auth=decoded;next();}catch{return res.status(401).json({error:'Invalid or expired session'});}}
-async function adminAuth(req,res,next){const token=req.headers.authorization?.startsWith('Bearer ')?req.headers.authorization.slice(7):null;if(!token)return res.status(401).json({error:'Admin authentication required'});try{const decoded=jwt.verify(token,ADMIN_JWT_SECRET);if(decoded.type!=='admin')throw new Error();const q=await pool.query(`SELECT id,email,display_name,role,status FROM admins WHERE id=$1`,[decoded.sub]);const admin=q.rows[0];if(!admin||admin.status!=='active')return res.status(403).json({error:'Admin account is not active'});req.admin=admin;next();}catch{return res.status(401).json({error:'Invalid or expired admin session'});}}
+function signUser(u){return jwt.sign({sub:u.id,publicId:u.public_id,type:'user'},JWT_SECRET,{expiresIn:'7d'});}
+function signAdmin(a){return jwt.sign({sub:a.id,role:a.role,type:'admin'},ADMIN_JWT_SECRET,{expiresIn:'8h'});}
+function userPayload(r){return {publicId:r.public_id,displayName:r.display_name,registrationType:r.registration_type,identifierMasked:maskIdentifier(r.registration_type,r.identifier),status:r.status,createdAt:r.created_at};}
+function auth(req,res,next){const token=req.headers.authorization?.startsWith('Bearer ')?req.headers.authorization.slice(7):null;if(!token)return res.status(401).json({error:'Authentication required'});try{const d=jwt.verify(token,JWT_SECRET);if(d.type&&d.type!=='user')throw 0;req.auth=d;next();}catch{return res.status(401).json({error:'Invalid or expired session'});}}
+async function adminAuth(req,res,next){const token=req.headers.authorization?.startsWith('Bearer ')?req.headers.authorization.slice(7):null;if(!token)return res.status(401).json({error:'Admin authentication required'});try{const d=jwt.verify(token,ADMIN_JWT_SECRET);if(d.type!=='admin')throw 0;const q=await pool.query(`SELECT id,email,display_name,role,status FROM admins WHERE id=$1`,[d.sub]);const a=q.rows[0];if(!a||a.status!=='active')return res.status(403).json({error:'Admin account is not active'});req.admin=a;next();}catch{return res.status(401).json({error:'Invalid or expired admin session'});}}
 function requireRole(...roles){return (req,res,next)=>roles.includes(req.admin.role)?next():res.status(403).json({error:'Insufficient permission'});}
 async function audit(req,action,targetType,targetId=null,details={}){await pool.query(`INSERT INTO admin_audit_logs(admin_id,action,target_type,target_id,details,ip_address) VALUES($1,$2,$3,$4,$5::jsonb,$6)`,[req.admin?.id||null,action,targetType,targetId,JSON.stringify(details),String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').slice(0,80)]);}
 
 app.get('/api/health',async(req,res)=>{try{await pool.query('SELECT 1');res.json({ok:true,service:'dapps-platform-backend',database:'connected'});}catch{res.status(503).json({ok:false,service:'dapps-platform-backend',database:'unavailable'});}});
-app.post('/api/auth/register',async(req,res)=>{const {registrationType,identifier,displayName,password}=req.body||{};if(!['email','mobile'].includes(registrationType))return res.status(400).json({error:'Choose email or mobile registration'});const normalized=normalizeIdentifier(registrationType,identifier);if(!normalized||!displayName||!password)return res.status(400).json({error:'All fields are required'});if(password.length<8)return res.status(400).json({error:'Password must be at least 8 characters'});if(registrationType==='email'&&!/^\S+@\S+\.\S+$/.test(normalized))return res.status(400).json({error:'Enter a valid email address'});if(registrationType==='mobile'&&!/^\+?[0-9]{7,15}$/.test(normalized))return res.status(400).json({error:'Enter a valid mobile number'});try{const hash=await bcrypt.hash(password,12);let row;for(let i=0;i<5;i++){try{const q=await pool.query(`INSERT INTO users(public_id,registration_type,identifier,display_name,password_hash) VALUES($1,$2,$3,$4,$5) RETURNING *`,[makePublicId(),registrationType,normalized,String(displayName).trim().slice(0,80),hash]);row=q.rows[0];break;}catch(e){if(e.code==='23505'&&e.constraint?.includes('public_id'))continue;throw e;}}if(!row)throw new Error('Unable to allocate account ID');await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[row.id]);res.status(201).json({token:signUser(row),user:userPayload(row)});}catch(e){if(e.code==='23505')return res.status(409).json({error:'This email or mobile number is already registered'});console.error(e);res.status(500).json({error:'Registration failed'});}});
-app.post('/api/auth/login',async(req,res)=>{const id=String(req.body?.identifier||'').trim(),password=String(req.body?.password||'');if(!id||!password)return res.status(400).json({error:'Identifier and password are required'});try{const q=await pool.query(`SELECT * FROM users WHERE identifier=ANY($1::text[]) LIMIT 1`,[[id.toLowerCase(),id.replace(/\s+/g,'')]]);const row=q.rows[0];if(!row||!(await bcrypt.compare(password,row.password_hash)))return res.status(401).json({error:'Incorrect account or password'});if(row.status!=='active')return res.status(403).json({error:'Account is not active'});res.json({token:signUser(row),user:userPayload(row)});}catch(e){console.error(e);res.status(500).json({error:'Sign in failed'});}});
+app.post('/api/auth/register',async(req,res)=>{const {registrationType,identifier,displayName,password}=req.body||{};if(!['email','mobile','username'].includes(registrationType))return res.status(400).json({error:'Choose email, mobile or username registration'});const normalized=normalizeIdentifier(registrationType,identifier);if(!normalized||!String(displayName||'').trim()||!password)return res.status(400).json({error:'All fields are required'});if(String(password).length<8)return res.status(400).json({error:'Password must be at least 8 characters'});if(registrationType==='email'&&!/^\S+@\S+\.\S+$/.test(normalized))return res.status(400).json({error:'Enter a valid email address'});if(registrationType==='mobile'&&!/^\+?[0-9]{7,15}$/.test(normalized))return res.status(400).json({error:'Enter a valid mobile number with country code'});if(registrationType==='username'&&!/^[A-Za-z0-9_.-]{4,32}$/.test(normalized))return res.status(400).json({error:'Username must be 4-32 characters using letters, numbers, ., _ or -'});try{const hash=await bcrypt.hash(String(password),12);let row;for(let i=0;i<5;i++){try{const q=await pool.query(`INSERT INTO users(public_id,registration_type,identifier,display_name,password_hash) VALUES($1,$2,$3,$4,$5) RETURNING *`,[makePublicId(),registrationType,normalized,String(displayName).trim().slice(0,80),hash]);row=q.rows[0];break;}catch(e){if(e.code==='23505'&&e.constraint?.includes('public_id'))continue;throw e;}}if(!row)throw new Error('Unable to allocate account ID');await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[row.id]);res.status(201).json({token:signUser(row),user:userPayload(row)});}catch(e){if(e.code==='23505')return res.status(409).json({error:'This email, mobile number or username is already registered'});console.error(e);res.status(500).json({error:'Registration failed'});}});
+app.post('/api/auth/login',async(req,res)=>{const id=String(req.body?.identifier||'').trim(),password=String(req.body?.password||'');if(!id||!password)return res.status(400).json({error:'Identifier and password are required'});try{const q=await pool.query(`SELECT * FROM users WHERE identifier=ANY($1::text[]) LIMIT 1`,[[id.toLowerCase(),id.replace(/\s+/g,'')]]);const r=q.rows[0];if(!r||!(await bcrypt.compare(password,r.password_hash)))return res.status(401).json({error:'Incorrect account or password'});if(r.status!=='active')return res.status(403).json({error:'Account is not active'});res.json({token:signUser(r),user:userPayload(r)});}catch(e){console.error(e);res.status(500).json({error:'Sign in failed'});}});
 app.get('/api/me',auth,async(req,res)=>{try{const q=await pool.query(`SELECT * FROM users WHERE id=$1`,[req.auth.sub]);if(!q.rows[0])return res.status(404).json({error:'Account not found'});res.json({user:userPayload(q.rows[0])});}catch(e){console.error(e);res.status(500).json({error:'Unable to load profile'});}});
 app.get('/api/support/tickets',auth,async(req,res)=>{try{const q=await pool.query(`SELECT ticket_no,category,subject,status,created_at,updated_at FROM support_tickets WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100`,[req.auth.sub]);res.json({tickets:q.rows.map(r=>({ticketNo:r.ticket_no,category:r.category,subject:r.subject,status:r.status,createdAt:r.created_at,updatedAt:r.updated_at}))});}catch(e){console.error(e);res.status(500).json({error:'Unable to load tickets'});}});
 app.post('/api/support/tickets',auth,async(req,res)=>{const category=String(req.body?.category||'').trim(),subject=String(req.body?.subject||'').trim(),message=String(req.body?.message||'').trim();if(!category||!subject||!message)return res.status(400).json({error:'Category, subject and message are required'});try{const q=await pool.query(`INSERT INTO support_tickets(ticket_no,user_id,category,subject,message) VALUES($1,$2,$3,$4,$5) RETURNING ticket_no,status,created_at`,[makeTicketNo(),req.auth.sub,category.slice(0,40),subject.slice(0,120),message.slice(0,3000)]);res.status(201).json({ticket:{ticketNo:q.rows[0].ticket_no,status:q.rows[0].status,createdAt:q.rows[0].created_at}});}catch(e){console.error(e);res.status(500).json({error:'Unable to submit ticket'});}});
 
-app.post('/api/admin/auth/login',async(req,res)=>{const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');if(!email||!password)return res.status(400).json({error:'Email and password are required'});try{const q=await pool.query(`SELECT * FROM admins WHERE email=$1 LIMIT 1`,[email]);const row=q.rows[0];if(!row||!(await bcrypt.compare(password,row.password_hash)))return res.status(401).json({error:'Invalid admin credentials'});if(row.status!=='active')return res.status(403).json({error:'Admin account is not active'});await pool.query(`UPDATE admins SET last_login_at=NOW(),updated_at=NOW() WHERE id=$1`,[row.id]);res.json({token:signAdmin(row),admin:{email:row.email,displayName:row.display_name,role:row.role}});}catch(e){console.error(e);res.status(500).json({error:'Admin sign in failed'});}});
+app.post('/api/admin/auth/login',async(req,res)=>{const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');if(!email||!password)return res.status(400).json({error:'Email and password are required'});try{const q=await pool.query(`SELECT * FROM admins WHERE email=$1 LIMIT 1`,[email]);const r=q.rows[0];if(!r||!(await bcrypt.compare(password,r.password_hash)))return res.status(401).json({error:'Invalid admin credentials'});if(r.status!=='active')return res.status(403).json({error:'Admin account is not active'});await pool.query(`UPDATE admins SET last_login_at=NOW(),updated_at=NOW() WHERE id=$1`,[r.id]);res.json({token:signAdmin(r),admin:{email:r.email,displayName:r.display_name,role:r.role}});}catch(e){console.error(e);res.status(500).json({error:'Admin sign in failed'});}});
 app.get('/api/admin/me',adminAuth,(req,res)=>res.json({admin:{email:req.admin.email,displayName:req.admin.display_name,role:req.admin.role}}));
 app.get('/api/admin/dashboard',adminAuth,async(req,res)=>{try{const [users,tickets,openTickets,admins,pendingDeposits,pendingWithdrawals]=await Promise.all([pool.query(`SELECT COUNT(*)::int count FROM users`),pool.query(`SELECT COUNT(*)::int count FROM support_tickets`),pool.query(`SELECT COUNT(*)::int count FROM support_tickets WHERE status='open'`),pool.query(`SELECT COUNT(*)::int count FROM admins WHERE status='active'`),pool.query(`SELECT COUNT(*)::int count FROM deposit_requests WHERE status='pending'`),pool.query(`SELECT COUNT(*)::int count FROM withdrawal_requests WHERE status='pending'`)]);res.json({users:users.rows[0].count,tickets:tickets.rows[0].count,openTickets:openTickets.rows[0].count,activeAdmins:admins.rows[0].count,pendingDeposits:pendingDeposits.rows[0].count,pendingWithdrawals:pendingWithdrawals.rows[0].count});}catch(e){console.error(e);res.status(500).json({error:'Unable to load dashboard'});}});
 app.get('/api/admin/users',adminAuth,async(req,res)=>{const search=String(req.query.search||'').trim();try{const values=[];let where='';if(search){values.push(`%${search}%`);where=`WHERE public_id ILIKE $1 OR identifier ILIKE $1 OR display_name ILIKE $1`;}const q=await pool.query(`SELECT public_id,registration_type,identifier,display_name,status,created_at,updated_at FROM users ${where} ORDER BY created_at DESC LIMIT 200`,values);res.json({users:q.rows.map(r=>({publicId:r.public_id,registrationType:r.registration_type,identifier:r.identifier,displayName:r.display_name,status:r.status,createdAt:r.created_at,updatedAt:r.updated_at}))});}catch(e){console.error(e);res.status(500).json({error:'Unable to load users'});}});
@@ -114,6 +115,7 @@ app.put('/api/admin/config/markets/:symbol',adminAuth,requireRole('super_admin',
 app.get('/api/admin/audit-logs',adminAuth,requireRole('super_admin','compliance'),async(req,res)=>{try{const q=await pool.query(`SELECT l.id,l.action,l.target_type,l.target_id,l.details,l.ip_address,l.created_at,a.email admin_email FROM admin_audit_logs l LEFT JOIN admins a ON a.id=l.admin_id ORDER BY l.created_at DESC LIMIT 500`);res.json({logs:q.rows});}catch(e){console.error(e);res.status(500).json({error:'Unable to load audit logs'});}});
 
 registerWalletRoutes(app,{pool,auth,adminAuth,requireRole,audit});
+registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit});
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error'});});
 
 async function start(){try{await initializeDatabase();app.listen(PORT,'0.0.0.0',()=>console.log(`DApps backend listening on ${PORT}; database schema ready`));}catch(error){console.error('Backend startup failed:',error);process.exit(1);}}
