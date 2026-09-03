@@ -16,6 +16,34 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(x => x.tr
 app.use(cors({ origin(origin, cb){ if(!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return cb(null,true); return cb(new Error('Origin not allowed')); } }));
 app.use(express.json({ limit:'200kb' }));
 
+async function initializeDatabase(){
+  if(!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+  await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    public_id VARCHAR(16) UNIQUE NOT NULL,
+    registration_type VARCHAR(16) NOT NULL CHECK (registration_type IN ('email','mobile')),
+    identifier VARCHAR(190) UNIQUE NOT NULL,
+    display_name VARCHAR(80) NOT NULL,
+    password_hash TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_no VARCHAR(24) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category VARCHAR(40) NOT NULL,
+    subject VARCHAR(120) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'open',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_tickets_user_created ON support_tickets(user_id, created_at DESC)`);
+}
+
 function normalizeIdentifier(type, value=''){
   const v = String(value).trim();
   return type === 'email' ? v.toLowerCase() : v.replace(/\s+/g,'');
@@ -38,7 +66,14 @@ function auth(req,res,next){
   try{ req.auth = jwt.verify(token, JWT_SECRET); next(); }catch{ return res.status(401).json({ error:'Invalid or expired session' }); }
 }
 
-app.get('/api/health', (req,res)=>res.json({ ok:true, service:'dapps-platform-backend' }));
+app.get('/api/health', async (req,res)=>{
+  try{
+    await pool.query('SELECT 1');
+    res.json({ ok:true, service:'dapps-platform-backend', database:'connected' });
+  }catch{
+    res.status(503).json({ ok:false, service:'dapps-platform-backend', database:'unavailable' });
+  }
+});
 
 app.post('/api/auth/register', async (req,res)=>{
   const { registrationType, identifier, displayName, password } = req.body || {};
@@ -108,4 +143,14 @@ app.post('/api/support/tickets', auth, async (req,res)=>{
 });
 
 app.use((err,req,res,next)=>{ console.error(err); res.status(500).json({ error:'Server error' }); });
-app.listen(PORT,()=>console.log(`DApps backend listening on ${PORT}`));
+
+async function start(){
+  try{
+    await initializeDatabase();
+    app.listen(PORT, '0.0.0.0', ()=>console.log(`DApps backend listening on ${PORT}; database schema ready`));
+  }catch(error){
+    console.error('Backend startup failed:', error);
+    process.exit(1);
+  }
+}
+start();
