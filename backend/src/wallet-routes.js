@@ -1,0 +1,268 @@
+import crypto from 'crypto';
+
+const money = v => Number(Number(v).toFixed(2));
+const makeRef = prefix => `${prefix}-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomInt(100000,999999)}`;
+
+export async function initializeWalletSchema(pool){
+  await pool.query(`CREATE TABLE IF NOT EXISTS account_balances (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    asset VARCHAR(16) NOT NULL DEFAULT 'USDT',
+    available_balance NUMERIC(20,2) NOT NULL DEFAULT 0,
+    locked_balance NUMERIC(20,2) NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`INSERT INTO account_balances(user_id)
+    SELECT id FROM users ON CONFLICT(user_id) DO NOTHING`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS wallet_ledger (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    asset VARCHAR(16) NOT NULL DEFAULT 'USDT',
+    entry_type VARCHAR(40) NOT NULL,
+    amount NUMERIC(20,2) NOT NULL,
+    available_after NUMERIC(20,2) NOT NULL,
+    locked_after NUMERIC(20,2) NOT NULL,
+    reference_type VARCHAR(40),
+    reference_id VARCHAR(40),
+    note VARCHAR(300),
+    admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_ledger_user_created ON wallet_ledger(user_id,created_at DESC)`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS deposit_channels (
+    id BIGSERIAL PRIMARY KEY,
+    asset VARCHAR(16) NOT NULL DEFAULT 'USDT',
+    network VARCHAR(32) NOT NULL,
+    address VARCHAR(240) NOT NULL,
+    minimum_amount NUMERIC(20,2) NOT NULL DEFAULT 10,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(asset,network)
+  )`);
+  await pool.query(`INSERT INTO deposit_channels(asset,network,address,minimum_amount,enabled,sort_order)
+    VALUES ('USDT','TRC20','CONFIGURE_IN_ADMIN',10,false,1),('USDT','ERC20','CONFIGURE_IN_ADMIN',10,false,2)
+    ON CONFLICT(asset,network) DO NOTHING`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS deposit_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_no VARCHAR(32) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    asset VARCHAR(16) NOT NULL DEFAULT 'USDT',
+    network VARCHAR(32) NOT NULL,
+    deposit_address VARCHAR(240) NOT NULL,
+    amount NUMERIC(20,2) NOT NULL,
+    tx_reference VARCHAR(160),
+    proof_data_url TEXT NOT NULL,
+    proof_filename VARCHAR(180),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    review_note VARCHAR(300),
+    reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_requests_status_created ON deposit_requests(status,created_at DESC)`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS withdrawal_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_no VARCHAR(32) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    asset VARCHAR(16) NOT NULL DEFAULT 'USDT',
+    network VARCHAR(32) NOT NULL,
+    destination_address VARCHAR(240) NOT NULL,
+    amount NUMERIC(20,2) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    review_note VARCHAR(300),
+    reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_withdrawal_requests_status_created ON withdrawal_requests(status,created_at DESC)`);
+}
+
+export function registerWalletRoutes(app,{pool,auth,adminAuth,requireRole,audit}){
+  const ensureBalance = async (client,userId) => {
+    await client.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+    const q=await client.query(`SELECT available_balance,locked_balance,asset FROM account_balances WHERE user_id=$1 FOR UPDATE`,[userId]);
+    return q.rows[0];
+  };
+
+  app.get('/api/wallet', auth, async (req,res)=>{
+    try{
+      await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[req.auth.sub]);
+      const [b,d,w,l]=await Promise.all([
+        pool.query(`SELECT asset,available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[req.auth.sub]),
+        pool.query(`SELECT request_no,asset,network,amount,status,review_note,created_at,reviewed_at FROM deposit_requests WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50`,[req.auth.sub]),
+        pool.query(`SELECT request_no,asset,network,destination_address,amount,status,review_note,created_at,reviewed_at FROM withdrawal_requests WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50`,[req.auth.sub]),
+        pool.query(`SELECT entry_type,amount,available_after,locked_after,reference_type,reference_id,note,created_at FROM wallet_ledger WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100`,[req.auth.sub])
+      ]);
+      const row=b.rows[0]||{asset:'USDT',available_balance:0,locked_balance:0};
+      res.json({ balance:{asset:row.asset,available:Number(row.available_balance),locked:Number(row.locked_balance)},deposits:d.rows,withdrawals:w.rows,ledger:l.rows });
+    }catch(e){ console.error(e);res.status(500).json({error:'Unable to load wallet'}); }
+  });
+
+  app.get('/api/deposit/channels', auth, async (req,res)=>{
+    try{
+      const q=await pool.query(`SELECT asset,network,address,minimum_amount FROM deposit_channels WHERE enabled=true ORDER BY sort_order,network`);
+      res.json({channels:q.rows.map(x=>({asset:x.asset,network:x.network,address:x.address,minimumAmount:Number(x.minimum_amount)}))});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to load deposit channels'});}
+  });
+
+  app.post('/api/deposits', auth, async (req,res)=>{
+    const asset=String(req.body?.asset||'USDT').toUpperCase();
+    const network=String(req.body?.network||'').toUpperCase();
+    const amount=money(req.body?.amount);
+    const txReference=String(req.body?.txReference||'').trim().slice(0,160);
+    const proofDataUrl=String(req.body?.proofDataUrl||'');
+    const proofFilename=String(req.body?.proofFilename||'').trim().slice(0,180);
+    if(!network||!Number.isFinite(amount)||amount<=0) return res.status(400).json({error:'Network and valid amount are required'});
+    if(!/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(proofDataUrl)) return res.status(400).json({error:'Upload a PNG, JPG or WEBP transfer screenshot'});
+    if(proofDataUrl.length>5_500_000) return res.status(413).json({error:'Screenshot is too large'});
+    try{
+      const c=await pool.query(`SELECT address,minimum_amount FROM deposit_channels WHERE asset=$1 AND network=$2 AND enabled=true`,[asset,network]);
+      if(!c.rows[0]) return res.status(400).json({error:'Selected deposit network is unavailable'});
+      if(amount<Number(c.rows[0].minimum_amount)) return res.status(400).json({error:`Minimum deposit is ${Number(c.rows[0].minimum_amount)} ${asset}`});
+      const requestNo=makeRef('DEP');
+      const q=await pool.query(`INSERT INTO deposit_requests(request_no,user_id,asset,network,deposit_address,amount,tx_reference,proof_data_url,proof_filename) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING request_no,status,created_at`,[requestNo,req.auth.sub,asset,network,c.rows[0].address,amount,txReference||null,proofDataUrl,proofFilename||null]);
+      res.status(201).json({deposit:{requestNo:q.rows[0].request_no,status:q.rows[0].status,createdAt:q.rows[0].created_at}});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to submit deposit'});}
+  });
+
+  app.post('/api/withdrawals', auth, async (req,res)=>{
+    const asset=String(req.body?.asset||'USDT').toUpperCase();
+    const network=String(req.body?.network||'').toUpperCase();
+    const address=String(req.body?.address||'').trim().slice(0,240);
+    const amount=money(req.body?.amount);
+    if(!network||!address||!Number.isFinite(amount)||amount<=0) return res.status(400).json({error:'Network, address and valid amount are required'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const b=await ensureBalance(client,req.auth.sub);
+      if(Number(b.available_balance)<amount){await client.query('ROLLBACK');return res.status(400).json({error:'Insufficient available balance'});}
+      const requestNo=makeRef('WDR');
+      await client.query(`UPDATE account_balances SET available_balance=available_balance-$1,locked_balance=locked_balance+$1,updated_at=NOW() WHERE user_id=$2`,[amount,req.auth.sub]);
+      const q=await client.query(`INSERT INTO withdrawal_requests(request_no,user_id,asset,network,destination_address,amount) VALUES($1,$2,$3,$4,$5,$6) RETURNING request_no,status,created_at`,[requestNo,req.auth.sub,asset,network,address,amount]);
+      const after=await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[req.auth.sub]);
+      await client.query(`INSERT INTO wallet_ledger(user_id,asset,entry_type,amount,available_after,locked_after,reference_type,reference_id,note) VALUES($1,$2,'withdrawal_hold',$3,$4,$5,'withdrawal',$6,'Withdrawal request submitted')`,[req.auth.sub,asset,-amount,after.rows[0].available_balance,after.rows[0].locked_balance,requestNo]);
+      await client.query('COMMIT');
+      res.status(201).json({withdrawal:{requestNo:q.rows[0].request_no,status:q.rows[0].status,createdAt:q.rows[0].created_at}});
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to submit withdrawal'});}finally{client.release();}
+  });
+
+  app.get('/api/admin/wallet/users',adminAuth,async(req,res)=>{
+    const search=String(req.query.search||'').trim();
+    try{
+      const values=[];let where='';
+      if(search){values.push(`%${search}%`);where=`WHERE u.public_id ILIKE $1 OR u.identifier ILIKE $1 OR u.display_name ILIKE $1`;}
+      const q=await pool.query(`SELECT u.public_id,u.display_name,u.identifier,u.status,COALESCE(b.available_balance,0) available_balance,COALESCE(b.locked_balance,0) locked_balance FROM users u LEFT JOIN account_balances b ON b.user_id=u.id ${where} ORDER BY u.created_at DESC LIMIT 200`,values);
+      res.json({users:q.rows.map(x=>({publicId:x.public_id,displayName:x.display_name,identifier:x.identifier,status:x.status,available:Number(x.available_balance),locked:Number(x.locked_balance)}))});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to load wallet users'});}
+  });
+
+  app.post('/api/admin/wallet/users/:publicId/adjust',adminAuth,requireRole('super_admin','operations'),async(req,res)=>{
+    const amount=money(req.body?.amount);const note=String(req.body?.note||'').trim().slice(0,300);
+    if(!Number.isFinite(amount)||amount===0||!note) return res.status(400).json({error:'Non-zero amount and reason are required'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const u=await client.query(`SELECT id,public_id FROM users WHERE public_id=$1`,[req.params.publicId]);
+      if(!u.rows[0]){await client.query('ROLLBACK');return res.status(404).json({error:'User not found'});}
+      const before=await ensureBalance(client,u.rows[0].id);
+      if(Number(before.available_balance)+amount<0){await client.query('ROLLBACK');return res.status(400).json({error:'Adjustment would make available balance negative'});}
+      await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[amount,u.rows[0].id]);
+      const after=(await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[u.rows[0].id])).rows[0];
+      await client.query(`INSERT INTO wallet_ledger(user_id,entry_type,amount,available_after,locked_after,reference_type,reference_id,note,admin_id) VALUES($1,'admin_adjustment',$2,$3,$4,'admin_adjustment',$5,$6,$7)`,[u.rows[0].id,amount,after.available_balance,after.locked_balance,makeRef('ADJ'),note,req.admin.id]);
+      await client.query('COMMIT');
+      await audit(req,'wallet.balance.adjust','user',req.params.publicId,{amount,note,before:Number(before.available_balance),after:Number(after.available_balance)});
+      res.json({balance:{available:Number(after.available_balance),locked:Number(after.locked_balance)}});
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to adjust balance'});}finally{client.release();}
+  });
+
+  app.get('/api/admin/deposits',adminAuth,async(req,res)=>{
+    const status=String(req.query.status||'').trim();
+    try{
+      const values=[];let where='';if(status){values.push(status);where='WHERE d.status=$1';}
+      const q=await pool.query(`SELECT d.request_no,d.asset,d.network,d.deposit_address,d.amount,d.tx_reference,d.status,d.review_note,d.created_at,d.reviewed_at,u.public_id,u.display_name,u.identifier FROM deposit_requests d JOIN users u ON u.id=d.user_id ${where} ORDER BY d.created_at DESC LIMIT 300`,values);
+      res.json({deposits:q.rows.map(x=>({requestNo:x.request_no,asset:x.asset,network:x.network,depositAddress:x.deposit_address,amount:Number(x.amount),txReference:x.tx_reference,status:x.status,reviewNote:x.review_note,createdAt:x.created_at,reviewedAt:x.reviewed_at,user:{publicId:x.public_id,displayName:x.display_name,identifier:x.identifier}}))});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to load deposits'});}
+  });
+
+  app.get('/api/admin/deposits/:requestNo',adminAuth,async(req,res)=>{
+    try{
+      const q=await pool.query(`SELECT d.*,u.public_id,u.display_name,u.identifier FROM deposit_requests d JOIN users u ON u.id=d.user_id WHERE d.request_no=$1`,[req.params.requestNo]);
+      if(!q.rows[0])return res.status(404).json({error:'Deposit not found'});const x=q.rows[0];
+      res.json({deposit:{requestNo:x.request_no,asset:x.asset,network:x.network,depositAddress:x.deposit_address,amount:Number(x.amount),txReference:x.tx_reference,status:x.status,reviewNote:x.review_note,proofDataUrl:x.proof_data_url,proofFilename:x.proof_filename,createdAt:x.created_at,reviewedAt:x.reviewed_at,user:{publicId:x.public_id,displayName:x.display_name,identifier:x.identifier}}});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to load deposit'});}
+  });
+
+  app.post('/api/admin/deposits/:requestNo/review',adminAuth,requireRole('super_admin','operations'),async(req,res)=>{
+    const decision=String(req.body?.decision||'');const note=String(req.body?.note||'').trim().slice(0,300);
+    if(!['approve','reject'].includes(decision))return res.status(400).json({error:'Decision must be approve or reject'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const d=await client.query(`SELECT * FROM deposit_requests WHERE request_no=$1 FOR UPDATE`,[req.params.requestNo]);
+      const row=d.rows[0];if(!row){await client.query('ROLLBACK');return res.status(404).json({error:'Deposit not found'});}if(row.status!=='pending'){await client.query('ROLLBACK');return res.status(409).json({error:'Deposit has already been reviewed'});}
+      if(decision==='approve'){
+        await ensureBalance(client,row.user_id);
+        await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[row.amount,row.user_id]);
+        const after=(await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[row.user_id])).rows[0];
+        await client.query(`INSERT INTO wallet_ledger(user_id,asset,entry_type,amount,available_after,locked_after,reference_type,reference_id,note,admin_id) VALUES($1,$2,'deposit_credit',$3,$4,$5,'deposit',$6,$7,$8)`,[row.user_id,row.asset,row.amount,after.available_balance,after.locked_balance,row.request_no,note||'Deposit approved',req.admin.id]);
+      }
+      const status=decision==='approve'?'approved':'rejected';
+      await client.query(`UPDATE deposit_requests SET status=$1,review_note=$2,reviewed_by=$3,reviewed_at=NOW(),updated_at=NOW() WHERE id=$4`,[status,note||null,req.admin.id,row.id]);
+      await client.query('COMMIT');
+      await audit(req,`deposit.${status}`,'deposit',row.request_no,{amount:Number(row.amount),asset:row.asset,network:row.network,note});
+      res.json({deposit:{requestNo:row.request_no,status}});
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to review deposit'});}finally{client.release();}
+  });
+
+  app.get('/api/admin/withdrawals',adminAuth,async(req,res)=>{
+    const status=String(req.query.status||'').trim();
+    try{
+      const values=[];let where='';if(status){values.push(status);where='WHERE w.status=$1';}
+      const q=await pool.query(`SELECT w.request_no,w.asset,w.network,w.destination_address,w.amount,w.status,w.review_note,w.created_at,w.reviewed_at,u.public_id,u.display_name,u.identifier FROM withdrawal_requests w JOIN users u ON u.id=w.user_id ${where} ORDER BY w.created_at DESC LIMIT 300`,values);
+      res.json({withdrawals:q.rows.map(x=>({requestNo:x.request_no,asset:x.asset,network:x.network,address:x.destination_address,amount:Number(x.amount),status:x.status,reviewNote:x.review_note,createdAt:x.created_at,reviewedAt:x.reviewed_at,user:{publicId:x.public_id,displayName:x.display_name,identifier:x.identifier}}))});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to load withdrawals'});}
+  });
+
+  app.post('/api/admin/withdrawals/:requestNo/review',adminAuth,requireRole('super_admin','operations'),async(req,res)=>{
+    const decision=String(req.body?.decision||'');const note=String(req.body?.note||'').trim().slice(0,300);
+    if(!['approve','reject'].includes(decision))return res.status(400).json({error:'Decision must be approve or reject'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const w=await client.query(`SELECT * FROM withdrawal_requests WHERE request_no=$1 FOR UPDATE`,[req.params.requestNo]);
+      const row=w.rows[0];if(!row){await client.query('ROLLBACK');return res.status(404).json({error:'Withdrawal not found'});}if(row.status!=='pending'){await client.query('ROLLBACK');return res.status(409).json({error:'Withdrawal has already been reviewed'});}
+      const before=await ensureBalance(client,row.user_id);
+      if(Number(before.locked_balance)<Number(row.amount)){await client.query('ROLLBACK');return res.status(409).json({error:'Locked balance is inconsistent'});}
+      if(decision==='approve') await client.query(`UPDATE account_balances SET locked_balance=locked_balance-$1,updated_at=NOW() WHERE user_id=$2`,[row.amount,row.user_id]);
+      else await client.query(`UPDATE account_balances SET locked_balance=locked_balance-$1,available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[row.amount,row.user_id]);
+      const after=(await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[row.user_id])).rows[0];
+      await client.query(`INSERT INTO wallet_ledger(user_id,asset,entry_type,amount,available_after,locked_after,reference_type,reference_id,note,admin_id) VALUES($1,$2,$3,$4,$5,$6,'withdrawal',$7,$8,$9)`,[row.user_id,row.asset,decision==='approve'?'withdrawal_debit':'withdrawal_release',decision==='approve'?-Number(row.amount):Number(row.amount),after.available_balance,after.locked_balance,row.request_no,note||`Withdrawal ${decision}d`,req.admin.id]);
+      const status=decision==='approve'?'approved':'rejected';
+      await client.query(`UPDATE withdrawal_requests SET status=$1,review_note=$2,reviewed_by=$3,reviewed_at=NOW(),updated_at=NOW() WHERE id=$4`,[status,note||null,req.admin.id,row.id]);
+      await client.query('COMMIT');
+      await audit(req,`withdrawal.${status}`,'withdrawal',row.request_no,{amount:Number(row.amount),asset:row.asset,network:row.network,note});
+      res.json({withdrawal:{requestNo:row.request_no,status}});
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to review withdrawal'});}finally{client.release();}
+  });
+
+  app.get('/api/admin/deposit-channels',adminAuth,async(req,res)=>{
+    try{const q=await pool.query(`SELECT asset,network,address,minimum_amount,enabled,sort_order FROM deposit_channels ORDER BY sort_order,network`);res.json({channels:q.rows.map(x=>({asset:x.asset,network:x.network,address:x.address,minimumAmount:Number(x.minimum_amount),enabled:x.enabled,sortOrder:x.sort_order}))});}
+    catch(e){console.error(e);res.status(500).json({error:'Unable to load deposit channels'});}
+  });
+
+  app.put('/api/admin/deposit-channels/:network',adminAuth,requireRole('super_admin','operations'),async(req,res)=>{
+    const network=String(req.params.network||'').toUpperCase();const asset=String(req.body?.asset||'USDT').toUpperCase();const address=String(req.body?.address||'').trim().slice(0,240);const minimumAmount=money(req.body?.minimumAmount);const enabled=Boolean(req.body?.enabled);const sortOrder=Number(req.body?.sortOrder||0);
+    if(!network||!address||!Number.isFinite(minimumAmount)||minimumAmount<0||!Number.isInteger(sortOrder)||sortOrder<0)return res.status(400).json({error:'Invalid deposit channel'});
+    try{
+      await pool.query(`INSERT INTO deposit_channels(asset,network,address,minimum_amount,enabled,sort_order,updated_by,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(asset,network) DO UPDATE SET address=EXCLUDED.address,minimum_amount=EXCLUDED.minimum_amount,enabled=EXCLUDED.enabled,sort_order=EXCLUDED.sort_order,updated_by=EXCLUDED.updated_by,updated_at=NOW()`,[asset,network,address,minimumAmount,enabled,sortOrder,req.admin.id]);
+      await audit(req,'deposit.channel.update','deposit_channel',`${asset}:${network}`,{address,minimumAmount,enabled,sortOrder});res.json({ok:true});
+    }catch(e){console.error(e);res.status(500).json({error:'Unable to update deposit channel'});}
+  });
+}
