@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DApps Platform Admin</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eef3ff;background:#090d16}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17233b 0,#090d16 42%);min-height:100vh}.hidden{display:none!important}button,input,select,textarea{font:inherit}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(100%,420px);background:#101725;border:1px solid #25314a;border-radius:22px;padding:28px;box-shadow:0 30px 80px #0008}.brand{font-weight:800;font-size:24px}.sub{color:#8fa0bc;font-size:14px;margin-top:8px}.field{margin-top:18px}.field label{display:block;color:#9eb0cd;font-size:13px;margin-bottom:8px}.field input,.field textarea{width:100%;background:#0b111d;border:1px solid #26334c;color:#fff;border-radius:12px;padding:13px}.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:700;cursor:pointer}.btn-primary{background:#5a72ff;color:white}.btn-ghost{background:#182236;color:#dbe5f7}.btn-danger{background:#3b1820;color:#ffbbc7}.error{color:#ff9bab;font-size:13px;margin-top:12px}.shell{min-height:100vh;display:grid;grid-template-columns:230px 1fr}.side{border-right:1px solid #1d2940;background:#0b111b;padding:22px;position:sticky;top:0;height:100vh}.nav{margin-top:28px;display:grid;gap:8px}.nav button{width:100%;text-align:left;background:transparent;border:0;color:#92a3bd;padding:11px 12px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:#172238;color:white}.main{padding:28px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.top h1{margin:0;font-size:28px}.muted{color:#8fa0bc}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:22px 0}.card,.panel{background:#101725;border:1px solid #202c43;border-radius:16px}.card{padding:18px}.card b{display:block;font-size:28px;margin-top:8px}.panel{padding:18px;margin-top:16px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.search{background:#0b111d;border:1px solid #283651;color:#fff;border-radius:10px;padding:10px 12px;width:min(320px,100%)}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #1d2940;vertical-align:top}th{color:#8fa0bc;font-weight:600}.badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172239;color:#a9b9d2}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.row-actions button{padding:6px 8px;border-radius:8px;border:0;background:#1b2740;color:#e9f0ff;cursor:pointer}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.setting-row{display:grid;grid-template-columns:1.3fr .8fr .8fr .6fr auto;gap:10px;align-items:center;margin-top:10px}.setting-row input{width:100%;background:#0b111d;border:1px solid #283651;color:#fff;border-radius:8px;padding:9px}.toggle{display:flex;gap:8px;align-items:center}.notice{padding:12px 14px;border-radius:12px;background:#13233a;color:#b9cdf1;margin-top:14px}.audit{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap}.section{display:none}.section.active{display:block}@media(max-width:900px){.shell{grid-template-columns:1fr}.side{height:auto;position:relative;border-right:0;border-bottom:1px solid #1d2940}.nav{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:1fr 1fr}.settings-grid{grid-template-columns:1fr}.main{padding:18px}.setting-row{grid-template-columns:1fr 1fr}.table-wrap{overflow:auto}}@media(max-width:560px){.cards{grid-template-columns:1fr}.nav{grid-template-columns:1fr 1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<section id="loginView" class="login">
+  <div class="login-card">
+    <div class="brand">DApps Platform Admin</div>
+    <div class="sub">Private management console. Admin authentication is required.</div>
+    <form id="loginForm">
+      <div class="field"><label>Admin email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:20px">Sign in</button>
+      <div id="loginError" class="error"></div>
+    </form>
+  </div>
+</section>
+
+<section id="appView" class="shell hidden">
+  <aside class="side">
+    <div class="brand">DApps Admin</div><div id="adminMeta" class="sub"></div>
+    <nav class="nav">
+      <button data-section="dashboard" class="active">Dashboard</button>
+      <button data-section="users">Users</button>
+      <button data-section="tickets">Support</button>
+      <button data-section="settings">Settings</button>
+      <button data-section="audit">Audit Log</button>
+      <button id="logoutBtn">Sign out</button>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="top"><div><h1 id="pageTitle">Dashboard</h1><div class="muted">Operational management console</div></div><button id="refreshBtn" class="btn btn-ghost">Refresh</button></div>
+
+    <section id="dashboard" class="section active"><div class="cards"><div class="card"><span class="muted">Users</span><b id="statUsers">—</b></div><div class="card"><span class="muted">Tickets</span><b id="statTickets">—</b></div><div class="card"><span class="muted">Open Tickets</span><b id="statOpenTickets">—</b></div><div class="card"><span class="muted">Active Admins</span><b id="statAdmins">—</b></div></div><div class="notice">Balance adjustments and trade outcome manipulation are intentionally not exposed here. Administrative changes are logged.</div></section>
+
+    <section id="users" class="section"><div class="panel"><div class="panel-head"><b>User Management</b><input id="userSearch" class="search" placeholder="Search ID, email/mobile or name"></div><div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Identifier</th><th>Method</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody id="usersBody"></tbody></table></div></div></section>
+
+    <section id="tickets" class="section"><div class="panel"><div class="panel-head"><b>Support Tickets</b></div><div class="table-wrap"><table><thead><tr><th>Ticket</th><th>User</th><th>Category</th><th>Subject / Message</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody id="ticketsBody"></tbody></table></div></div></section>
+
+    <section id="settings" class="section"><div class="settings-grid"><div class="panel"><b>Platform</b><div class="field"><label>Platform Name</label><input id="platformName"></div><div class="field"><label>Announcement</label><textarea id="announcement" rows="4"></textarea></div><div class="field toggle"><input id="maintenanceMode" type="checkbox"><label for="maintenanceMode">Maintenance Mode</label></div><button id="saveGeneral" class="btn btn-primary" style="margin-top:14px">Save Platform Settings</button></div><div class="panel"><b>Trade Products</b><div id="tradeSettings"></div></div><div class="panel"><b>Pledge Products</b><div id="pledgeSettings"></div></div><div class="panel"><b>Markets</b><div id="marketSettings"></div></div></div></section>
+
+    <section id="audit" class="section"><div class="panel"><div class="panel-head"><b>Audit Log</b></div><div id="auditBody" class="audit"></div></div></section>
+  </main>
+</section>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const dt=v=>v?new Date(v).toLocaleString():'—';
+async function api(path,options={}){const r=await fetch('/admin-api'+path,{headers:{'content-type':'application/json',...(options.headers||{})},...options});const data=await r.json().catch(()=>({}));if(r.status===401){showLogin();throw new Error('Session expired');}if(!r.ok)throw new Error(data.error||'Request failed');return data;}
+function showLogin(){ $('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden'); }
+function showApp(admin){ $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');$('#adminMeta').textContent=`${admin.displayName} · ${admin.role}`;loadDashboard(); }
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{const r=await fetch('/session/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:$('#email').value,password:$('#password').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Sign in failed');showApp(d.admin);}catch(err){$('#loginError').textContent=err.message;}});
+$('#logoutBtn').onclick=async()=>{await fetch('/session/logout',{method:'POST'});showLogin();};
+$$('.nav [data-section]').forEach(b=>b.onclick=()=>{ $$('.nav [data-section]').forEach(x=>x.classList.toggle('active',x===b));$$('.section').forEach(s=>s.classList.toggle('active',s.id===b.dataset.section));$('#pageTitle').textContent=b.textContent;if(b.dataset.section==='users')loadUsers();if(b.dataset.section==='tickets')loadTickets();if(b.dataset.section==='settings')loadSettings();if(b.dataset.section==='audit')loadAudit();});
+$('#refreshBtn').onclick=()=>{const active=$('.section.active')?.id;if(active==='dashboard')loadDashboard();if(active==='users')loadUsers();if(active==='tickets')loadTickets();if(active==='settings')loadSettings();if(active==='audit')loadAudit();};
+async function loadDashboard(){try{const d=await api('/dashboard');$('#statUsers').textContent=d.users;$('#statTickets').textContent=d.tickets;$('#statOpenTickets').textContent=d.openTickets;$('#statAdmins').textContent=d.activeAdmins;}catch{}}
+let userTimer;$('#userSearch').oninput=()=>{clearTimeout(userTimer);userTimer=setTimeout(loadUsers,250)};
+async function loadUsers(){try{const d=await api('/users?search='+encodeURIComponent($('#userSearch').value));$('#usersBody').innerHTML=d.users.map(u=>`<tr><td><b>${esc(u.publicId)}</b></td><td>${esc(u.displayName)}</td><td>${esc(u.identifier)}</td><td>${esc(u.registrationType)}</td><td><span class="badge">${esc(u.status)}</span></td><td>${dt(u.createdAt)}</td><td><div class="row-actions"><button onclick="setUserStatus('${esc(u.publicId)}','active')">Activate</button><button onclick="setUserStatus('${esc(u.publicId)}','frozen')">Freeze</button><button onclick="setUserStatus('${esc(u.publicId)}','disabled')">Disable</button></div></td></tr>`).join('')||'<tr><td colspan="7">No users</td></tr>';}catch{}}
+window.setUserStatus=async(id,status)=>{if(!confirm(`Set ${id} to ${status}?`))return;try{await api('/users/'+encodeURIComponent(id)+'/status',{method:'PATCH',body:JSON.stringify({status})});loadUsers();}catch(e){alert(e.message)}};
+async function loadTickets(){try{const d=await api('/tickets');$('#ticketsBody').innerHTML=d.tickets.map(t=>`<tr><td><b>${esc(t.ticketNo)}</b></td><td>${esc(t.user.displayName)}<br><span class="muted">${esc(t.user.publicId)}</span></td><td>${esc(t.category)}</td><td><b>${esc(t.subject)}</b><br>${esc(t.message)}</td><td><span class="badge">${esc(t.status)}</span></td><td>${dt(t.createdAt)}</td><td><select onchange="setTicketStatus('${esc(t.ticketNo)}',this.value)"><option value="">Change…</option><option>open</option><option value="in_progress">in progress</option><option>resolved</option><option>closed</option></select></td></tr>`).join('')||'<tr><td colspan="7">No tickets</td></tr>';}catch{}}
+window.setTicketStatus=async(no,status)=>{if(!status)return;try{await api('/tickets/'+encodeURIComponent(no)+'/status',{method:'PATCH',body:JSON.stringify({status})});loadTickets();}catch(e){alert(e.message)}};
+async function loadSettings(){try{const d=await api('/config');$('#platformName').value=d.general.platformName||'';$('#announcement').value=d.general.announcement||'';$('#maintenanceMode').checked=!!d.general.maintenanceMode;$('#tradeSettings').innerHTML=d.trades.map(x=>`<div class="setting-row"><b>${x.duration_seconds}s</b><input id="tm${x.duration_seconds}" type="number" value="${x.minimum_amount}"><input id="tr${x.duration_seconds}" type="number" step="0.01" value="${x.profit_rate}"><label class="toggle"><input id="te${x.duration_seconds}" type="checkbox" ${x.enabled?'checked':''}> On</label><button class="btn btn-ghost" onclick="saveTrade(${x.duration_seconds})">Save</button></div>`).join('');$('#pledgeSettings').innerHTML=d.pledges.map(x=>`<div class="setting-row"><b>${esc(x.product_name)}</b><input id="pa${esc(x.product_code)}" type="number" step="0.01" value="${x.apy}"><input id="pm${esc(x.product_code)}" type="number" value="${x.minimum_amount}"><label class="toggle"><input id="pe${esc(x.product_code)}" type="checkbox" ${x.enabled?'checked':''}> On</label><button class="btn btn-ghost" onclick="savePledge('${esc(x.product_code)}')">Save</button></div>`).join('');$('#marketSettings').innerHTML=d.markets.map(x=>`<div class="setting-row"><b>${esc(x.symbol)}</b><span>${esc(x.display_name)}</span><input id="ms${esc(x.symbol).replace('/','_')}" type="number" value="${x.sort_order}"><label class="toggle"><input id="me${esc(x.symbol).replace('/','_')}" type="checkbox" ${x.enabled?'checked':''}> On</label><button class="btn btn-ghost" onclick="saveMarket('${esc(x.symbol)}')">Save</button></div>`).join('');}catch(e){alert(e.message)}}
+$('#saveGeneral').onclick=async()=>{try{await api('/config/general',{method:'PUT',body:JSON.stringify({platformName:$('#platformName').value,announcement:$('#announcement').value,maintenanceMode:$('#maintenanceMode').checked})});alert('Saved');}catch(e){alert(e.message)}};
+window.saveTrade=async d=>{try{await api('/config/trades/'+d,{method:'PUT',body:JSON.stringify({minimumAmount:Number($('#tm'+d).value),profitRate:Number($('#tr'+d).value),enabled:$('#te'+d).checked})});alert('Saved');}catch(e){alert(e.message)}};
+window.savePledge=async code=>{try{await api('/config/pledges/'+encodeURIComponent(code),{method:'PUT',body:JSON.stringify({apy:Number($('#pa'+code).value),minimumAmount:Number($('#pm'+code).value),enabled:$('#pe'+code).checked})});alert('Saved');}catch(e){alert(e.message)}};
+window.saveMarket=async symbol=>{const k=symbol.replace('/','_');try{await api('/config/markets/'+encodeURIComponent(symbol),{method:'PUT',body:JSON.stringify({sortOrder:Number($('#ms'+k).value),enabled:$('#me'+k).checked})});alert('Saved');}catch(e){alert(e.message)}};
+async function loadAudit(){try{const d=await api('/audit-logs');$('#auditBody').textContent=d.logs.map(x=>`${dt(x.created_at)} | ${x.admin_email||'system'} | ${x.action} | ${x.target_type}:${x.target_id||'-'} | ${JSON.stringify(x.details)}`).join('\n')||'No audit records';}catch(e){$('#auditBody').textContent=e.message;}}
+(async()=>{try{const d=await api('/me');showApp(d.admin);}catch{showLogin();}})();
+</script>
+</body>
+</html>
