@@ -1,3 +1,5 @@
+import { initializeTradeSchema, registerTradeRoutes } from './trade-routes.js';
+
 const clean = (v, n=200) => String(v ?? '').trim().slice(0,n);
 const isImage = v => /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(v||''));
 
@@ -21,9 +23,11 @@ export async function initializeKycSchema(pool){
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_kyc_status_submitted ON kyc_profiles(status,submitted_at DESC)`);
+  await initializeTradeSchema(pool);
 }
 
-export function registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit}){
+export function registerKycRoutes(app,args){
+  const {pool,auth,adminAuth,requireRole,audit}=args;
   app.get('/api/kyc',auth,async(req,res)=>{
     try{
       const q=await pool.query(`SELECT full_name,date_of_birth,country,document_type,document_number,status,review_note,submitted_at,reviewed_at FROM kyc_profiles WHERE user_id=$1`,[req.auth.sub]);
@@ -77,4 +81,6 @@ export function registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit}){
       res.json({ok:true,status});
     }catch(e){console.error(e);res.status(500).json({error:'Unable to review KYC'});}
   });
+
+  registerTradeRoutes(app,args);
 }
