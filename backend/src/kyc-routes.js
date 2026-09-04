@@ -1,4 +1,5 @@
 import { initializeTradeSchema, registerTradeRoutes } from './trade-routes.js';
+import { initializeUserAdminSchema, registerUserAdminRoutes } from './user-admin-routes.js';
 
 const clean = (v, n=200) => String(v ?? '').trim().slice(0,n);
 const isImage = v => /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(v||''));
@@ -24,6 +25,7 @@ export async function initializeKycSchema(pool){
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_kyc_status_submitted ON kyc_profiles(status,submitted_at DESC)`);
   await initializeTradeSchema(pool);
+  await initializeUserAdminSchema(pool);
 }
 
 export function registerKycRoutes(app,args){
@@ -83,4 +85,5 @@ export function registerKycRoutes(app,args){
   });
 
   registerTradeRoutes(app,args);
+  registerUserAdminRoutes(app,args);
 }
