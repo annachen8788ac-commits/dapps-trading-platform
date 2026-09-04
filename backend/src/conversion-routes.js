@@ -1,20 +1,45 @@
 const ASSET_RE=/^[A-Z0-9.-]{2,16}$/;
 const cache={at:0,prices:new Map()};
-const stable=new Set(['USDT','USDC','DAI']);
+const stable=new Set(['USDT','USDC','DAI','FDUSD','TUSD']);
 const n=v=>Number(v);
-
-async function refreshPrices(){
-  if(Date.now()-cache.at<30000&&cache.prices.size)return cache.prices;
-  const r=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false',{headers:{accept:'application/json'}});
-  if(!r.ok)throw new Error('Market price service unavailable');
-  const rows=await r.json();
-  const next=new Map();
-  for(const row of rows){const s=String(row.symbol||'').toUpperCase();const p=Number(row.current_price);if(s&&Number.isFinite(p)&&p>0&&!next.has(s))next.set(s,p)}
-  for(const s of stable)next.set(s,1);
-  cache.at=Date.now();cache.prices=next;return next;
-}
-async function priceFor(asset){const prices=await refreshPrices();const p=prices.get(asset);if(!p)throw new Error(`No current market price for ${asset}`);return p}
 const roundAsset=v=>Number(Number(v).toFixed(12));
+
+const aliases={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',TRX:'tron',LTC:'litecoin',USDT:'tether',USDC:'usd-coin',DAI:'dai'};
+
+async function fetchJson(url,timeout=5500){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeout);
+  try{const r=await fetch(url,{headers:{accept:'application/json','user-agent':'DAppsPlatform/1.0'},signal:controller.signal});if(!r.ok)throw new Error(`HTTP ${r.status}`);return await r.json()}finally{clearTimeout(timer)}
+}
+function addStable(map){for(const s of stable)map.set(s,1);return map}
+async function pricesFromCoinGecko(){
+  const rows=await fetchJson('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false');
+  const map=new Map();for(const row of rows){const s=String(row.symbol||'').toUpperCase(),p=Number(row.current_price);if(s&&Number.isFinite(p)&&p>0&&!map.has(s))map.set(s,p)}return addStable(map)
+}
+async function pricesFromBinance(){
+  const rows=await fetchJson('https://api.binance.com/api/v3/ticker/price');const map=new Map();
+  for(const row of rows){const pair=String(row.symbol||'').toUpperCase();let asset='';if(pair.endsWith('USDT'))asset=pair.slice(0,-4);else if(pair.endsWith('USDC'))asset=pair.slice(0,-4);else continue;const p=Number(row.price);if(asset&&Number.isFinite(p)&&p>0&&!map.has(asset))map.set(asset,p)}return addStable(map)
+}
+async function refreshPrices(force=false){
+  if(!force&&Date.now()-cache.at<30000&&cache.prices.size)return cache.prices;
+  const errors=[];
+  for(const provider of [pricesFromCoinGecko,pricesFromBinance]){try{const next=await provider();if(next.size>stable.size){cache.at=Date.now();cache.prices=next;return next}}catch(e){errors.push(e.message)}}
+  if(cache.prices.size)return cache.prices;
+  throw new Error('Market price service temporarily unavailable');
+}
+async function directCoinGecko(asset){
+  const id=aliases[asset];if(!id)return null;
+  try{const d=await fetchJson(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd`);const p=Number(d?.[id]?.usd);return Number.isFinite(p)&&p>0?p:null}catch{return null}
+}
+async function directBinance(asset){
+  if(stable.has(asset))return 1;
+  try{const d=await fetchJson(`https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(asset+'USDT')}`);const p=Number(d?.price);return Number.isFinite(p)&&p>0?p:null}catch{return null}
+}
+async function priceFor(asset){
+  if(stable.has(asset))return 1;
+  try{const prices=await refreshPrices();const p=prices.get(asset);if(p)return p}catch{}
+  const [cg,bn]=await Promise.all([directCoinGecko(asset),directBinance(asset)]);const p=cg||bn;if(p){cache.prices.set(asset,p);cache.at=Date.now();return p}
+  throw new Error(`No current market price for ${asset}`)
+}
 
 export async function initializeConversionSchema(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS user_asset_balances (
@@ -53,7 +78,7 @@ export function registerConversionRoutes(app,{pool,auth}){
   app.get('/api/convert/quote',auth,async(req,res)=>{
     const from=String(req.query.from||'').trim().toUpperCase(),to=String(req.query.to||'').trim().toUpperCase(),amount=n(req.query.amount);
     if(!ASSET_RE.test(from)||!ASSET_RE.test(to)||from===to||!Number.isFinite(amount)||amount<=0)return res.status(400).json({error:'Choose two different assets and a valid amount'});
-    try{const [fromPrice,toPrice]=await Promise.all([priceFor(from),priceFor(to)]);const receive=roundAsset(amount*fromPrice/toPrice);res.json({quote:{from,to,amount,receive,fromPriceUsd:fromPrice,toPriceUsd:toPrice,fee:0,expiresInSeconds:30}})}catch(e){res.status(503).json({error:e.message||'Unable to quote conversion'})}
+    try{const [fromPrice,toPrice]=await Promise.all([priceFor(from),priceFor(to)]);const receive=roundAsset(amount*fromPrice/toPrice);res.json({quote:{from,to,amount,receive,fromPriceUsd:fromPrice,toPriceUsd:toPrice,fee:0,expiresInSeconds:30}})}catch(e){console.error('conversion quote price error',e);res.status(503).json({error:e.message||'Unable to quote conversion'})}
   });
 
   app.post('/api/convert',auth,async(req,res)=>{
