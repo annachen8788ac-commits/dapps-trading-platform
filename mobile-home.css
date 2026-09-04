@@ -1,0 +1,35 @@
+@media (max-width:720px){
+  html,body{background:#050b13!important;overflow-x:hidden}
+  body{padding-bottom:88px!important}
+  .app-shell{width:100%!important;max-width:460px!important;min-height:100vh!important;margin:0 auto!important;background:linear-gradient(180deg,#07111f 0%,#081522 58%,#07111f 100%)!important;box-shadow:none!important}
+  .topbar{height:62px!important;padding:0 14px!important;background:rgba(5,14,25,.96)!important;border-bottom:1px solid rgba(255,255,255,.04)!important}
+  .brand{gap:9px!important}.brand-mark{width:34px!important;height:34px!important;border-radius:10px!important;font-size:19px!important}.brand-copy strong{font-size:16px!important}.brand-copy span{font-size:8px!important}
+  .top-actions{gap:5px!important}.icon-btn{width:28px!important;height:28px!important;font-size:21px!important}.avatar-btn{width:31px!important;height:31px!important;border-width:1px!important}
+  main{padding:0 10px 22px!important}
+
+  #page-home{padding-top:0!important}
+  .gateway-hero{margin:0 -10px 12px!important;padding:21px 16px 18px!important;min-height:308px!important;border-radius:0 0 18px 18px!important;display:block!important;background:radial-gradient(circle at 78% 69%,rgba(28,125,255,.30),transparent 26%),linear-gradient(145deg,#06101d,#08182c 70%,#07111f)!important}
+  .gateway-copy{position:relative;z-index:3;max-width:72%!important}.gateway-copy h1{font-size:27px!important;line-height:1.08!important;letter-spacing:-.045em!important;margin:4px 0 12px!important;max-width:255px!important}.gateway-copy p{font-size:10px!important;line-height:1.55!important;color:#cbd6e3!important;margin:0 0 18px!important}.hero-trade-btn{padding:10px 17px!important;font-size:11px!important}
+  .hero-globe{position:absolute!important;right:-30px!important;bottom:-1px!important;width:218px!important;height:218px!important;opacity:.82!important;z-index:1!important}.globe-core{width:144px!important;height:144px!important}.globe-core strong{font-size:28px!important}.orbit{width:192px!important;height:62px!important}.hero-values{display:none!important}
+
+  .asset-hero-card{margin:10px 0 12px!important;padding:16px!important;grid-template-columns:1.08fr 1px .92fr!important;gap:12px!important;border-radius:16px!important;background:linear-gradient(112deg,#0b4f9d,#073f68 53%,#087a6e)!important}.asset-main>span,.asset-side>span{font-size:10px!important}.asset-main strong{font-size:26px!important;margin:6px 0 5px!important;letter-spacing:0!important}.asset-main small{font-size:10px!important}.asset-divider{height:55px!important}.asset-side strong{font-size:14px!important;margin-top:6px!important}.asset-side button{font-size:27px!important;top:8px!important}
+
+  .six-actions{grid-template-columns:repeat(3,1fr)!important;gap:8px!important;margin:12px 0 14px!important}.six-actions button{height:78px!important;border-radius:12px!important;gap:6px!important;background:linear-gradient(180deg,#0f2137,#0b192a)!important}.action-icon{font-size:22px!important}.six-actions b{font-size:10px!important;font-weight:600!important}
+
+  .home-market-card{padding:13px 9px 8px!important;border-radius:15px!important}.home-card-title h2{font-size:16px!important}.home-card-title button{font-size:10px!important}.home-market-tabs{gap:2px!important;margin-top:13px!important;padding-bottom:8px!important;overflow-x:auto!important;scrollbar-width:none!important}.home-market-tabs::-webkit-scrollbar{display:none}.home-market-tabs button{font-size:9px!important;white-space:nowrap!important;padding:6px 9px!important}
+  .home-market-head{grid-template-columns:1.45fr .95fr .75fr!important;padding:10px 7px 5px!important;font-size:9px!important}.home-market-head span:nth-child(4){display:none!important}.home-market-row{grid-template-columns:30px 1.25fr .95fr .75fr 14px!important;gap:6px!important;padding:10px 6px!important}.home-market-row .sparkline{display:none!important}.home-market-row .coin-icon{margin-right:0!important;width:26px!important;height:26px!important;font-size:12px!important}.home-market-name strong{font-size:10px!important}.home-market-name small{display:none!important}.home-market-row>strong,.home-market-row>span:nth-child(4){font-size:10px!important}.home-market-row>span:last-child{font-size:14px!important}
+
+  .promo-grid{grid-template-columns:1fr!important;gap:10px!important;margin-top:13px!important}.promo-card{height:132px!important;padding:16px 18px!important;border-radius:14px!important}.promo-card h3{font-size:18px!important;max-width:60%!important}.promo-card p{font-size:10px!important}.promo-card button{padding:8px 13px!important;font-size:10px!important}.mini-chart{height:85px!important;width:42%!important;right:6px!important}.coin-stack{transform:scale(.8);transform-origin:right bottom;right:12px!important;bottom:7px!important}
+
+  .announcement-bar{min-height:58px!important;margin:12px 0 2px!important;padding:10px 11px!important;grid-template-columns:auto 1fr auto!important;gap:8px!important}.announcement-bar>span{font-size:20px!important}.announcement-bar strong{font-size:10px!important}.announcement-bar p{display:none!important}.announcement-bar button{font-size:10px!important}
+
+  .mobile-nav{width:100%!important;max-width:460px!important;left:50%!important;bottom:0!important;padding:8px 4px 12px!important;border-radius:0!important;border:0!important;border-top:1px solid #17304a!important;background:rgba(5,16,29,.97)!important}.mobile-nav button{font-size:9px!important;gap:3px!important}.mobile-nav button span{font-size:20px!important}.mobile-nav .trade-center span{width:52px!important;height:52px!important;margin-top:-25px!important;font-size:23px!important}.mobile-nav .trade-center{font-size:9px!important}
+
+  .page-header{margin:18px 0 14px!important}.page-header h1{font-size:25px!important}.market-summary{overflow-x:auto!important}.trade-header{margin-top:10px!important}.chart-stage{height:300px!important}
+}
+
+@media (max-width:390px){
+  .gateway-copy{max-width:76%!important}.gateway-copy h1{font-size:25px!important}.hero-globe{right:-48px!important;transform:scale(.92)}
+  .asset-main strong{font-size:23px!important}.asset-side strong{font-size:12px!important}.six-actions button{height:74px!important}.six-actions b{font-size:9px!important}
+  .home-market-row{grid-template-columns:28px 1.18fr .9fr .72fr 12px!important}.promo-card h3{font-size:17px!important}
+}
