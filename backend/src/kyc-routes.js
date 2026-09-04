@@ -1,6 +1,7 @@
 import { initializeTradeSchema, registerTradeRoutes } from './trade-routes.js';
 import { initializeUserAdminSchema, registerUserAdminRoutes } from './user-admin-routes.js';
 import { initializeSupportChatSchema, registerSupportChatRoutes } from './support-chat-routes.js';
+import { initializePledgeSchema, registerPledgeRoutes } from './pledge-routes.js';
 
 const clean = (v, n=200) => String(v ?? '').trim().slice(0,n);
 const isImage = v => /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(v||''));
@@ -8,7 +9,7 @@ const isImage = v => /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(v||
 export async function initializeKycSchema(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS kyc_profiles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,full_name VARCHAR(120) NOT NULL,date_of_birth DATE NOT NULL,country VARCHAR(80) NOT NULL,document_type VARCHAR(32) NOT NULL,document_number VARCHAR(100) NOT NULL,document_front TEXT NOT NULL,document_back TEXT,selfie_image TEXT NOT NULL,status VARCHAR(24) NOT NULL DEFAULT 'pending',review_note VARCHAR(300),reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,reviewed_at TIMESTAMPTZ,submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_kyc_status_submitted ON kyc_profiles(status,submitted_at DESC)`);
-  await initializeTradeSchema(pool);await initializeUserAdminSchema(pool);await initializeSupportChatSchema(pool);
+  await initializeTradeSchema(pool);await initializeUserAdminSchema(pool);await initializeSupportChatSchema(pool);await initializePledgeSchema(pool);
 }
 export function registerKycRoutes(app,args){
   const {pool,auth,adminAuth,requireRole,audit}=args;
@@ -17,5 +18,5 @@ export function registerKycRoutes(app,args){
   app.get('/api/admin/kyc',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{const status=clean(req.query.status,24);try{const values=[];let where='';if(status){values.push(status);where='WHERE k.status=$1'}const q=await pool.query(`SELECT k.id,k.full_name,k.date_of_birth,k.country,k.document_type,k.document_number,k.status,k.review_note,k.submitted_at,k.reviewed_at,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id ${where} ORDER BY k.submitted_at DESC LIMIT 300`,values);res.json({items:q.rows.map(r=>({id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}))})}catch(e){console.error(e);res.status(500).json({error:'Unable to load KYC queue'})}});
   app.get('/api/admin/kyc/:id',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{try{const q=await pool.query(`SELECT k.*,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id WHERE k.id=$1`,[req.params.id]);if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});const r=q.rows[0];res.json({item:{id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,documentFront:r.document_front,documentBack:r.document_back,selfieImage:r.selfie_image,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}})}catch(e){res.status(500).json({error:'Unable to load KYC record'})}});
   app.post('/api/admin/kyc/:id/review',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{const status=clean(req.body?.status,24),note=clean(req.body?.note,300);if(!['approved','rejected'].includes(status))return res.status(400).json({error:'Choose approved or rejected'});try{const q=await pool.query(`UPDATE kyc_profiles SET status=$1,review_note=$2,reviewed_by=$3,reviewed_at=NOW(),updated_at=NOW() WHERE id=$4 RETURNING id`,[status,note||null,req.admin.id,req.params.id]);if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});await audit(req,'kyc.review','kyc',req.params.id,{status,note});res.json({ok:true,status})}catch(e){res.status(500).json({error:'Unable to review KYC'})}});
-  registerTradeRoutes(app,args);registerUserAdminRoutes(app,args);registerSupportChatRoutes(app,args);
+  registerTradeRoutes(app,args);registerUserAdminRoutes(app,args);registerSupportChatRoutes(app,args);registerPledgeRoutes(app,args);
 }
