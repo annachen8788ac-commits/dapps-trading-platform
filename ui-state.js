@@ -56,9 +56,12 @@
   document.querySelectorAll('.top-actions .primary-btn, #page-assets > .page-header .primary-btn').forEach(btn=>{btn.textContent='Deposit';btn.addEventListener('click',()=>{if(demoMode)return showToast('Simulation accounts do not use deposits.');location.href=localStorage.getItem('dapps:token')?'deposit.html':'login.html'})});
   const assetsHeader=document.querySelector('#page-assets > .page-header');
   if(assetsHeader&&!assetsHeader.querySelector('.wallet-actions')){
-    const currentDeposit=assetsHeader.querySelector('.primary-btn');
-    if(currentDeposit){const wrap=document.createElement('div');wrap.className='wallet-actions';wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap';currentDeposit.parentNode.insertBefore(wrap,currentDeposit);wrap.appendChild(currentDeposit);const withdraw=document.createElement('button');withdraw.className='ghost-btn';withdraw.textContent='Withdraw';withdraw.onclick=()=>{if(demoMode)return showToast('Simulation accounts do not use withdrawals.');location.href=localStorage.getItem('dapps:token')?'withdraw.html':'login.html'};wrap.appendChild(withdraw)}
+    let wrap=document.createElement('div');wrap.className='wallet-actions';wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';assetsHeader.appendChild(wrap);
+    const deposit=document.createElement('button');deposit.className='primary-btn';deposit.textContent='Deposit';deposit.onclick=()=>{if(demoMode)return showToast('Simulation accounts do not use deposits.');location.href=localStorage.getItem('dapps:token')?'deposit.html':'login.html'};wrap.appendChild(deposit);
+    const withdraw=document.createElement('button');withdraw.className='ghost-btn';withdraw.textContent='Withdraw';withdraw.onclick=()=>{if(demoMode)return showToast('Simulation accounts do not use withdrawals.');location.href=localStorage.getItem('dapps:token')?'withdraw.html':'login.html'};wrap.appendChild(withdraw);
+    const convert=document.createElement('button');convert.className='ghost-btn';convert.textContent='Convert';convert.onclick=()=>{if(demoMode)return showToast('Asset conversion is available for registered accounts.');location.href=localStorage.getItem('dapps:token')?'convert.html':'login.html'};wrap.appendChild(convert);
   }
+  const homeTransfer=document.querySelector('#home-transfer');if(homeTransfer){homeTransfer.querySelector('b')&&(homeTransfer.querySelector('b').textContent='Convert');homeTransfer.onclick=()=>{if(demoMode)return showToast('Asset conversion is available for registered accounts.');location.href=localStorage.getItem('dapps:token')?'convert.html':'login.html'}}
 
   const supportBtn=document.querySelector('.top-actions .ghost-btn');if(supportBtn){supportBtn.textContent='Support';supportBtn.addEventListener('click',()=>{location.href='support.html'})}
   const avatarBtn=document.querySelector('.avatar-btn');
