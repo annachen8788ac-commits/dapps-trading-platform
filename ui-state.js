@@ -5,83 +5,52 @@
   const demoMode=Boolean(demoId);
   function safeGet(key,fallback=null){try{return localStorage.getItem(key)??fallback}catch{return fallback}}
   function safeSet(key,value){try{localStorage.setItem(key,String(value))}catch{}}
+  function money(v){return Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function qty(v){const x=Number(v||0);return x.toLocaleString('en-US',{minimumFractionDigits:x&&Math.abs(x)<1?2:0,maximumFractionDigits:8})}
 
   function installBrand(){
     const mark=document.querySelector('.brand-mark');
     if(mark){mark.textContent='';mark.setAttribute('aria-label','DApps Platform');mark.innerHTML='<span class="dp-logo-shape"><i></i><i></i></span>'}
     const style=document.createElement('style');
-    style.textContent=`.brand-mark{position:relative;overflow:hidden;background:linear-gradient(145deg,#081b33,#0d315a)!important;border:1px solid rgba(95,179,255,.5)!important;box-shadow:0 8px 26px rgba(31,129,255,.25)!important}.dp-logo-shape{position:relative;display:block;width:25px;height:25px;transform:rotate(45deg)}.dp-logo-shape:before,.dp-logo-shape:after,.dp-logo-shape i{content:"";position:absolute;border:3px solid #72c7ff;border-radius:4px}.dp-logo-shape:before{inset:1px 10px 10px 1px}.dp-logo-shape:after{inset:10px 1px 1px 10px;border-color:#3188ff}.dp-logo-shape i:first-child{width:7px;height:7px;right:1px;top:1px;border-color:#fff}.dp-logo-shape i:last-child{width:7px;height:7px;left:1px;bottom:1px;border-color:#48e0d0}.brand-copy strong{font-weight:800!important;letter-spacing:-.035em}.brand-copy span{letter-spacing:.04em}`;
+    style.textContent=`.brand-mark{position:relative;overflow:hidden;background:linear-gradient(145deg,#081b33,#0d315a)!important;border:1px solid rgba(95,179,255,.5)!important;box-shadow:0 8px 26px rgba(31,129,255,.25)!important}.dp-logo-shape{position:relative;display:block;width:25px;height:25px;transform:rotate(45deg)}.dp-logo-shape:before,.dp-logo-shape:after,.dp-logo-shape i{content:"";position:absolute;border:3px solid #72c7ff;border-radius:4px}.dp-logo-shape:before{inset:1px 10px 10px 1px}.dp-logo-shape:after{inset:10px 1px 1px 10px;border-color:#3188ff}.dp-logo-shape i:first-child{width:7px;height:7px;right:1px;top:1px;border-color:#fff}.dp-logo-shape i:last-child{width:7px;height:7px;left:1px;bottom:1px;border-color:#48e0d0}.brand-copy strong{font-weight:800!important;letter-spacing:-.035em}.brand-copy span{letter-spacing:.04em}.asset-table-head,.portfolio-asset-row{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1fr auto;gap:14px;align-items:center;padding:13px 14px}.asset-table-head{margin-top:12px;color:#7890a9;font-size:11px;border-bottom:1px solid rgba(255,255,255,.08)}.portfolio-asset-row{border-bottom:1px solid rgba(255,255,255,.06)}.portfolio-asset-row .asset-name{display:flex;gap:10px;align-items:center}.portfolio-asset-row .asset-symbol{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#13283d;color:#fff;font-size:10px;font-weight:800}.portfolio-asset-row small{display:block;color:#7890a9;margin-top:3px}.portfolio-asset-row button{border:1px solid #2c4865;background:#10243a;color:#d9e9fa;border-radius:8px;padding:7px 12px;cursor:pointer}@media(max-width:760px){.asset-table-head{display:none}.portfolio-asset-row{grid-template-columns:1fr 1fr;gap:8px}.portfolio-asset-row>span:nth-child(n+2){text-align:right}.portfolio-asset-row button{grid-column:1/-1}.portfolio-asset-row small{font-size:10px}}`;
     document.head.appendChild(style);
   }
 
   function demoBalanceKey(){return 'dapps:demoBalance:v3:'+demoId}
-  function readDemoBalance(){
-    let raw=null;try{raw=sessionStorage.getItem(demoBalanceKey())}catch{}
-    const n=raw===null?50000:Number(raw);
-    const value=Number.isFinite(n)?n:50000;
-    try{if(raw===null)sessionStorage.setItem(demoBalanceKey(),String(value))}catch{}
-    return value;
-  }
-  function syncSimulationBalance(){
-    if(!demoMode||typeof balance==='undefined')return;
-    balance=readDemoBalance();
-    if(typeof totalPledged!=='undefined'&&!Number.isFinite(Number(totalPledged)))totalPledged=0;
-    if(typeof updateBalances==='function')updateBalances();
-    const total=balance+Number(typeof totalPledged!=='undefined'?totalPledged:0||0);
-    const homeTotal=document.querySelector('#home-total-assets');if(homeTotal)homeTotal.textContent='$'+Number(total).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const homeAvailable=document.querySelector('#home-available');if(homeAvailable)homeAvailable.textContent='$'+Number(balance).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const note=document.querySelector('.asset-main small');if(note){note.textContent='Simulation Account · 50,000 USDT starting balance';note.className='positive'}
-    const available=document.querySelector('#available-balance');if(available)available.textContent=Number(balance).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' USDT';
-    const badge=document.querySelector('.demo-pill');if(badge)badge.textContent='SIMULATION';
-  }
+  function readDemoBalance(){let raw=null;try{raw=sessionStorage.getItem(demoBalanceKey())}catch{}const n=raw===null?50000:Number(raw);const value=Number.isFinite(n)?n:50000;try{if(raw===null)sessionStorage.setItem(demoBalanceKey(),String(value))}catch{}return value}
+  function syncSimulationBalance(){if(!demoMode||typeof balance==='undefined')return;balance=readDemoBalance();if(typeof totalPledged!=='undefined'&&!Number.isFinite(Number(totalPledged)))totalPledged=0;if(typeof updateBalances==='function')updateBalances();const total=balance+Number(typeof totalPledged!=='undefined'?totalPledged:0||0);const homeTotal=document.querySelector('#home-total-assets');if(homeTotal)homeTotal.textContent='$'+money(total);const homeAvailable=document.querySelector('#home-available');if(homeAvailable)homeAvailable.textContent='$'+money(balance);const note=document.querySelector('.asset-main small');if(note){note.textContent='Simulation Account · 50,000 USDT starting balance';note.className='positive'}const available=document.querySelector('#available-balance');if(available)available.textContent=money(balance)+' USDT';const badge=document.querySelector('.demo-pill');if(badge)badge.textContent='SIMULATION'}
 
-  installBrand();
-  if(demoMode)syncSimulationBalance();
-
-  const baseNavigate=navigate;
-  navigate=function(name){if(!validPages.has(name))name='home';safeSet(STORAGE.page,name);if(location.hash!==`#${name}`)history.replaceState(null,'',`${location.pathname}${location.search}#${name}`);const result=baseNavigate(name);if(demoMode)setTimeout(syncSimulationBalance,0);return result};
-  const baseSelectMarket=selectMarket;
-  selectMarket=function(m){if(m?.symbol)safeSet(STORAGE.market,m.symbol);const result=baseSelectMarket(m);renderStar();return result};
+  installBrand();if(demoMode)syncSimulationBalance();
+  const baseNavigate=navigate;navigate=function(name){if(!validPages.has(name))name='home';safeSet(STORAGE.page,name);if(location.hash!==`#${name}`)history.replaceState(null,'',`${location.pathname}${location.search}#${name}`);const result=baseNavigate(name);if(name==='assets'&&!demoMode)setTimeout(syncWalletBalance,0);if(demoMode)setTimeout(syncSimulationBalance,0);return result};
+  const baseSelectMarket=selectMarket;selectMarket=function(m){if(m?.symbol)safeSet(STORAGE.market,m.symbol);const result=baseSelectMarket(m);renderStar();return result};
   document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>{const page=el.dataset.nav;if(validPages.has(page))safeSet(STORAGE.page,page)}));
-  document.querySelectorAll('[data-duration]').forEach(btn=>btn.addEventListener('click',()=>safeSet(STORAGE.duration,btn.dataset.duration)));
-  document.querySelector('#up-btn')?.addEventListener('click',()=>safeSet(STORAGE.direction,'up'));
-  document.querySelector('#down-btn')?.addEventListener('click',()=>safeSet(STORAGE.direction,'down'));
-  document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>safeSet(STORAGE.timeframe,btn.textContent.trim())));
-
-  const star=document.querySelector('.watch-star');
-  function getWatchlist(){try{return new Set(JSON.parse(safeGet(STORAGE.watchlist,'[]')))}catch{return new Set()}}
-  function renderStar(){if(!star||typeof currentMarket==='undefined'||!currentMarket)return;const watched=getWatchlist().has(currentMarket.symbol);star.textContent=watched?'★':'☆';star.classList.toggle('watched',watched);star.title=watched?'Remove from watchlist':'Add to watchlist'}
-  if(star){star.setAttribute('role','button');star.setAttribute('tabindex','0');const toggleStar=()=>{if(typeof currentMarket==='undefined'||!currentMarket)return;const list=getWatchlist(),symbol=currentMarket.symbol;if(list.has(symbol)){list.delete(symbol);showToast(`${symbol} removed from watchlist.`)}else{list.add(symbol);showToast(`${symbol} added to watchlist.`)}safeSet(STORAGE.watchlist,JSON.stringify([...list]));renderStar()};star.addEventListener('click',toggleStar);star.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStar()}})}
-
+  document.querySelectorAll('[data-duration]').forEach(btn=>btn.addEventListener('click',()=>safeSet(STORAGE.duration,btn.dataset.duration)));document.querySelector('#up-btn')?.addEventListener('click',()=>safeSet(STORAGE.direction,'up'));document.querySelector('#down-btn')?.addEventListener('click',()=>safeSet(STORAGE.direction,'down'));document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>safeSet(STORAGE.timeframe,btn.textContent.trim())));
+  const star=document.querySelector('.watch-star');function getWatchlist(){try{return new Set(JSON.parse(safeGet(STORAGE.watchlist,'[]')))}catch{return new Set()}}function renderStar(){if(!star||typeof currentMarket==='undefined'||!currentMarket)return;const watched=getWatchlist().has(currentMarket.symbol);star.textContent=watched?'★':'☆';star.classList.toggle('watched',watched);star.title=watched?'Remove from watchlist':'Add to watchlist'}if(star){star.setAttribute('role','button');star.setAttribute('tabindex','0');const toggleStar=()=>{if(typeof currentMarket==='undefined'||!currentMarket)return;const list=getWatchlist(),symbol=currentMarket.symbol;if(list.has(symbol)){list.delete(symbol);showToast(`${symbol} removed from watchlist.`)}else{list.add(symbol);showToast(`${symbol} added to watchlist.`)}safeSet(STORAGE.watchlist,JSON.stringify([...list]));renderStar()};star.addEventListener('click',toggleStar);star.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleStar()}})}
   document.querySelectorAll('.top-actions .primary-btn, #page-assets > .page-header .primary-btn').forEach(btn=>{btn.textContent='Deposit';btn.addEventListener('click',()=>{if(demoMode)return showToast('Simulation accounts do not use deposits.');location.href=localStorage.getItem('dapps:token')?'deposit.html':'login.html'})});
-  const assetsHeader=document.querySelector('#page-assets > .page-header');
-  if(assetsHeader&&!assetsHeader.querySelector('.wallet-actions')){
-    let wrap=document.createElement('div');wrap.className='wallet-actions';wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';assetsHeader.appendChild(wrap);
-    const deposit=document.createElement('button');deposit.className='primary-btn';deposit.textContent='Deposit';deposit.onclick=()=>{if(demoMode)return showToast('Simulation accounts do not use deposits.');location.href=localStorage.getItem('dapps:token')?'deposit.html':'login.html'};wrap.appendChild(deposit);
-    const withdraw=document.createElement('button');withdraw.className='ghost-btn';withdraw.textContent='Withdraw';withdraw.onclick=()=>{if(demoMode)return showToast('Simulation accounts do not use withdrawals.');location.href=localStorage.getItem('dapps:token')?'withdraw.html':'login.html'};wrap.appendChild(withdraw);
-    const convert=document.createElement('button');convert.className='ghost-btn';convert.textContent='Convert';convert.onclick=()=>{if(demoMode)return showToast('Asset conversion is available for registered accounts.');location.href=localStorage.getItem('dapps:token')?'convert.html':'login.html'};wrap.appendChild(convert);
-  }
+  const assetsHeader=document.querySelector('#page-assets > .page-header');if(assetsHeader&&!assetsHeader.querySelector('.wallet-actions')){let wrap=document.createElement('div');wrap.className='wallet-actions';wrap.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';assetsHeader.appendChild(wrap);for(const [text,cls,url] of [['Deposit','primary-btn','deposit.html'],['Withdraw','ghost-btn','withdraw.html'],['Convert','ghost-btn','convert.html']]){const b=document.createElement('button');b.className=cls;b.textContent=text;b.onclick=()=>{if(demoMode)return showToast(text==='Convert'?'Asset conversion is available for registered accounts.':`Simulation accounts do not use ${text.toLowerCase()}s.`);location.href=localStorage.getItem('dapps:token')?url:'login.html'};wrap.appendChild(b)}}
   const homeTransfer=document.querySelector('#home-transfer');if(homeTransfer){homeTransfer.querySelector('b')&&(homeTransfer.querySelector('b').textContent='Convert');homeTransfer.onclick=()=>{if(demoMode)return showToast('Asset conversion is available for registered accounts.');location.href=localStorage.getItem('dapps:token')?'convert.html':'login.html'}}
-
   const supportBtn=document.querySelector('.top-actions .ghost-btn');if(supportBtn){supportBtn.textContent='Support';supportBtn.addEventListener('click',()=>{location.href='support.html'})}
-  const avatarBtn=document.querySelector('.avatar-btn');
-  if(avatarBtn){
-    if(demoMode){avatarBtn.textContent='S';avatarBtn.title='Simulation Account';avatarBtn.addEventListener('click',()=>{location.href='profile.html?demo='+encodeURIComponent(demoId)})}
-    else{try{const user=JSON.parse(localStorage.getItem('dapps:user')||'null');if(user?.displayName)avatarBtn.textContent=user.displayName.slice(0,1).toUpperCase();avatarBtn.title=localStorage.getItem('dapps:token')?'Profile':'Sign in'}catch{}avatarBtn.addEventListener('click',()=>{location.href=localStorage.getItem('dapps:token')?'profile.html':'login.html'})}
-  }
-
+  const avatarBtn=document.querySelector('.avatar-btn');if(avatarBtn){if(demoMode){avatarBtn.textContent='S';avatarBtn.title='Simulation Account';avatarBtn.addEventListener('click',()=>{location.href='profile.html?demo='+encodeURIComponent(demoId)})}else{try{const user=JSON.parse(localStorage.getItem('dapps:user')||'null');if(user?.displayName)avatarBtn.textContent=user.displayName.slice(0,1).toUpperCase();avatarBtn.title=localStorage.getItem('dapps:token')?'Profile':'Sign in'}catch{}avatarBtn.addEventListener('click',()=>{location.href=localStorage.getItem('dapps:token')?'profile.html':'login.html'})}}
   const tabs=[...document.querySelectorAll('.positions-heading .tab-row button')],positionsList=document.querySelector('#positions-list'),positionsHead=document.querySelector('.positions-table-head');tabs.forEach((btn,index)=>btn.addEventListener('click',()=>{tabs.forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(index===0){if(positionsHead)positionsHead.style.display='';renderPositions()}else{if(positionsHead)positionsHead.style.display='none';if(positionsList){positionsList.className='positions-list empty-state';positionsList.textContent='No completed trade history yet.'}}}));
 
-  async function syncWalletBalance(){
-    if(demoMode){syncSimulationBalance();return;}
-    const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}
-    const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
-    try{const r=await fetch(API+'/api/wallet',{headers:{Authorization:'Bearer '+token}});if(!r.ok)return;const d=await r.json();if(typeof balance!=='undefined'){balance=Number(d.balance.available)||0;updateBalances()}const total=document.querySelector('#page-assets .balance-card:first-child strong');if(total&&typeof totalPledged!=='undefined')total.textContent='$'+fmt(balance+Number(totalPledged||0));}catch{}
+  function renderPortfolioAssets(assets){
+    const page=document.querySelector('#page-assets');if(!page)return;
+    page.querySelectorAll('.asset-row,.asset-table-head,.portfolio-asset-row').forEach(x=>x.remove());
+    const head=document.createElement('div');head.className='asset-table-head';head.innerHTML='<span>Asset</span><span>Total</span><span>Available</span><span>Locked</span><span>Value (USDT)</span><span></span>';page.appendChild(head);
+    const visible=assets.filter(a=>Number(a.available||0)!==0||Number(a.locked||0)!==0);
+    for(const a of visible){const total=Number(a.available||0)+Number(a.locked||0),value=a.valueUsd==null?(a.asset==='USDT'?total:null):Number(a.valueUsd);const row=document.createElement('div');row.className='portfolio-asset-row';row.innerHTML=`<span class="asset-name"><b class="asset-symbol">${String(a.asset).slice(0,4)}</b><strong>${a.asset}</strong></span><span><strong>${qty(total)}</strong><small>${a.asset}</small></span><span>${qty(a.available)}<small>${a.asset}</small></span><span>${qty(a.locked)}<small>${a.asset}</small></span><span>${value==null?'—':money(value)}<small>USDT</small></span><button>Trade</button>`;row.querySelector('button').onclick=()=>{const m=Array.isArray(window.markets)?window.markets.find(x=>x.symbol===a.asset+'/USDT'):null;if(m&&typeof selectMarket==='function')selectMarket(m);navigate('trade')};page.appendChild(row)}
+    if(!visible.length){const empty=document.createElement('div');empty.className='portfolio-asset-row';empty.innerHTML='<span class="muted">No assets held.</span>';page.appendChild(empty)}
   }
-
+  async function syncWalletBalance(){
+    if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
+    try{
+      const [wr,ar]=await Promise.all([fetch(API+'/api/wallet',{headers:{Authorization:'Bearer '+token}}),fetch(API+'/api/assets',{headers:{Authorization:'Bearer '+token}})]);const wd=wr.ok?await wr.json():null,ad=ar.ok?await ar.json():{assets:[]};const assets=ad.assets||[];
+      const usdt=assets.find(a=>a.asset==='USDT');if(typeof balance!=='undefined'){balance=Number(usdt?.available??wd?.balance?.available??0)||0;updateBalances()}
+      renderPortfolioAssets(assets);
+      const liquidValue=assets.reduce((s,a)=>s+(a.valueUsd==null?(a.asset==='USDT'?Number(a.available||0)+Number(a.locked||0):0):Number(a.valueUsd||0)),0);const pledged=Number(typeof totalPledged!=='undefined'?totalPledged:0)||0;const totalValue=liquidValue+pledged;
+      const cards=document.querySelectorAll('#page-assets .balance-card strong');if(cards[0])cards[0].textContent='$'+money(totalValue);const availableCard=document.querySelector('#asset-available');if(availableCard)availableCard.textContent=money(liquidValue)+' USDT';const pledgedCard=document.querySelector('#asset-pledged');if(pledgedCard)pledgedCard.textContent=money(pledged)+' USDT';const homeTotal=document.querySelector('#home-total-assets');if(homeTotal)homeTotal.textContent='$'+money(totalValue);const homeAvailable=document.querySelector('#home-available');if(homeAvailable)homeAvailable.textContent='$'+money(liquidValue);
+    }catch(e){console.error('portfolio sync failed',e)}
+  }
   function restoreState(){const savedMarket=safeGet(STORAGE.market);if(savedMarket&&Array.isArray(markets)){const found=markets.find(m=>m.symbol===savedMarket);if(found)selectMarket(found)}const savedDuration=Number(safeGet(STORAGE.duration,'60'));document.querySelector(`[data-duration="${savedDuration}"]`)?.click();const savedDirection=safeGet(STORAGE.direction,'up');document.querySelector(savedDirection==='down'?'#down-btn':'#up-btn')?.click();const savedTf=safeGet(STORAGE.timeframe,'1H');const tfBtn=[...document.querySelectorAll('.timeframes button')].find(b=>b.textContent.trim()===savedTf);if(tfBtn)tfBtn.click();renderStar();const hashPage=location.hash.replace('#',''),savedPage=validPages.has(hashPage)?hashPage:safeGet(STORAGE.page,'home');navigate(validPages.has(savedPage)?savedPage:'home');syncWalletBalance();if(demoMode){[50,150,400,900,1600].forEach(ms=>setTimeout(syncSimulationBalance,ms))}}
-  window.addEventListener('hashchange',()=>{const page=location.hash.replace('#','');if(validPages.has(page))navigate(page)});
-  window.addEventListener('pageshow',()=>{if(demoMode)syncSimulationBalance()});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&demoMode)syncSimulationBalance()});
-  setTimeout(restoreState,0);
+  window.addEventListener('hashchange',()=>{const page=location.hash.replace('#','');if(validPages.has(page))navigate(page)});window.addEventListener('pageshow',()=>{if(demoMode)syncSimulationBalance();else syncWalletBalance()});document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(demoMode)syncSimulationBalance();else syncWalletBalance()}});setTimeout(restoreState,0);
 })();
