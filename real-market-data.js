@@ -36,7 +36,7 @@
     try{
       const r=await fetch(`${API}/simple/price?ids=${encodeURIComponent(m.cgId)}&vs_currencies=usd&include_24hr_change=true`,{cache:'no-store'});if(!r.ok)return;const d=await r.json(),v=d[m.cgId];if(!v)return;
       m.__setReal?.({price:Number(v.usd),change:Number(v.usd_24h_change)});
-      const p=document.querySelector('#trade-price');if(p)p.textContent=fmt(m.price,decimals(m.price));const ch=document.querySelector('#trade-change');if(ch){ch.textContent=`${m.change>=0?'+':''}${m.change.toFixed(2)}%`;ch.className=m.change>=0?'positive':'negative'}const badge=document.querySelector('#chart-price-badge');if(badge)badge.textContent=fmt(m.price,decimals(m.price));
+      const p=document.querySelector('#trade-price');if(p){p.textContent=fmt(m.price,decimals(m.price));p.className=m.change>=0?'positive':'negative'}const ch=document.querySelector('#trade-change');if(ch){ch.textContent=`${m.change>=0?'+':''}${m.change.toFixed(2)}%`;ch.className=m.change>=0?'positive':'negative'}const badge=document.querySelector('#chart-price-badge');if(badge)badge.textContent=fmt(m.price,decimals(m.price));
     }catch{}
   }
 
