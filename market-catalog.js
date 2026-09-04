@@ -56,4 +56,8 @@
     }catch(e){window.__fullCryptoCatalogLoaded=false;const count=document.querySelector('.market-count');if(count)count.textContent=`${markets.length.toLocaleString()} markets · fallback`;}
   }
   loadCatalog();
+
+  if(!document.querySelector('script[data-pledge-ui]')){
+    const s=document.createElement('script');s.src='pledge-ui.js?v=20260904-1';s.dataset.pledgeUi='1';document.body.appendChild(s);
+  }
 })();
