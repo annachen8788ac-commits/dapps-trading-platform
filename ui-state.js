@@ -10,14 +10,16 @@
   function totalsHidden(){return safeGet(STORAGE.hideTotal,'0')==='1'}
   function installTotalPrivacy(){
     const homeMain=document.querySelector('.asset-main');
-    if(homeMain&&!homeMain.querySelector('.asset-eye-btn')){const b=document.createElement('button');b.className='asset-eye-btn';b.type='button';b.setAttribute('aria-label','Hide total assets');b.innerHTML='👁';homeMain.appendChild(b);b.onclick=()=>{safeSet(STORAGE.hideTotal,totalsHidden()?'0':'1');applyTotalPrivacy()}}
+    if(homeMain&&!homeMain.querySelector('.asset-eye-btn')){const b=document.createElement('button');b.className='asset-eye-btn';b.type='button';b.setAttribute('aria-label','Hide total assets');homeMain.appendChild(b)}
     const card=document.querySelector('#page-assets .balance-card:first-child');
-    if(card&&!card.querySelector('.asset-eye-btn')){const b=document.createElement('button');b.className='asset-eye-btn';b.type='button';b.setAttribute('aria-label','Hide total assets');b.innerHTML='👁';card.appendChild(b);b.onclick=()=>{safeSet(STORAGE.hideTotal,totalsHidden()?'0':'1');applyTotalPrivacy()}}
+    if(card&&!card.querySelector('.asset-eye-btn')){const b=document.createElement('button');b.className='asset-eye-btn';b.type='button';b.setAttribute('aria-label','Hide total assets');card.appendChild(b)}
+    document.querySelectorAll('.asset-eye-btn').forEach(b=>{if(b.dataset.privacyReady)return;b.dataset.privacyReady='1';b.addEventListener('click',()=>{safeSet(STORAGE.hideTotal,totalsHidden()?'0':'1');applyTotalPrivacy()})});
     applyTotalPrivacy();
   }
   function applyTotalPrivacy(){
     const hidden=totalsHidden();
-    document.querySelectorAll('.asset-eye-btn').forEach(b=>{b.innerHTML=hidden?'🙈':'👁';b.title=hidden?'Show total assets':'Hide total assets';b.setAttribute('aria-label',hidden?'Show total assets':'Hide total assets')});
+    document.documentElement.classList.toggle('hide-total-assets',hidden);
+    document.querySelectorAll('.asset-eye-btn').forEach(b=>{const label=hidden?'Show total assets':'Hide total assets';b.textContent='';b.title=label;b.setAttribute('aria-label',label)});
     const targets=[document.querySelector('#home-total-assets'),document.querySelector('#page-assets .balance-card:first-child strong')];
     targets.forEach(el=>{if(!el)return;if(hidden){if(!el.dataset.realValue)el.dataset.realValue=el.textContent;el.textContent='••••••'}else if(el.dataset.realValue){el.textContent=el.dataset.realValue;delete el.dataset.realValue}})
   }
