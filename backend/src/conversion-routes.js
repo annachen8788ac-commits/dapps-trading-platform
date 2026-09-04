@@ -21,8 +21,7 @@ async function pricesFromBinance(){
 }
 async function refreshPrices(force=false){
   if(!force&&Date.now()-cache.at<30000&&cache.prices.size)return cache.prices;
-  const errors=[];
-  for(const provider of [pricesFromCoinGecko,pricesFromBinance]){try{const next=await provider();if(next.size>stable.size){cache.at=Date.now();cache.prices=next;return next}}catch(e){errors.push(e.message)}}
+  for(const provider of [pricesFromCoinGecko,pricesFromBinance]){try{const next=await provider();if(next.size>stable.size){cache.at=Date.now();cache.prices=next;return next}}catch{}}
   if(cache.prices.size)return cache.prices;
   throw new Error('Market price service temporarily unavailable');
 }
@@ -60,14 +59,37 @@ export async function initializeConversionSchema(pool){
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_asset_conversion_user_created ON asset_conversion_history(user_id,created_at DESC)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS asset_deposit_sync (
+    deposit_id UUID PRIMARY KEY REFERENCES deposit_requests(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    asset VARCHAR(16) NOT NULL,
+    amount NUMERIC(36,18) NOT NULL,
+    synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_asset_deposit_sync_user ON asset_deposit_sync(user_id,synced_at DESC)`);
   await pool.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance)
     SELECT user_id,COALESCE(asset,'USDT'),available_balance,locked_balance FROM account_balances
     ON CONFLICT(user_id,asset) DO NOTHING`);
 }
 
 export function registerConversionRoutes(app,{pool,auth}){
+  async function syncApprovedDeposits(userId){
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const pending=await client.query(`SELECT d.id,d.asset,d.amount FROM deposit_requests d LEFT JOIN asset_deposit_sync s ON s.deposit_id=d.id WHERE d.user_id=$1 AND d.status='approved' AND s.deposit_id IS NULL FOR UPDATE OF d`,[userId]);
+      for(const row of pending.rows){
+        const asset=String(row.asset||'USDT').toUpperCase();const amount=Number(row.amount||0);if(!ASSET_RE.test(asset)||!Number.isFinite(amount)||amount<=0)continue;
+        await client.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance) VALUES($1,$2,$3,0) ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=user_asset_balances.available_balance+EXCLUDED.available_balance,updated_at=NOW()`,[userId,asset,amount]);
+        await client.query(`INSERT INTO asset_deposit_sync(deposit_id,user_id,asset,amount) VALUES($1,$2,$3,$4) ON CONFLICT(deposit_id) DO NOTHING`,[row.id,userId,asset,amount]);
+      }
+      await client.query('COMMIT');
+    }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+  }
+
   app.get('/api/assets',auth,async(req,res)=>{
     try{
+      await syncApprovedDeposits(req.auth.sub);
       const q=await pool.query(`SELECT asset,available_balance,locked_balance FROM user_asset_balances WHERE user_id=$1 ORDER BY asset`,[req.auth.sub]);
       const prices=await refreshPrices().catch(()=>new Map());
       const assets=q.rows.map(r=>{const asset=r.asset,available=n(r.available_balance)||0,locked=n(r.locked_balance)||0,price=prices.get(asset)||null;return {asset,available,locked,priceUsd:price,valueUsd:price?roundAsset((available+locked)*price):null}});
@@ -84,6 +106,7 @@ export function registerConversionRoutes(app,{pool,auth}){
   app.post('/api/convert',auth,async(req,res)=>{
     const from=String(req.body?.from||'').trim().toUpperCase(),to=String(req.body?.to||'').trim().toUpperCase(),amount=n(req.body?.amount);
     if(!ASSET_RE.test(from)||!ASSET_RE.test(to)||from===to||!Number.isFinite(amount)||amount<=0)return res.status(400).json({error:'Choose two different assets and a valid amount'});
+    try{await syncApprovedDeposits(req.auth.sub)}catch(e){console.error('deposit asset sync failed',e)}
     let fromPrice,toPrice;try{[fromPrice,toPrice]=await Promise.all([priceFor(from),priceFor(to)])}catch(e){return res.status(503).json({error:e.message||'Unable to price conversion'})}
     const receive=roundAsset(amount*fromPrice/toPrice);const client=await pool.connect();
     try{
