@@ -1,89 +1,21 @@
 import { initializeTradeSchema, registerTradeRoutes } from './trade-routes.js';
 import { initializeUserAdminSchema, registerUserAdminRoutes } from './user-admin-routes.js';
+import { initializeSupportChatSchema, registerSupportChatRoutes } from './support-chat-routes.js';
 
 const clean = (v, n=200) => String(v ?? '').trim().slice(0,n);
 const isImage = v => /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(v||''));
 
 export async function initializeKycSchema(pool){
-  await pool.query(`CREATE TABLE IF NOT EXISTS kyc_profiles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    full_name VARCHAR(120) NOT NULL,
-    date_of_birth DATE NOT NULL,
-    country VARCHAR(80) NOT NULL,
-    document_type VARCHAR(32) NOT NULL,
-    document_number VARCHAR(100) NOT NULL,
-    document_front TEXT NOT NULL,
-    document_back TEXT,
-    selfie_image TEXT NOT NULL,
-    status VARCHAR(24) NOT NULL DEFAULT 'pending',
-    review_note VARCHAR(300),
-    reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,
-    reviewed_at TIMESTAMPTZ,
-    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS kyc_profiles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,full_name VARCHAR(120) NOT NULL,date_of_birth DATE NOT NULL,country VARCHAR(80) NOT NULL,document_type VARCHAR(32) NOT NULL,document_number VARCHAR(100) NOT NULL,document_front TEXT NOT NULL,document_back TEXT,selfie_image TEXT NOT NULL,status VARCHAR(24) NOT NULL DEFAULT 'pending',review_note VARCHAR(300),reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,reviewed_at TIMESTAMPTZ,submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_kyc_status_submitted ON kyc_profiles(status,submitted_at DESC)`);
-  await initializeTradeSchema(pool);
-  await initializeUserAdminSchema(pool);
+  await initializeTradeSchema(pool);await initializeUserAdminSchema(pool);await initializeSupportChatSchema(pool);
 }
-
 export function registerKycRoutes(app,args){
   const {pool,auth,adminAuth,requireRole,audit}=args;
-  app.get('/api/kyc',auth,async(req,res)=>{
-    try{
-      const q=await pool.query(`SELECT full_name,date_of_birth,country,document_type,document_number,status,review_note,submitted_at,reviewed_at FROM kyc_profiles WHERE user_id=$1`,[req.auth.sub]);
-      const r=q.rows[0];
-      res.json({kyc:r?{fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at}:{status:'not_submitted'}});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to load verification status'});}
-  });
-
-  app.post('/api/kyc/submit',auth,async(req,res)=>{
-    const fullName=clean(req.body?.fullName,120), dateOfBirth=clean(req.body?.dateOfBirth,20), country=clean(req.body?.country,80);
-    const documentType=clean(req.body?.documentType,32), documentNumber=clean(req.body?.documentNumber,100);
-    const documentFront=String(req.body?.documentFront||''), documentBack=String(req.body?.documentBack||''), selfieImage=String(req.body?.selfieImage||'');
-    if(!fullName||!dateOfBirth||!country||!documentType||!documentNumber)return res.status(400).json({error:'Complete all required identity fields'});
-    if(!['passport','drivers_license','national_id'].includes(documentType))return res.status(400).json({error:'Unsupported document type'});
-    if(!isImage(documentFront)||!isImage(selfieImage)||(documentBack&&!isImage(documentBack)))return res.status(400).json({error:'Upload valid JPG, PNG or WEBP identity images'});
-    if(documentFront.length>5_500_000||documentBack.length>5_500_000||selfieImage.length>5_500_000)return res.status(413).json({error:'Identity image is too large'});
-    try{
-      const existing=await pool.query(`SELECT status FROM kyc_profiles WHERE user_id=$1`,[req.auth.sub]);
-      if(existing.rows[0]?.status==='approved')return res.status(409).json({error:'Identity verification is already approved'});
-      await pool.query(`INSERT INTO kyc_profiles(user_id,full_name,date_of_birth,country,document_type,document_number,document_front,document_back,selfie_image,status,review_note,reviewed_by,reviewed_at,submitted_at,updated_at)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',NULL,NULL,NULL,NOW(),NOW())
-        ON CONFLICT(user_id) DO UPDATE SET full_name=EXCLUDED.full_name,date_of_birth=EXCLUDED.date_of_birth,country=EXCLUDED.country,document_type=EXCLUDED.document_type,document_number=EXCLUDED.document_number,document_front=EXCLUDED.document_front,document_back=EXCLUDED.document_back,selfie_image=EXCLUDED.selfie_image,status='pending',review_note=NULL,reviewed_by=NULL,reviewed_at=NULL,submitted_at=NOW(),updated_at=NOW()`,[req.auth.sub,fullName,dateOfBirth,country,documentType,documentNumber,documentFront,documentBack||null,selfieImage]);
-      res.status(201).json({kyc:{status:'pending',submittedAt:new Date().toISOString()}});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to submit identity verification'});}
-  });
-
-  app.get('/api/admin/kyc',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{
-    const status=clean(req.query.status,24);
-    try{
-      const values=[];let where='';if(status){values.push(status);where='WHERE k.status=$1';}
-      const q=await pool.query(`SELECT k.id,k.full_name,k.date_of_birth,k.country,k.document_type,k.document_number,k.status,k.review_note,k.submitted_at,k.reviewed_at,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id ${where} ORDER BY k.submitted_at DESC LIMIT 300`,values);
-      res.json({items:q.rows.map(r=>({id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}))});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to load KYC queue'});}
-  });
-
-  app.get('/api/admin/kyc/:id',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{
-    try{
-      const q=await pool.query(`SELECT k.*,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id WHERE k.id=$1`,[req.params.id]);
-      if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});const r=q.rows[0];
-      res.json({item:{id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,documentFront:r.document_front,documentBack:r.document_back,selfieImage:r.selfie_image,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to load KYC record'});}
-  });
-
-  app.post('/api/admin/kyc/:id/review',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{
-    const status=clean(req.body?.status,24), note=clean(req.body?.note,300);
-    if(!['approved','rejected'].includes(status))return res.status(400).json({error:'Choose approved or rejected'});
-    try{
-      const q=await pool.query(`UPDATE kyc_profiles SET status=$1,review_note=$2,reviewed_by=$3,reviewed_at=NOW(),updated_at=NOW() WHERE id=$4 RETURNING id,user_id,status`,[status,note||null,req.admin.id,req.params.id]);
-      if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});
-      await audit(req,'kyc.review','kyc',req.params.id,{status,note});
-      res.json({ok:true,status});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to review KYC'});}
-  });
-
-  registerTradeRoutes(app,args);
-  registerUserAdminRoutes(app,args);
+  app.get('/api/kyc',auth,async(req,res)=>{try{const q=await pool.query(`SELECT full_name,date_of_birth,country,document_type,document_number,status,review_note,submitted_at,reviewed_at FROM kyc_profiles WHERE user_id=$1`,[req.auth.sub]);const r=q.rows[0];res.json({kyc:r?{fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at}:{status:'not_submitted'}})}catch(e){console.error(e);res.status(500).json({error:'Unable to load verification status'})}});
+  app.post('/api/kyc/submit',auth,async(req,res)=>{const fullName=clean(req.body?.fullName,120),dateOfBirth=clean(req.body?.dateOfBirth,20),country=clean(req.body?.country,80),documentType=clean(req.body?.documentType,32),documentNumber=clean(req.body?.documentNumber,100),documentFront=String(req.body?.documentFront||''),documentBack=String(req.body?.documentBack||''),selfieImage=String(req.body?.selfieImage||'');if(!fullName||!dateOfBirth||!country||!documentType||!documentNumber)return res.status(400).json({error:'Complete all required identity fields'});if(!['passport','drivers_license','state_id','national_id'].includes(documentType))return res.status(400).json({error:'Unsupported document type'});if(!isImage(documentFront)||!isImage(selfieImage)||(documentBack&&!isImage(documentBack)))return res.status(400).json({error:'Upload valid JPG, PNG or WEBP identity images'});try{const existing=await pool.query(`SELECT status FROM kyc_profiles WHERE user_id=$1`,[req.auth.sub]);if(existing.rows[0]?.status==='approved')return res.status(409).json({error:'Identity verification is already approved'});await pool.query(`INSERT INTO kyc_profiles(user_id,full_name,date_of_birth,country,document_type,document_number,document_front,document_back,selfie_image,status,submitted_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',NOW(),NOW()) ON CONFLICT(user_id) DO UPDATE SET full_name=EXCLUDED.full_name,date_of_birth=EXCLUDED.date_of_birth,country=EXCLUDED.country,document_type=EXCLUDED.document_type,document_number=EXCLUDED.document_number,document_front=EXCLUDED.document_front,document_back=EXCLUDED.document_back,selfie_image=EXCLUDED.selfie_image,status='pending',review_note=NULL,reviewed_by=NULL,reviewed_at=NULL,submitted_at=NOW(),updated_at=NOW()`,[req.auth.sub,fullName,dateOfBirth,country,documentType,documentNumber,documentFront,documentBack||null,selfieImage]);res.status(201).json({kyc:{status:'pending',submittedAt:new Date().toISOString()}})}catch(e){console.error(e);res.status(500).json({error:'Unable to submit identity verification'})}});
+  app.get('/api/admin/kyc',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{const status=clean(req.query.status,24);try{const values=[];let where='';if(status){values.push(status);where='WHERE k.status=$1'}const q=await pool.query(`SELECT k.id,k.full_name,k.date_of_birth,k.country,k.document_type,k.document_number,k.status,k.review_note,k.submitted_at,k.reviewed_at,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id ${where} ORDER BY k.submitted_at DESC LIMIT 300`,values);res.json({items:q.rows.map(r=>({id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}))})}catch(e){console.error(e);res.status(500).json({error:'Unable to load KYC queue'})}});
+  app.get('/api/admin/kyc/:id',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{try{const q=await pool.query(`SELECT k.*,u.public_id,u.display_name,u.identifier FROM kyc_profiles k JOIN users u ON u.id=k.user_id WHERE k.id=$1`,[req.params.id]);if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});const r=q.rows[0];res.json({item:{id:r.id,fullName:r.full_name,dateOfBirth:r.date_of_birth,country:r.country,documentType:r.document_type,documentNumber:r.document_number,documentFront:r.document_front,documentBack:r.document_back,selfieImage:r.selfie_image,status:r.status,reviewNote:r.review_note,submittedAt:r.submitted_at,reviewedAt:r.reviewed_at,user:{publicId:r.public_id,displayName:r.display_name,identifier:r.identifier}}})}catch(e){res.status(500).json({error:'Unable to load KYC record'})}});
+  app.post('/api/admin/kyc/:id/review',adminAuth,requireRole('super_admin','operations','compliance'),async(req,res)=>{const status=clean(req.body?.status,24),note=clean(req.body?.note,300);if(!['approved','rejected'].includes(status))return res.status(400).json({error:'Choose approved or rejected'});try{const q=await pool.query(`UPDATE kyc_profiles SET status=$1,review_note=$2,reviewed_by=$3,reviewed_at=NOW(),updated_at=NOW() WHERE id=$4 RETURNING id`,[status,note||null,req.admin.id,req.params.id]);if(!q.rows[0])return res.status(404).json({error:'KYC record not found'});await audit(req,'kyc.review','kyc',req.params.id,{status,note});res.json({ok:true,status})}catch(e){res.status(500).json({error:'Unable to review KYC'})}});
+  registerTradeRoutes(app,args);registerUserAdminRoutes(app,args);registerSupportChatRoutes(app,args);
 }
