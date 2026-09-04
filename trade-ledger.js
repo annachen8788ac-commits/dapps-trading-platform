@@ -15,6 +15,7 @@
   const head=document.querySelector('.positions-table-head');
   const tabs=[...document.querySelectorAll('.positions-heading .tab-row button')];
   if(!placeBtn||!amountInput||!list||!head)return;
+  if(!tabs.length){const panel=document.querySelector('.positions-panel'),heading=panel?.querySelector('.panel-heading');if(heading){heading.innerHTML='<div class="positions-heading"><h3>Orders</h3><div class="tab-row"><button class="active">Active Trades</button><button>History</button></div></div>';tabs.push(...heading.querySelectorAll('.tab-row button'))}}
 
   const style=document.createElement('style');
   style.textContent=`
