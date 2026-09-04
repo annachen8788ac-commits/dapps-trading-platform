@@ -7,6 +7,17 @@
   const estimate = document.querySelector('.trade-estimate');
   if(!amountInput || !placeBtn || !estimate) return;
 
+  // Never prefill an order amount. The customer must choose or enter it.
+  amountInput.value='';
+  amountInput.min='200';
+  amountInput.placeholder='Enter amount';
+
+  // Remove invalid quick amounts below the platform minimum and keep useful presets.
+  const quick=document.querySelector('.quick-amounts');
+  if(quick){
+    quick.innerHTML='<button data-amount="200">200</button><button data-amount="500">500</button><button data-amount="1000">1,000</button><button data-amount="5000">5,000</button>';
+  }
+
   let ruleLine = document.querySelector('#trade-rule-line');
   if(!ruleLine){
     ruleLine = document.createElement('div');
@@ -36,23 +47,25 @@
   `;
   document.head.appendChild(style);
 
-  function minForDuration(){ return minimums[Number(duration)] ?? 1000; }
+  function minForDuration(){ return minimums[Number(duration)] ?? 200; }
   function rateForDuration(){ return rates[Number(duration)] ?? 29; }
+  function isSimulation(){ return Boolean(new URLSearchParams(location.search).get('demo')); }
 
   function validateTrade(){
-    const amount = Number(amountInput.value) || 0;
+    const raw=amountInput.value.trim();
+    const amount = raw==='' ? 0 : Number(raw)||0;
     const min = minForDuration();
     const rate = rateForDuration();
     const available = Number(balance) || 0;
     amountInput.min = min;
-    amountInput.placeholder = `Enter amount`;
+    amountInput.placeholder = `Minimum ${fmt(min,0)} USDT`;
     ruleLine.innerHTML = `<span>Minimum order</span><strong>${fmt(min,0)} USDT</strong>`;
 
-    const underMinimum = amount < min;
-    const insufficient = amount > available;
-    const empty = amount <= 0;
+    const empty = raw==='';
+    const underMinimum = !empty && amount < min;
+    const insufficient = !empty && amount > available;
     const invalid = empty || underMinimum || insufficient;
-    amountInput.closest('.input-wrap')?.classList.toggle('trade-invalid', invalid);
+    amountInput.closest('.input-wrap')?.classList.toggle('trade-invalid', !empty && invalid);
     placeBtn.disabled = invalid;
 
     if(empty){
@@ -70,18 +83,19 @@
     }else{
       eligibility.className = 'trade-eligibility ready';
       eligibility.textContent = `Order eligible · ${duration}s · +${rate}% potential profit.`;
-      placeBtn.textContent = 'Open Demo Trade';
+      placeBtn.textContent = isSimulation()?'Open Simulation Trade':'Open Trade';
     }
   }
 
   amountInput.addEventListener('input', validateTrade);
-  document.querySelectorAll('[data-amount]').forEach(btn => btn.addEventListener('click', validateTrade));
+  document.querySelectorAll('[data-amount]').forEach(btn => btn.addEventListener('click',()=>{amountInput.value=btn.dataset.amount;validateTrade();if(typeof updatePotential==='function')updatePotential();}));
 
   durationButtons.forEach(btn => {
     btn.onclick = () => {
       duration = Number(btn.dataset.duration);
       durationButtons.forEach(x => x.classList.remove('active'));
       btn.classList.add('active');
+      // Do not auto-fill the new minimum when duration changes.
       if(typeof updatePotential === 'function') updatePotential();
       validateTrade();
     };
@@ -90,32 +104,21 @@
   placeBtn.onclick = () => {
     const amount = Number(amountInput.value) || 0;
     const min = minForDuration();
-    if(amount < min){
-      validateTrade();
-      showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`);
-      return;
-    }
-    if(amount > balance){
-      validateTrade();
-      showToast('Order blocked: insufficient available balance.');
-      return;
-    }
+    if(amount < min){ validateTrade(); showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`); return; }
+    if(amount > balance){ validateTrade(); showToast('Order blocked: insufficient available balance.'); return; }
     const rate = rateForDuration();
     balance -= amount;
     activeTrades.push({id:Date.now(),market:currentMarket,dir:direction,entry:currentMarket.price,amount,duration,profitRate:rate,end:Date.now()+duration*1000});
-    updateBalances();
-    renderPositions();
+    updateBalances(); renderPositions();
+    amountInput.value='';
+    if(typeof updatePotential==='function')updatePotential();
     validateTrade();
-    showToast(`${direction==='up'?'Up':'Down'} ${duration}s demo trade opened · +${rate}% potential profit.`);
+    showToast(`${direction==='up'?'Up':'Down'} ${duration}s ${isSimulation()?'simulation ':''}trade opened · +${rate}% potential profit.`);
   };
 
   const originalUpdateBalances = window.updateBalances;
   if(typeof originalUpdateBalances === 'function'){
-    window.updateBalances = function(){
-      const result = originalUpdateBalances();
-      validateTrade();
-      return result;
-    };
+    window.updateBalances = function(){ const result = originalUpdateBalances(); validateTrade(); return result; };
   }
 
   validateTrade();
