@@ -1,7 +1,10 @@
 (() => {
   const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
   const token=localStorage.getItem('dapps:token');
-  const ACTIVE_KEY='dapps:activeTrades:v2', HISTORY_KEY='dapps:tradeHistory:v2', BALANCE_KEY='dapps:demoBalance:v2';
+  const demoId=new URLSearchParams(location.search).get('demo');
+  const demoMode=Boolean(demoId);
+  const suffix=demoMode?':'+demoId:'';
+  const ACTIVE_KEY='dapps:activeTrades:v3'+suffix, HISTORY_KEY='dapps:tradeHistory:v3'+suffix, BALANCE_KEY='dapps:demoBalance:v3'+suffix;
   const minimums={30:200,60:1000,90:10000,180:50000,360:250000}, rates={30:21,60:29,90:37,180:45,360:53};
   const placeBtn=document.querySelector('#place-trade'),amountInput=document.querySelector('#trade-amount'),list=document.querySelector('#positions-list'),head=document.querySelector('.positions-table-head'),tabs=[...document.querySelectorAll('.positions-heading .tab-row button')];
   if(!placeBtn||!amountInput||!list||!head)return;
@@ -12,13 +15,7 @@
   const authHeaders=()=>({'content-type':'application/json',Authorization:'Bearer '+token});
   async function api(path,options={}){const r=await fetch(API+path,{...options,headers:{...authHeaders(),...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Request failed');return d;}
   function marketBySymbol(symbol){return markets.find(m=>m.symbol===symbol)||currentMarket;}
-  function syncLegacySnapshot(){
-    try{
-      const active=backendTrades.filter(t=>t.result==='pending').map(t=>({id:t.tradeNo,symbol:t.symbol,name:t.symbol,dir:t.direction,entry:t.entryPrice,amount:t.amount,duration:t.duration,profitRate:t.profitRate,openedAt:new Date(t.openedAt).getTime(),endAt:new Date(t.expiresAt).getTime(),status:'active'}));
-      const history=backendTrades.filter(t=>t.result!=='pending').map(t=>({id:t.tradeNo,symbol:t.symbol,name:t.symbol,dir:t.direction,entry:t.entryPrice,exit:t.exitPrice,amount:t.amount,duration:t.duration,profitRate:t.profitRate,openedAt:new Date(t.openedAt).getTime(),closedAt:new Date(t.settledAt).getTime(),status:'closed',result:t.result==='won'?'won':'lost',profit:t.profitAmount}));
-      localStorage.setItem(ACTIVE_KEY,JSON.stringify(active));localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
-    }catch{}
-  }
+  function syncLegacySnapshot(){try{const active=backendTrades.filter(t=>t.result==='pending').map(t=>({id:t.tradeNo,symbol:t.symbol,name:t.symbol,dir:t.direction,entry:t.entryPrice,amount:t.amount,duration:t.duration,profitRate:t.profitRate,openedAt:new Date(t.openedAt).getTime(),endAt:new Date(t.expiresAt).getTime(),status:'active'}));const history=backendTrades.filter(t=>t.result!=='pending').map(t=>({id:t.tradeNo,symbol:t.symbol,name:t.symbol,dir:t.direction,entry:t.entryPrice,exit:t.exitPrice,amount:t.amount,duration:t.duration,profitRate:t.profitRate,openedAt:new Date(t.openedAt).getTime(),closedAt:new Date(t.settledAt).getTime(),status:'closed',result:t.result==='won'?'won':'lost',profit:t.profitAmount}));localStorage.setItem('dapps:activeTrades:v2',JSON.stringify(active));localStorage.setItem('dapps:tradeHistory:v2',JSON.stringify(history));}catch{}}
   async function refreshWallet(){try{const d=await api('/api/wallet');balance=Number(d.balance.available)||0;updateBalances();}catch(e){if(e.message.includes('Authentication'))return;}}
   async function refreshTrades(){try{const d=await api('/api/trades');backendTrades=d.trades||[];syncLegacySnapshot();renderLedger();}catch(e){showToast(e.message);}}
   function renderActive(){const rows=backendTrades.filter(t=>t.result==='pending');head.innerHTML='<span>Pair</span><span>Direction</span><span>Entry</span><span>Amount</span><span>Opened</span><span>Time Left</span><span>Status</span>';if(!rows.length){list.className='positions-list empty-state';list.textContent='No active trades.';return}const now=Date.now();list.className='positions-list';list.innerHTML=rows.map(t=>`<div class="position-row"><strong>${t.symbol}</strong><span class="${t.direction==='up'?'positive':'negative'}">${t.direction==='up'?'↑ Up':'↓ Down'}</span><strong>${fmt(t.entryPrice,decimals(t.entryPrice))}</strong><span>${fmt(t.amount)} USDT</span><span class="trade-time">${fmtTime(t.openedAt)}</span><span class="countdown">${Math.max(0,Math.ceil((new Date(t.expiresAt).getTime()-now)/1000))}s</span><span><i class="status-pill active">Trading</i></span></div>`).join('')}
@@ -26,36 +23,20 @@
   function renderLedger(){mode==='history'?renderHistory():renderActive()}window.renderPositions=renderLedger;
   tabs.forEach((tab,index)=>tab.addEventListener('click',()=>{mode=index===0?'active':'history';tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');head.style.display='grid';renderLedger()}));
 
-  if(token){
+  if(token&&!demoMode){
     activeTrades.length=0;
-    placeBtn.onclick=async()=>{
-      const amount=Number(amountInput.value)||0,min=minimums[Number(duration)]??1000;
-      if(amount<min)return showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`);
-      placeBtn.disabled=true;
-      try{
-        const d=await api('/api/trades',{method:'POST',body:JSON.stringify({symbol:currentMarket.symbol,direction, duration:Number(duration),amount,entryPrice:Number(currentMarket.price)})});
-        balance=Number(d.balance.available);updateBalances();showToast(`${d.trade.symbol} ${d.trade.direction==='up'?'Up':'Down'} ${d.trade.duration}s trade opened.`);mode='active';tabs.forEach((x,i)=>x.classList.toggle('active',i===0));await refreshTrades();
-      }catch(e){showToast(e.message)}finally{placeBtn.disabled=false;}
-    };
-    async function autoSettle(){
-      const now=Date.now();
-      for(const t of backendTrades.filter(x=>x.result==='pending'&&new Date(x.expiresAt).getTime()<=now)){
-        if(settling.has(t.tradeNo))continue;settling.add(t.tradeNo);
-        try{
-          const m=marketBySymbol(t.symbol);
-          const d=await api('/api/trades/'+encodeURIComponent(t.tradeNo)+'/settle',{method:'POST',body:JSON.stringify({exitPrice:Number(m.price)})});
-          balance=Number(d.balance.available);updateBalances();showToast(`${t.symbol} trade ${d.trade.result==='won'?'won':'lost'} · ${d.trade.profitAmount>0?'+':''}${fmt(d.trade.profitAmount)} USDT`);
-        }catch(e){if(!e.message.includes('not expired'))console.warn(e)}finally{settling.delete(t.tradeNo)}
-      }
-      if(backendTrades.some(x=>x.result==='pending'&&new Date(x.expiresAt).getTime()<=Date.now()))await refreshTrades();else if(mode==='active')renderActive();
-    }
+    placeBtn.onclick=async()=>{const amount=Number(amountInput.value)||0,min=minimums[Number(duration)]??1000;if(amount<min)return showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`);placeBtn.disabled=true;try{const d=await api('/api/trades',{method:'POST',body:JSON.stringify({symbol:currentMarket.symbol,direction,duration:Number(duration),amount,entryPrice:Number(currentMarket.price)})});balance=Number(d.balance.available);updateBalances();showToast(`${d.trade.symbol} ${d.trade.direction==='up'?'Up':'Down'} ${d.trade.duration}s trade opened.`);mode='active';tabs.forEach((x,i)=>x.classList.toggle('active',i===0));await refreshTrades();}catch(e){showToast(e.message)}finally{placeBtn.disabled=false;}};
+    async function autoSettle(){const now=Date.now();for(const t of backendTrades.filter(x=>x.result==='pending'&&new Date(x.expiresAt).getTime()<=now)){if(settling.has(t.tradeNo))continue;settling.add(t.tradeNo);try{const m=marketBySymbol(t.symbol);const d=await api('/api/trades/'+encodeURIComponent(t.tradeNo)+'/settle',{method:'POST',body:JSON.stringify({exitPrice:Number(m.price)})});balance=Number(d.balance.available);updateBalances();showToast(`${t.symbol} trade ${d.trade.result==='won'?'won':'lost'} · ${d.trade.profitAmount>0?'+':''}${fmt(d.trade.profitAmount)} USDT`);}catch(e){if(!e.message.includes('not expired'))console.warn(e)}finally{settling.delete(t.tradeNo)}}if(backendTrades.some(x=>x.result==='pending'&&new Date(x.expiresAt).getTime()<=Date.now()))await refreshTrades();else if(mode==='active')renderActive();}
     Promise.all([refreshWallet(),refreshTrades()]);setInterval(autoSettle,1000);setInterval(refreshTrades,10000);
   }else{
-    let ledgerActive=[],ledgerHistory=[];try{ledgerActive=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'[]');ledgerHistory=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch{}
-    const saved=Number(localStorage.getItem(BALANCE_KEY));if(Number.isFinite(saved))balance=saved;
-    const save=()=>{localStorage.setItem(ACTIVE_KEY,JSON.stringify(ledgerActive));localStorage.setItem(HISTORY_KEY,JSON.stringify(ledgerHistory));localStorage.setItem(BALANCE_KEY,String(balance))};
+    if(!demoMode){balance=0;backendTrades=[];renderLedger();updateBalances();placeBtn.onclick=()=>showToast('Start a Simulation Account from registration or sign in to trade.');return;}
+    const store=sessionStorage;let ledgerActive=[],ledgerHistory=[];
+    try{ledgerActive=JSON.parse(store.getItem(ACTIVE_KEY)||'[]');ledgerHistory=JSON.parse(store.getItem(HISTORY_KEY)||'[]')}catch{}
+    const saved=Number(store.getItem(BALANCE_KEY));balance=Number.isFinite(saved)?saved:50000;
+    const save=()=>{store.setItem(ACTIVE_KEY,JSON.stringify(ledgerActive));store.setItem(HISTORY_KEY,JSON.stringify(ledgerHistory));store.setItem(BALANCE_KEY,String(balance))};
+    if(!store.getItem(BALANCE_KEY))save();
     backendTrades=[...ledgerActive.map(t=>({tradeNo:t.id,symbol:t.symbol,direction:t.dir,duration:t.duration,amount:t.amount,profitRate:t.profitRate,entryPrice:t.entry,result:'pending',openedAt:new Date(t.openedAt),expiresAt:new Date(t.endAt)})),...ledgerHistory.map(t=>({tradeNo:t.id,symbol:t.symbol,direction:t.dir,duration:t.duration,amount:t.amount,profitRate:t.profitRate,entryPrice:t.entry,exitPrice:t.exit,result:t.result==='won'?'won':'lost',profitAmount:t.profit,openedAt:new Date(t.openedAt),settledAt:new Date(t.closedAt)}))];
-    placeBtn.onclick=()=>{const amount=Number(amountInput.value)||0,min=minimums[Number(duration)]??1000,rate=rates[Number(duration)]??29;if(amount<min)return showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`);if(amount>balance)return showToast('Order blocked: insufficient demo balance.');const now=Date.now(),t={id:String(now),symbol:currentMarket.symbol,dir:direction,entry:currentMarket.price,amount,duration:Number(duration),profitRate:rate,openedAt:now,endAt:now+Number(duration)*1000};balance-=amount;ledgerActive.unshift(t);save();location.reload()};
+    placeBtn.onclick=()=>{const amount=Number(amountInput.value)||0,min=minimums[Number(duration)]??1000,rate=rates[Number(duration)]??29;if(amount<min)return showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`);if(amount>balance)return showToast('Order blocked: insufficient simulation balance.');const now=Date.now(),t={id:String(now),symbol:currentMarket.symbol,dir:direction,entry:currentMarket.price,amount,duration:Number(duration),profitRate:rate,openedAt:now,endAt:now+Number(duration)*1000};balance-=amount;ledgerActive.unshift(t);save();location.reload()};
     setInterval(()=>{const now=Date.now(),keep=[];let changed=false;ledgerActive.forEach(t=>{if(t.endAt>now){keep.push(t);return}const m=marketBySymbol(t.symbol),won=t.dir==='up'?m.price>=t.entry:m.price<=t.entry,profit=won?t.amount*t.profitRate/100:-t.amount;if(won)balance+=t.amount+profit;ledgerHistory.unshift({...t,exit:m.price,closedAt:now,result:won?'won':'lost',profit});changed=true});if(changed){ledgerActive=keep;save();location.reload()}},1000);renderLedger();updateBalances();
   }
 })();
