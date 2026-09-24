@@ -127,6 +127,7 @@
     const w=rect.width,h=rect.height,pad={top:40,right:isMobile()?62:78,bottom:28,left:10},plotW=w-pad.left-pad.right,fullH=h-pad.top-pad.bottom,volH=Math.max(34,fullH*.18),priceH=fullH-volH-8,volTop=pad.top+priceH+8;ctx.clearRect(0,0,w,h);
     const source=normalizeSeries(currentMarket),base=tfCounts[chartTimeframe]||84,count=Math.min(source.length,Math.max(24,Math.round(base/state.zoom))),maxPan=Math.max(0,source.length-count);state.pan=clamp(state.pan,0,maxPan);const end=source.length-state.pan,data=source.slice(end-count,end);if(data.length<2)return;
     window.__chartView={total:source.length,visible:data.length,pan:state.pan,first:data[0].ts,last:data[data.length-1].ts};
+    canvas.dataset.pan=String(state.pan);canvas.dataset.historyCount=String(source.length);canvas.dataset.firstCandle=String(data[0].ts);
     const rawMin=Math.min(...data.map(d=>d.low)),rawMax=Math.max(...data.map(d=>d.high)),range=Math.max(rawMax-rawMin,currentMarket.price*.0025),min=rawMin-range*.08,max=rawMax+range*.08,y=v=>pad.top+(max-v)/(max-min)*priceH,step=plotW/data.length,x=i=>pad.left+i*step+step/2;
 
     ctx.font=`${isMobile()?10:11}px Inter,sans-serif`;ctx.textBaseline='middle';
