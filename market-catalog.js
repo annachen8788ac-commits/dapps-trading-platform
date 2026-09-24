@@ -13,7 +13,7 @@
     .coin-icon.small,.mini-icon{font-size:8px!important}.coin-icon.large{font-size:10px!important}
     #page-trade .trade-grid{align-items:start!important}#page-trade .chart-panel{align-self:start!important;height:auto!important;min-height:0!important}
     .trade-quick-markets{display:flex;gap:8px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}.trade-quick-markets::-webkit-scrollbar{display:none}
-    .trade-quick-market{flex:0 0 auto;border:1px solid #26344a;background:#0e1725;color:#b9c6da;border-radius:9px;padding:8px 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap}.trade-quick-market.active,.trade-quick-market:hover{border-color:#438cff;color:#fff;background:#13233a}
+    .trade-quick-market{flex:0 0 auto;border:1px solid #26344a;background:#0e1725;color:#b9c6da;border-radius:9px;padding:8px 10px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap}.trade-quick-market.active{border-color:#438cff;color:#fff;background:#13233a}.trade-quick-market:hover:not(.active){border-color:#344963;color:#dce7f5;background:#101b2a}
     .market-catalog-tools{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;margin:0 0 12px}.market-search{width:100%;border:1px solid #263850;background:#0c1726;color:#fff;border-radius:10px;padding:11px 13px;outline:none}.market-search:focus{border-color:#438cff}.market-count{display:flex;align-items:center;padding:0 12px;border:1px solid #263850;border-radius:10px;color:#91a2b9;font-size:11px;background:#0c1726}
     @media(max-width:720px){.market-catalog-tools{grid-template-columns:1fr}.market-count{min-height:38px}.trade-quick-markets{padding-bottom:7px}.trade-quick-market{padding:7px 9px;font-size:10px}#page-trade .chart-stage{height:300px!important}}
   `;
@@ -58,9 +58,10 @@
     const selected=currentMarket?.symbol?(markets.find(m=>m.symbol===currentMarket.symbol)||currentMarket):null;
     if(selected&&!set.some(m=>m.symbol===selected.symbol))set=[selected,...set].slice(0,10);
     bar.innerHTML=set.map(m=>`<button type="button" class="trade-quick-market${currentMarket?.symbol===m.symbol?' active':''}" data-symbol="${m.symbol}">${tradeIconHTML(m)}<span>${m.symbol}</span></button>`).join('');
-    bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m){selectMarket(m);renderQuickMarkets()}});
+    bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m)selectMarket(m)});
   }
   window.renderQuickMarkets=renderQuickMarkets;
+  window.addEventListener('dapps:market-selected',renderQuickMarkets);
 
   function applyConfig(data){
     if(!data||!Array.isArray(data.markets)||!Array.isArray(data.periods)||!data.markets.length)return;
