@@ -328,3 +328,9 @@
 @keyframes chartBreathe{to{transform:scaleY(.83);filter:brightness(1.45)}}
 @media(max-width:720px){.tech-logo-stage{top:45px!important;right:auto!important}.tech-globe-land{animation-duration:35s}}
 @media(prefers-reduced-motion:reduce){.tech-globe-land,.tech-orbit,.tech-bars{animation:none!important}}
+/* Keep the rotating mark in front of the floating market panels at every angle. */
+.tech-logo-stage{z-index:12!important}
+.tech-logo-stack,.tech-logo-canvas{isolation:isolate}
+.tech-chart{left:-30px!important}
+.tech-market{right:-18px!important}
+.tech-map{right:-22px!important}
