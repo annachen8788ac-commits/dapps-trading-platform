@@ -139,6 +139,28 @@ app.get('/api/market/candles',async(req,res)=>{
   if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
   try{const rows=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${granularity}`,9000);const data={symbol:code,granularity,candles:Array.isArray(rows)?rows:[]};marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market candles unavailable'})}
 });
+app.get('/api/market/orderbook',async(req,res)=>{
+  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
+  const level=[1,2].includes(Number(req.query.level))?Number(req.query.level):2,key=`book:${code}:${level}`,hit=marketCache.get(key);
+  if(hit&&Date.now()-hit.at<700)return res.json(hit.data);
+  try{
+    const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/book?level=${level}`,5000);
+    const normalize=rows=>(Array.isArray(rows)?rows:[]).slice(0,24).map(r=>[Number(r[0]),Number(r[1]),Number(r[2]||0)]).filter(r=>Number.isFinite(r[0])&&Number.isFinite(r[1]));
+    const data={symbol:code,bids:normalize(d.bids),asks:normalize(d.asks),sequence:d.sequence||null,time:new Date().toISOString()};
+    marketCache.set(key,{at:Date.now(),data});res.json(data);
+  }catch(e){if(hit&&Date.now()-hit.at<10000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market depth unavailable'})}
+});
+app.get('/api/market/trades',async(req,res)=>{
+  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
+  const key='trades:'+code,hit=marketCache.get(key);if(hit&&Date.now()-hit.at<900)return res.json(hit.data);
+  try{
+    const rows=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/trades?limit=60`,5000);
+    const trades=(Array.isArray(rows)?rows:[]).slice(0,40).map(t=>({tradeId:t.trade_id,price:Number(t.price),size:Number(t.size),side:t.side,time:t.time})).filter(t=>Number.isFinite(t.price)&&Number.isFinite(t.size));
+    const data={symbol:code,trades};marketCache.set(key,{at:Date.now(),data});res.json(data);
+  }catch(e){if(hit&&Date.now()-hit.at<10000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Recent trades unavailable'})}
+});
 app.get('/api/health',async(req,res)=>{try{await pool.query('SELECT 1');res.json({ok:true,service:'dapps-platform-backend',database:'connected'});}catch{res.status(503).json({ok:false,service:'dapps-platform-backend',database:'unavailable'});}});
 app.post('/api/auth/register',async(req,res)=>{const {registrationType,identifier,displayName,password}=req.body||{};if(!['email','mobile','username'].includes(registrationType))return res.status(400).json({error:'Choose email, mobile or username registration'});const normalized=normalizeIdentifier(registrationType,identifier);if(!normalized||!String(displayName||'').trim()||!password)return res.status(400).json({error:'All fields are required'});if(String(password).length<8)return res.status(400).json({error:'Password must be at least 8 characters'});if(registrationType==='email'&&!/^\S+@\S+\.\S+$/.test(normalized))return res.status(400).json({error:'Enter a valid email address'});if(registrationType==='mobile'&&!/^\+?[0-9]{7,15}$/.test(normalized))return res.status(400).json({error:'Enter a valid mobile number with country code'});if(registrationType==='username'&&!/^[A-Za-z0-9_.-]{4,32}$/.test(normalized))return res.status(400).json({error:'Username must be 4-32 characters using letters, numbers, ., _ or -'});try{const hash=await bcrypt.hash(String(password),12);let row;for(let i=0;i<5;i++){try{const q=await pool.query(`INSERT INTO users(public_id,registration_type,identifier,display_name,password_hash) VALUES($1,$2,$3,$4,$5) RETURNING *`,[makePublicId(),registrationType,normalized,String(displayName).trim().slice(0,80),hash]);row=q.rows[0];break;}catch(e){if(e.code==='23505'&&e.constraint?.includes('public_id'))continue;throw e;}}if(!row)throw new Error('Unable to allocate account ID');await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[row.id]);res.status(201).json({token:signUser(row),user:userPayload(row)});}catch(e){if(e.code==='23505')return res.status(409).json({error:'This email, mobile number or username is already registered'});console.error(e);res.status(500).json({error:'Registration failed'});}});
 app.post('/api/auth/login',async(req,res)=>{const id=String(req.body?.identifier||'').trim(),password=String(req.body?.password||'');if(!id||!password)return res.status(400).json({error:'Identifier and password are required'});try{const q=await pool.query(`SELECT * FROM users WHERE identifier=ANY($1::text[]) LIMIT 1`,[[id.toLowerCase(),id.replace(/\s+/g,'')]]);const r=q.rows[0];if(!r||!(await bcrypt.compare(password,r.password_hash)))return res.status(401).json({error:'Incorrect account or password'});if(r.status!=='active')return res.status(403).json({error:'Account is not active'});res.json({token:signUser(r),user:userPayload(r)});}catch(e){console.error(e);res.status(500).json({error:'Sign in failed'});}});
