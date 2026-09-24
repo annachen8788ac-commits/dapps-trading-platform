@@ -2,7 +2,7 @@
   if(typeof markets==='undefined'||typeof chartHistory==='undefined')return;
 
   const backend=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
-  const durations={'1m':60,'5m':300,'15m':900,'1H':3600,'4H':21600,'1D':86400};
+  const durations={'1H':60,'24H':300,'7D':3600,'30D':21600};
   const supported=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
   const ids={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',LTC:'litecoin',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',LINK:'chainlink',BNB:'binancecoin',TRX:'tron',BCH:'bitcoin-cash',DOT:'polkadot',XLM:'stellar',USDT:'tether'};
   const observed=new Map();
@@ -118,12 +118,12 @@
   }
   async function fallbackHistory(m){
     const id=ids[codeOf(m)];if(!id||historyCache.get(cacheKey(m))?.candles?.length)return;
-    const serial=request,days=chartTimeframe==='1D'?365:chartTimeframe==='4H'?90:chartTimeframe==='1H'?30:1;
+    const serial=request,days=chartTimeframe==='30D'?30:chartTimeframe==='7D'?7:chartTimeframe==='24H'?1:1;
     try{
       const data=await json(`${backend}/api/market/history?id=${encodeURIComponent(id)}&days=${days}`);
       if(serial!==request||m!==selected()||!Array.isArray(data.prices))return;
       const points=data.prices.map(([ts,price])=>({ts:Number(ts),price:Number(price)})).filter(p=>Number.isFinite(p.price));
-      const interval=Math.max(durations[chartTimeframe]||3600,300)*1000,candles=[];
+      const interval=Math.max(durations[chartTimeframe]||300,60)*1000,candles=[];
       for(const point of points){const ts=Math.floor(point.ts/interval)*interval,last=candles.at(-1);if(last?.ts===ts){last.high=Math.max(last.high,point.price);last.low=Math.min(last.low,point.price);last.close=point.price}else candles.push({ts,open:point.price,high:point.price,low:point.price,close:point.price,volume:0,sampled:true})}
       if(candles.length>1){historyCache.set(cacheKey(m),{at:Date.now(),candles:candles.slice(-300)});chartHistory.set(m.symbol,candles.slice(-300));setLoading(false);paint(true)}
     }catch{}
