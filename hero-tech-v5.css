@@ -12,9 +12,9 @@
   min-height:690px;margin-top:18px;border-radius:30px;padding:54px 50px 42px;
   border:1px solid rgba(55,129,211,.25);
   background:
-    radial-gradient(circle at 73% 31%,rgba(18,160,255,.18),transparent 25%),
-    radial-gradient(circle at 88% 64%,rgba(16,235,242,.09),transparent 24%),
-    linear-gradient(118deg,#020915 0%,#051429 55%,#02101f 100%);
+    radial-gradient(circle at 74% 28%,rgba(12,126,255,.24),transparent 18%),
+    radial-gradient(circle at 86% 62%,rgba(19,238,255,.18),transparent 16%),
+    linear-gradient(118deg,#01050d 0%,#03111f 44%,#031a2d 100%);
   box-shadow:0 30px 100px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.025);
 }
 .tech-hero-v5::before{
@@ -32,8 +32,8 @@
     linear-gradient(90deg,rgba(25,124,255,.18) 1px,transparent 1px);
   background-size:52px 36px;
   transform:perspective(520px) rotateX(67deg);
-  transform-origin:50% 0;opacity:.55;z-index:-2;
-  filter:drop-shadow(0 0 14px rgba(0,136,255,.18));
+  transform-origin:50% 0;opacity:.82;z-index:-2;
+  filter:none;
 }
 .tech-hero-inner{min-height:590px;display:grid;grid-template-columns:.9fr 1.1fr;gap:26px;align-items:center;position:relative;z-index:2}
 .tech-copy{max-width:610px;position:relative;z-index:10}
@@ -45,8 +45,8 @@
 }
 .tech-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#36e7ff;box-shadow:0 0 12px #36e7ff}
 .tech-title{margin:28px 0 20px;font-size:clamp(56px,6.1vw,88px);line-height:.92;letter-spacing:-.068em;font-weight:800}
-.tech-title .white{display:block;color:#f9fbff}
-.tech-title .gradient{display:block;background:linear-gradient(92deg,#277dff 0%,#1c9cff 40%,#19e5f4 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 8px 20px rgba(15,132,255,.10))}
+.tech-title .white{display:block;color:#ffffff;text-shadow:0 0 10px rgba(255,255,255,.035)}
+.tech-title .gradient{display:block;background:linear-gradient(92deg,#3b85ff 0%,#149fff 36%,#12f2ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:none}
 .tech-desc{max-width:555px;color:#9baec3;font-size:16px;line-height:1.72;margin:0}
 .tech-cta{display:flex;gap:12px;margin-top:30px}
 .tech-cta button,.tech-cta a{min-height:50px;padding:0 21px;border-radius:13px;text-decoration:none;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;transition:.22s ease}
@@ -55,7 +55,7 @@
 .tech-cta .secondary{color:#e2edf8;border:1px solid rgba(99,151,209,.25);background:rgba(255,255,255,.025)}
 .tech-cta .secondary:hover{border-color:rgba(56,197,255,.42);background:rgba(20,85,145,.10)}
 .tech-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:34px}
-.tech-feature{display:flex;align-items:center;gap:10px;padding:13px 12px;border:1px solid rgba(78,148,223,.18);border-radius:14px;background:linear-gradient(180deg,rgba(11,29,52,.62),rgba(5,17,31,.54));backdrop-filter:blur(12px);box-shadow:0 14px 30px rgba(0,0,0,.13)}
+.tech-feature{display:flex;align-items:center;gap:10px;padding:13px 12px;border:1px solid rgba(71,177,255,.28);border-radius:14px;background:linear-gradient(180deg,rgba(8,27,50,.88),rgba(4,15,29,.82));backdrop-filter:blur(6px);box-shadow:0 12px 24px rgba(0,0,0,.16)}
 .tech-feature i{font-style:normal;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(8,119,255,.10);border:1px solid rgba(67,164,255,.22);color:#4de5ff;font-size:17px}
 .tech-feature b{display:block;font-size:12px;color:#f4f8fd}.tech-feature small{display:block;margin-top:3px;font-size:9px;color:#768da5}
 
@@ -67,9 +67,9 @@
     radial-gradient(circle at 50% 50%,transparent 49%,rgba(39,148,255,.22) 49.5%,transparent 50.5%),
     radial-gradient(circle at 50% 50%,rgba(16,108,255,.09),rgba(9,46,112,.06) 56%,transparent 70%);
   border:1px solid rgba(50,135,234,.10);
-  box-shadow:0 0 90px rgba(9,112,255,.14),inset 0 0 60px rgba(0,126,255,.08);
+  box-shadow:0 0 34px rgba(9,112,255,.18),inset 0 0 22px rgba(0,126,255,.08);
 }
-.tech-globe{position:absolute;right:120px;top:62px;width:410px;height:410px;border-radius:50%;opacity:.72;overflow:hidden;filter:drop-shadow(0 0 24px rgba(0,112,255,.22))}
+.tech-globe{position:absolute;right:120px;top:62px;width:410px;height:410px;border-radius:50%;opacity:.94;overflow:hidden;filter:drop-shadow(0 0 10px rgba(0,112,255,.18))}
 .tech-globe::before{
   content:"";position:absolute;inset:0;border-radius:50%;
   background-image:
@@ -95,11 +95,11 @@
 }
 .tech-logo-stack{position:relative;width:455px;height:380px;transform-style:preserve-3d;animation:dpSpin3d 11s linear infinite}
 .tech-logo-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform-style:preserve-3d;backface-visibility:visible;pointer-events:none}
-.tech-logo-layer.depth{filter:brightness(.42) saturate(1.4) hue-rotate(3deg) drop-shadow(0 0 5px rgba(0,82,255,.22))}
-.tech-logo-layer.front{filter:brightness(1.16) saturate(1.2) drop-shadow(0 0 14px rgba(6,113,255,.58)) drop-shadow(0 0 38px rgba(22,223,242,.28));z-index:40}
+.tech-logo-layer.depth{filter:brightness(.60) contrast(1.12) saturate(1.68) hue-rotate(2deg)}
+.tech-logo-layer.front{filter:brightness(1.28) contrast(1.16) saturate(1.62) drop-shadow(0 0 7px rgba(6,113,255,.42)) drop-shadow(0 0 16px rgba(22,223,242,.20));z-index:40}
 .tech-logo-layer.back{filter:brightness(.25) saturate(1.4);opacity:.9}
-.tech-logo-glow{position:absolute;right:72px;bottom:52px;width:455px;height:88px;border-radius:50%;background:radial-gradient(ellipse,rgba(27,220,255,.46),rgba(15,97,255,.19) 37%,transparent 70%);filter:blur(11px);transform:rotateX(70deg);z-index:0}
-.tech-pedestal{position:absolute;right:76px;bottom:43px;width:450px;height:58px;border-radius:50%;border:2px solid rgba(42,207,255,.46);box-shadow:0 0 15px rgba(22,173,255,.55),0 0 45px rgba(13,90,255,.22),inset 0 0 25px rgba(20,185,255,.18);transform:rotateX(68deg)}
+.tech-logo-glow{position:absolute;right:72px;bottom:52px;width:455px;height:88px;border-radius:50%;background:radial-gradient(ellipse,rgba(37,238,255,.68),rgba(14,102,255,.28) 34%,transparent 62%);filter:blur(4px);transform:rotateX(70deg);z-index:0}
+.tech-pedestal{position:absolute;right:76px;bottom:43px;width:450px;height:58px;border-radius:50%;border:2px solid rgba(42,226,255,.72);box-shadow:0 0 7px rgba(22,193,255,.70),0 0 20px rgba(13,90,255,.28),inset 0 0 12px rgba(20,211,255,.24);transform:rotateX(68deg)}
 
 @keyframes dpSpin3d{
   0%{transform:rotateX(-4deg) rotateY(0deg) translateY(0)}
@@ -111,7 +111,7 @@
 @media(prefers-reduced-motion:reduce){.tech-logo-stack{animation:none!important}.tech-scan,.tech-particle{animation:none!important}}
 
 /* floating market HUDs */
-.tech-hud{position:absolute;z-index:8;background:linear-gradient(180deg,rgba(8,25,48,.80),rgba(3,14,29,.66));border:1px solid rgba(54,154,255,.29);border-radius:15px;backdrop-filter:blur(15px);box-shadow:0 18px 42px rgba(0,0,0,.27),inset 0 0 26px rgba(20,133,255,.04);overflow:hidden}
+.tech-hud{position:absolute;z-index:8;background:linear-gradient(180deg,rgba(5,22,44,.94),rgba(3,13,28,.88));border:1px solid rgba(61,181,255,.48);border-radius:15px;backdrop-filter:blur(7px);box-shadow:0 14px 26px rgba(0,0,0,.25),inset 0 0 10px rgba(20,133,255,.06);overflow:hidden}
 .tech-hud::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 10%,rgba(78,211,255,.055) 42%,transparent 70%);pointer-events:none}
 .tech-chart{left:7px;top:165px;width:185px;padding:15px;transform:perspective(800px) rotateY(9deg) rotateX(-2deg)}
 .tech-chart small,.tech-map small{font-size:9px;letter-spacing:.14em;color:#78a1c5}.tech-chart b{display:block;color:#25ddff;font-size:20px;margin-top:7px}
@@ -128,8 +128,8 @@
   linear-gradient(180deg,rgba(9,80,155,.16),rgba(5,18,33,.15));
   box-shadow:inset 0 0 24px rgba(5,98,255,.08)
 }
-.tech-bars{position:absolute;right:-10px;bottom:63px;height:230px;width:150px;display:flex;align-items:flex-end;gap:9px;z-index:1;opacity:.6;filter:drop-shadow(0 0 8px rgba(0,145,255,.26))}
-.tech-bars i{display:block;width:9px;background:linear-gradient(180deg,#27e7f5,#0872ff);box-shadow:0 0 10px rgba(20,183,255,.26)}
+.tech-bars{position:absolute;right:-10px;bottom:63px;height:230px;width:150px;display:flex;align-items:flex-end;gap:9px;z-index:1;opacity:.92;filter:none}
+.tech-bars i{display:block;width:9px;background:linear-gradient(180deg,#3bfbff,#0870ff 62%,#0737d8);box-shadow:0 0 5px rgba(20,183,255,.35)}
 .tech-scan{position:absolute;left:0;right:0;height:1px;top:15%;background:linear-gradient(90deg,transparent,#2adcf8,transparent);opacity:.35;animation:scanHero 5s linear infinite;z-index:7;pointer-events:none}
 @keyframes scanHero{0%{top:12%;opacity:0}8%{opacity:.32}88%{opacity:.15}100%{top:88%;opacity:0}}
 .tech-particle{position:absolute;width:3px;height:3px;border-radius:50%;background:#49dfff;box-shadow:0 0 9px #49dfff;opacity:.5;animation:particleFloat 5s ease-in-out infinite alternate}
@@ -144,3 +144,12 @@
 @media(max-width:720px){
   .tech-hero-v5{min-height:auto;margin-top:10px;border-radius:21px;padding:28px 20px 22px}.tech-title{font-size:44px;margin:20px 0 17px}.tech-desc{font-size:13px;line-height:1.65}.tech-cta{margin-top:22px;display:grid;grid-template-columns:1fr 1fr}.tech-cta button,.tech-cta a{min-height:46px;padding:0 12px}.tech-features{grid-template-columns:1fr;margin-top:22px}.tech-feature:nth-child(n+2){display:none}.tech-visual{min-height:370px;margin-top:4px}.tech-globe{width:280px;height:280px;top:25px}.tech-logo-stage{width:360px;height:310px;top:48px}.tech-logo-stack{width:270px;height:230px;animation-duration:13s}.tech-logo-glow{width:270px;right:44px;bottom:35px}.tech-pedestal{width:265px;right:48px;bottom:29px}.tech-chart{width:135px;left:-10px;top:80px;padding:10px}.tech-chart .tech-line{height:55px}.tech-chart b{font-size:15px}.tech-market{width:150px;right:-16px;top:25px;padding:8px 9px}.tech-market-row{grid-template-columns:28px 1fr auto;padding:6px 0;font-size:8px}.tech-market-row b{font-size:8px}.tech-market-row em{font-size:7px}.tech-map{display:none}.tech-orbit.o1{width:310px;height:105px;right:10px;bottom:56px}.tech-orbit.o2{width:230px;height:80px;right:-8px;bottom:94px}.tech-orbit.o3{width:270px;height:270px;right:38px;top:18px}.tech-bars{height:150px;width:90px;right:-16px;bottom:47px;gap:6px}.tech-bars i{width:6px}
 }
+
+/* crisp/high-saturation pass */
+.tech-hero-v5{filter:saturate(1.10) contrast(1.04)}
+.tech-logo-stack{filter:saturate(1.10)}
+.tech-line svg{filter:none}
+.tech-market-row em{color:#19f5a2!important;text-shadow:0 0 6px rgba(25,245,162,.20)}
+.tech-chart b{color:#20efff;text-shadow:0 0 7px rgba(32,239,255,.20)}
+.tech-eyebrow{color:#57eeff;border-color:rgba(47,193,255,.42);background:rgba(0,91,188,.22)}
+.tech-orbit{border-color:rgba(50,198,255,.42);box-shadow:0 0 12px rgba(16,132,255,.15)}
