@@ -13,7 +13,7 @@
       if(i>0&&!c.ts)c.open=data[i-1].close;
       c.high=Math.max(c.high,c.open,c.close);
       c.low=Math.min(c.low,c.open,c.close);
-      if(c.volume==null)c.volume=Math.round(55+Math.random()*130);
+      if(c.volume==null)c.volume=0;
       if(c.ts==null)c.ts=Date.now()-(data.length-1-i)*60000;
     }
     return data;
@@ -136,15 +136,14 @@
     ctx.fillStyle='rgba(168,180,205,.75)';ctx.textAlign='center';ctx.font='10px Inter,sans-serif';
     for(let i=0;i<=4;i++){const index=Math.min(data.length-1,Math.round((data.length-1)*i/4)),date=new Date(data[index].ts);if(Number.isFinite(date.getTime()))ctx.fillText(chartTimeframe==='1D'?date.toLocaleDateString('en-US',{month:'short',day:'numeric'}):date.toLocaleString('en-US',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),x(index),h-11)}
 
-    const maxVol=Math.max(...data.map(d=>d.volume||1),1),cw=Math.max(3,Math.min(10,step*.62));
-    data.forEach((d,i)=>{const xx=x(i),up=d.close>=d.open,color=up?'#22b87a':'#ef5362';const vh=(d.volume||1)/maxVol*(volH-9);ctx.fillStyle=up?'rgba(34,184,122,.20)':'rgba(239,83,98,.20)';ctx.fillRect(xx-cw/2,volTop+volH-vh,cw,vh);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.high));ctx.lineTo(xx,y(d.low));ctx.stroke();const bt=Math.min(y(d.open),y(d.close)),bh=Math.max(1.5,Math.abs(y(d.close)-y(d.open)));ctx.fillRect(xx-cw/2,bt,cw,bh)});
+    const sampled=data.some(d=>d.sampled),maxVol=Math.max(...data.map(d=>d.volume||0),1),cw=Math.max(3,Math.min(10,step*.62));
+    if(!sampled)data.forEach((d,i)=>{const xx=x(i),up=d.close>=d.open,color=up?'#22b87a':'#ef5362';const vh=(d.volume||0)/maxVol*(volH-9);ctx.fillStyle=up?'rgba(34,184,122,.20)':'rgba(239,83,98,.20)';if(d.volume>0)ctx.fillRect(xx-cw/2,volTop+volH-vh,cw,vh);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.high));ctx.lineTo(xx,y(d.low));ctx.stroke();const bt=Math.min(y(d.open),y(d.close)),bh=Math.max(1.5,Math.abs(y(d.close)-y(d.open)));ctx.fillRect(xx-cw/2,bt,cw,bh)});
 
     const closes=data.map(d=>d.close),ma7=movingAverage(closes,7),ma20=movingAverage(closes,20);
     // A continuous close-price trace makes the market structure readable instead of visually fragmented.
     const grad=ctx.createLinearGradient(0,pad.top,0,pad.top+priceH);grad.addColorStop(0,'rgba(75,145,255,.92)');grad.addColorStop(1,'rgba(69,184,255,.62)');drawContinuous(ctx,closes,x,y,grad,1.65);drawContinuous(ctx,ma7,x,y,'#f0b90b',1.25);drawContinuous(ctx,ma20,x,y,'#8d94ff',1.25);
 
-    const currentY=y(currentMarket.price);ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(77,151,255,.82)';ctx.beginPath();ctx.moveTo(pad.left,currentY);ctx.lineTo(pad.left+plotW,currentY);ctx.stroke();ctx.restore();
-    const lastX=x(data.length-1);ctx.fillStyle='#4d97ff';ctx.beginPath();ctx.arc(lastX,currentY,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(7,11,19,.98)';ctx.fillRect(pad.left+plotW+3,currentY-10,pad.right-5,20);ctx.fillStyle='#7fb0ff';ctx.textAlign='left';ctx.fillText(fmt(currentMarket.price,decimals(currentMarket.price)),pad.left+plotW+8,currentY);
+    const currentY=y(currentMarket.price);if(state.pan===0&&currentY>=pad.top&&currentY<=pad.top+priceH){ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(77,151,255,.82)';ctx.beginPath();ctx.moveTo(pad.left,currentY);ctx.lineTo(pad.left+plotW,currentY);ctx.stroke();ctx.restore();const lastX=x(data.length-1);ctx.fillStyle='#4d97ff';ctx.beginPath();ctx.arc(lastX,currentY,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(7,11,19,.98)';ctx.fillRect(pad.left+plotW+3,currentY-10,pad.right-5,20);ctx.fillStyle='#7fb0ff';ctx.textAlign='left';ctx.fillText(fmt(currentMarket.price,decimals(currentMarket.price)),pad.left+plotW+8,currentY)}
 
     let active=data[data.length-1];
     if(state.mouseX!=null&&state.mouseX>=pad.left&&state.mouseX<=pad.left+plotW&&state.mouseY>=pad.top&&state.mouseY<=volTop+volH){const index=clamp(Math.floor((state.mouseX-pad.left)/step),0,data.length-1),cx=x(index),cy=clamp(state.mouseY,pad.top,volTop+volH);active=data[index];ctx.save();ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(219,228,243,.55)';ctx.beginPath();ctx.moveTo(cx,pad.top);ctx.lineTo(cx,volTop+volH);ctx.stroke();ctx.beginPath();ctx.moveTo(pad.left,cy);ctx.lineTo(pad.left+plotW,cy);ctx.stroke();ctx.restore();if(cy<=pad.top+priceH){const hp=max-(cy-pad.top)/priceH*(max-min);ctx.fillStyle='rgba(4,6,10,.98)';ctx.fillRect(pad.left+plotW+3,cy-10,pad.right-5,20);ctx.fillStyle='#eef3fb';ctx.fillText(fmt(hp,decimals(currentMarket.price)),pad.left+plotW+8,cy)}tooltipFor(active,cx,cy,w,h)}else document.querySelector('#chart-tooltip')?.classList.remove('show');
