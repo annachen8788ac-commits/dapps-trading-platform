@@ -140,6 +140,7 @@ async function marketControlMeta(code){
   return {code,cgId:staticId||row?.id||null,row};
 }
 async function marketControlQuote(code){
+  if(code==='USDT')return {symbol:'USDT',price:1,time:new Date().toISOString(),change24h:0,high24h:1,low24h:1,volume24h:0};
   const key='market-control-quote:'+code,hit=marketControlCache.get(key),age=hit?Date.now()-hit.at:Infinity;
   const ttl=hit?.source==='coinbase'?1200:15000;
   if(hit&&age<ttl)return hit.data;
@@ -183,6 +184,11 @@ async function marketControlQuote(code){
 async function marketControlCandles(code,period){
   const spec=marketControlPeriods[period];
   if(!spec)throw new Error('Unsupported period');
+  if(code==='USDT'){
+    const now=Math.floor(Date.now()/1000/spec.seconds)*spec.seconds;
+    const rows=Array.from({length:spec.count},(_,i)=>({time:now-(spec.count-1-i)*spec.seconds,open:1,high:1,low:1,close:1,volume:0}));
+    return {symbol:'USDT',period,candles:rows};
+  }
   const key=`market-control-candles:${code}:${period}`,hit=marketControlCache.get(key);
   if(hit&&Date.now()-hit.at<5000)return hit.data;
   let rows=[];
