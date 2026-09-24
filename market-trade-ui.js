@@ -57,7 +57,7 @@
       item.type='button';
       item.className='pair-item'+(m.symbol===currentMarket.symbol?' active':'');
       item.innerHTML=`<span class="left"><span class="mini-icon">${tradeIconHTML(m)}</span><span><strong>${m.symbol}</strong><small>${m.name}</small></span></span><span class="price"><b>${fmt(m.price,decimals(m.price))}</b><span class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</span></span>`;
-      item.addEventListener('click',()=>{selectMarket(m);menu.classList.remove('open');search.value='';renderPairList();window.renderQuickMarkets?.()});
+      item.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();menu.classList.remove('open');search.value='';selectMarket(m);renderPairList();window.renderQuickMarkets?.()});
       list.appendChild(item);
     });
   }
