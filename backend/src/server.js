@@ -141,9 +141,10 @@ app.get('/api/market/candles',async(req,res)=>{
 });
 app.get('/api/market/pro-candles',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const cgId=String(req.query.cgId||'').trim().replace(/[^a-zA-Z0-9._-]/g,'');
   const period=String(req.query.period||'24H').toUpperCase();
-  const spec={ '1H':{cb:60,kr:1,count:60},'24H':{cb:300,kr:5,count:288},'7D':{cb:3600,kr:60,count:168},'30D':{cb:21600,kr:240,count:180} }[period];
-  if(!marketProducts.has(code)||!spec)return res.status(400).json({error:'Unsupported market request'});
+  const spec={ '1H':{cb:60,kr:1,count:60,days:1,step:60000},'24H':{cb:300,kr:5,count:288,days:1,step:300000},'7D':{cb:3600,kr:60,count:168,days:7,step:3600000},'30D':{cb:21600,kr:240,count:180,days:30,step:21600000} }[period];
+  if(!code||!spec)return res.status(400).json({error:'Unsupported market request'});
   const key=`pro-candles:${code}:${period}`,hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
   let rows=[],source='coinbase';
@@ -151,7 +152,7 @@ app.get('/api/market/pro-candles',async(req,res)=>{
     const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${spec.cb}`,9000);
     rows=(Array.isArray(d)?d:[]).slice(0,spec.count).map(v=>({time:Number(v[0]),open:Number(v[3]),high:Number(v[2]),low:Number(v[1]),close:Number(v[4]),volume:Number(v[5]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
   }catch(_){}
-  if(!rows.length){
+  if(!rows.length&&marketProducts.has(code)){
     source='kraken';
     const bases=[code,code==='BTC'?'XBT':code];
     for(const base of [...new Set(bases)]){
@@ -164,6 +165,20 @@ app.get('/api/market/pro-candles',async(req,res)=>{
         if(rows.length)break;
       }catch(_){}
     }
+  }
+  if(!rows.length&&cgId){
+    try{
+      source='catalog';
+      const d=await marketJson(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(cgId)}/market_chart?vs_currency=usd&days=${spec.days}`,12000);
+      const points=(Array.isArray(d.prices)?d.prices:[]).map(v=>({ts:Number(v[0]),price:Number(v[1])})).filter(v=>Number.isFinite(v.ts)&&Number.isFinite(v.price)&&v.price>0);
+      const grouped=[];
+      for(const p of points){
+        const bucket=Math.floor(p.ts/spec.step)*spec.step,last=grouped[grouped.length-1];
+        if(last&&last.bucket===bucket){last.high=Math.max(last.high,p.price);last.low=Math.min(last.low,p.price);last.close=p.price}
+        else grouped.push({bucket,time:Math.floor(bucket/1000),open:p.price,high:p.price,low:p.price,close:p.price,volume:0});
+      }
+      rows=grouped.slice(-spec.count).map(({bucket,...v})=>v);
+    }catch(_){}
   }
   if(!rows.length){if(hit)return res.json(hit.data);return res.status(503).json({error:'Market candles unavailable'})}
   const data={symbol:code,period,candles:rows};
