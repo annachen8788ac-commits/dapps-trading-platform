@@ -68,11 +68,21 @@ export async function initializeConversionSchema(pool){
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_asset_deposit_sync_user ON asset_deposit_sync(user_id,synced_at DESC)`);
   await pool.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance)
-    SELECT user_id,COALESCE(asset,'USDT'),available_balance,locked_balance FROM account_balances
-    ON CONFLICT(user_id,asset) DO NOTHING`);
+    SELECT user_id,'USDT',available_balance,locked_balance FROM account_balances
+    ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=EXCLUDED.available_balance,locked_balance=EXCLUDED.locked_balance,updated_at=NOW()`);
 }
 
 export function registerConversionRoutes(app,{pool,auth}){
+  async function ensureUsdtAccount(client,userId){
+    await client.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+    return (await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1 FOR UPDATE`,[userId])).rows[0];
+  }
+  async function syncUsdtMirror(client,userId){
+    const b=await ensureUsdtAccount(client,userId);
+    await client.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance) VALUES($1,'USDT',$2,$3)
+      ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=EXCLUDED.available_balance,locked_balance=EXCLUDED.locked_balance,updated_at=NOW()`,[userId,b.available_balance,b.locked_balance]);
+    return b;
+  }
   async function syncApprovedDeposits(userId){
     const client=await pool.connect();
     try{
@@ -80,7 +90,8 @@ export function registerConversionRoutes(app,{pool,auth}){
       const pending=await client.query(`SELECT d.id,d.asset,d.amount FROM deposit_requests d LEFT JOIN asset_deposit_sync s ON s.deposit_id=d.id WHERE d.user_id=$1 AND d.status='approved' AND s.deposit_id IS NULL FOR UPDATE OF d`,[userId]);
       for(const row of pending.rows){
         const asset=String(row.asset||'USDT').toUpperCase();const amount=Number(row.amount||0);if(!ASSET_RE.test(asset)||!Number.isFinite(amount)||amount<=0)continue;
-        await client.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance) VALUES($1,$2,$3,0) ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=user_asset_balances.available_balance+EXCLUDED.available_balance,updated_at=NOW()`,[userId,asset,amount]);
+        if(asset==='USDT')await syncUsdtMirror(client,userId);
+        else await client.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance) VALUES($1,$2,$3,0) ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=user_asset_balances.available_balance+EXCLUDED.available_balance,updated_at=NOW()`,[userId,asset,amount]);
         await client.query(`INSERT INTO asset_deposit_sync(deposit_id,user_id,asset,amount) VALUES($1,$2,$3,$4) ON CONFLICT(deposit_id) DO NOTHING`,[row.id,userId,asset,amount]);
       }
       await client.query('COMMIT');
@@ -90,9 +101,16 @@ export function registerConversionRoutes(app,{pool,auth}){
   app.get('/api/assets',auth,async(req,res)=>{
     try{
       await syncApprovedDeposits(req.auth.sub);
-      const q=await pool.query(`SELECT asset,available_balance,locked_balance FROM user_asset_balances WHERE user_id=$1 ORDER BY asset`,[req.auth.sub]);
+      await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[req.auth.sub]);
+      const [q,w]=await Promise.all([
+        pool.query(`SELECT asset,available_balance,locked_balance FROM user_asset_balances WHERE user_id=$1 ORDER BY asset`,[req.auth.sub]),
+        pool.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[req.auth.sub])
+      ]);
+      const wallet=w.rows[0]||{available_balance:0,locked_balance:0};
+      const rows=q.rows.filter(r=>String(r.asset).toUpperCase()!=='USDT');
+      rows.push({asset:'USDT',available_balance:wallet.available_balance,locked_balance:wallet.locked_balance});
       const prices=await refreshPrices().catch(()=>new Map());
-      const assets=q.rows.map(r=>{const asset=r.asset,available=n(r.available_balance)||0,locked=n(r.locked_balance)||0,price=prices.get(asset)||null;return {asset,available,locked,priceUsd:price,valueUsd:price?roundAsset((available+locked)*price):null}});
+      const assets=rows.map(r=>{const asset=String(r.asset).toUpperCase(),available=n(r.available_balance)||0,locked=n(r.locked_balance)||0,price=stable.has(asset)?1:(prices.get(asset)||null);return {asset,available,locked,priceUsd:price,valueUsd:price?roundAsset((available+locked)*price):null}});
       res.json({assets});
     }catch(e){console.error(e);res.status(500).json({error:'Unable to load asset balances'});}
   });
@@ -112,11 +130,16 @@ export function registerConversionRoutes(app,{pool,auth}){
     try{
       await client.query('BEGIN');
       await client.query(`INSERT INTO user_asset_balances(user_id,asset) VALUES($1,$2),($1,$3) ON CONFLICT(user_id,asset) DO NOTHING`,[req.auth.sub,from,to]);
-      const src=(await client.query(`SELECT available_balance FROM user_asset_balances WHERE user_id=$1 AND asset=$2 FOR UPDATE`,[req.auth.sub,from])).rows[0];
-      await client.query(`SELECT 1 FROM user_asset_balances WHERE user_id=$1 AND asset=$2 FOR UPDATE`,[req.auth.sub,to]);
+      const usdtNeeded=from==='USDT'||to==='USDT';
+      const usdt=usdtNeeded?await ensureUsdtAccount(client,req.auth.sub):null;
+      const src=from==='USDT'?{available_balance:usdt.available_balance}:(await client.query(`SELECT available_balance FROM user_asset_balances WHERE user_id=$1 AND asset=$2 FOR UPDATE`,[req.auth.sub,from])).rows[0];
+      if(to!=='USDT')await client.query(`SELECT 1 FROM user_asset_balances WHERE user_id=$1 AND asset=$2 FOR UPDATE`,[req.auth.sub,to]);
       if(!src||n(src.available_balance)<amount){await client.query('ROLLBACK');return res.status(400).json({error:`Insufficient ${from} balance`})}
-      await client.query(`UPDATE user_asset_balances SET available_balance=available_balance-$1,updated_at=NOW() WHERE user_id=$2 AND asset=$3`,[amount,req.auth.sub,from]);
-      await client.query(`UPDATE user_asset_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2 AND asset=$3`,[receive,req.auth.sub,to]);
+      if(from==='USDT')await client.query(`UPDATE account_balances SET available_balance=available_balance-$1,updated_at=NOW() WHERE user_id=$2`,[amount,req.auth.sub]);
+      else await client.query(`UPDATE user_asset_balances SET available_balance=available_balance-$1,updated_at=NOW() WHERE user_id=$2 AND asset=$3`,[amount,req.auth.sub,from]);
+      if(to==='USDT')await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[receive,req.auth.sub]);
+      else await client.query(`UPDATE user_asset_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2 AND asset=$3`,[receive,req.auth.sub,to]);
+      if(usdtNeeded)await syncUsdtMirror(client,req.auth.sub);
       const h=await client.query(`INSERT INTO asset_conversion_history(user_id,from_asset,to_asset,from_amount,to_amount,from_price_usd,to_price_usd) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at`,[req.auth.sub,from,to,amount,receive,fromPrice,toPrice]);
       await client.query('COMMIT');
       res.status(201).json({conversion:{id:h.rows[0].id,from,to,amount,receive,fromPriceUsd:fromPrice,toPriceUsd:toPrice,createdAt:h.rows[0].created_at}});
