@@ -17,7 +17,8 @@ const overlays=[{period:7,label:'EMA 7',color:'#f5c84c'},{period:25,label:'EMA 2
 
 function selectedSymbol(){return (typeof currentMarket!=='undefined'&&currentMarket?.symbol)||$('#trade-symbol')?.textContent?.trim()||'BTC/USDT'}
 function baseCode(){return selectedSymbol().split('/')[0].toUpperCase()}
-function periodList(){return Array.isArray(window.__marketConfig?.periods)?window.__marketConfig.periods:[]}
+const defaultPeriods=[{id:'1H',seconds:60,count:60},{id:'24H',seconds:300,count:288},{id:'7D',seconds:3600,count:168},{id:'30D',seconds:21600,count:180}];
+function periodList(){const list=window.__marketConfig?.periods;return Array.isArray(list)&&list.length?list:defaultPeriods}
 function periodInfo(id=state.period){return periodList().find(p=>p.id===id)||null}
 let historyTimer=null;
 function queueHistory(delay=40){clearTimeout(historyTimer);historyTimer=setTimeout(history,delay)}
@@ -129,11 +130,9 @@ window.addEventListener('dapps:market-quote',e=>{
 new ResizeObserver(draw).observe(el);
 window.drawChart=draw;
 draw();
-if(window.__marketConfig&&installPeriods()){
-  queueHistory(20);
-}else if(window.__marketConfigReady?.then){
-  window.__marketConfigReady.then(()=>{
-    if(installPeriods())queueHistory(20);
-  });
+installPeriods();
+queueHistory(20);
+if(window.__marketConfigReady?.then){
+  window.__marketConfigReady.then(()=>installPeriods());
 }
 })();
