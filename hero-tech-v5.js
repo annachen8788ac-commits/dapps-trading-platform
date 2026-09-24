@@ -4,8 +4,59 @@
   const hero=document.querySelector('.tech-visual');
   const canvas=hero?.querySelector('.tech-logo-canvas');
   if(!canvas)return;
-  const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
-  if(!gl)return;
+  const gl=null; // Canvas 2D avoids inconsistent SVG texture uploads in WebGL browsers.
+  if(!gl){
+    // Canvas 2D renderer for devices where WebGL is disabled. It projects the
+    // same extruded contours, so the logo still turns with visible side walls.
+    const ctx=canvas.getContext('2d');if(!ctx)return;
+    const img=new Image();img.src='dp-logo-user.svg';
+    Promise.all([new Promise(resolve=>img.onload=resolve),fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
+      const doc=new DOMParser().parseFromString(markup,'image/svg+xml');
+      const paths=[...doc.querySelectorAll('path')];
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      const edges=[paths[0],paths[2]].map(source=>{
+        const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',source.getAttribute('d'));svg.appendChild(path);
+        const length=path.getTotalLength(),count=Math.ceil(length/2);
+        return Array.from({length:count},(_,i)=>path.getPointAtLength(i*length/count));
+      });
+      canvas.classList.add('ready');
+      const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let begin=0;
+      function render(time){
+        if(!begin)begin=time;
+        const ratio=Math.min(devicePixelRatio||1,2),w=Math.round(canvas.clientWidth*ratio),h=Math.round(canvas.clientHeight*ratio);
+        if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+        ctx.clearRect(0,0,w,h);
+        const a=reduced?-.46:-.46+(time-begin)*Math.PI*2/12000;
+        const cs=Math.cos(a),sn=Math.sin(a),scale=Math.min(w/210,h/175),cx=w/2,cy=h/2;
+        const point=(p,z)=>[cx+((p.x-90)*cs+z*sn)*scale,cy+(p.y-75.5)*scale];
+        const face=z=>{
+          ctx.save();ctx.translate(cx+z*sn*scale,cy);ctx.scale(cs*scale,scale);
+          ctx.drawImage(img,-90,-75.5,180,151);ctx.restore();
+        };
+        const sides=[];
+        edges.forEach(edge=>edge.forEach((p,i)=>{
+          const q=edge[(i+1)%edge.length],dx=q.x-p.x,dy=q.y-p.y;
+          const facing=-(dy/Math.hypot(dx,dy))*sn;
+          if(facing<-.04)return;
+          sides.push({p,q,z:-(p.x+q.x-180)*sn/2,light:Math.max(.18,.48+facing*.43)});
+        }));
+        const front=cs>=0;
+        if(front){ctx.save();ctx.globalAlpha=.42;face(-19);ctx.restore()}else face(19);
+        sides.sort((a,b)=>a.z-b.z).forEach(({p,q,light})=>{
+          const a=point(p,19),b=point(q,19),c=point(q,-19),d=point(p,-19);
+          ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.lineTo(...d);ctx.closePath();
+          const t=(p.x+q.x)/360;
+          ctx.fillStyle=`rgb(${Math.round((10+t*16)*light)},${Math.round((85+t*95)*light)},${Math.round((255-t*20)*light)})`;
+          ctx.fill();ctx.strokeStyle='rgba(67,207,255,.22)';ctx.lineWidth=1*ratio;ctx.stroke();
+        });
+        if(front)face(19);else{ctx.save();ctx.globalAlpha=.68;face(-19);ctx.restore()}
+        if(!reduced)requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
+    }).catch(()=>{});
+    return;
+  }
   const vertex=`attribute vec3 aPosition; attribute vec3 aNormal; attribute vec2 aUV;
     uniform float uAngle; uniform float uTilt;
     varying vec3 vNormal; varying vec2 vUV; varying float vSide;
