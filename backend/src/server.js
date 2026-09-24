@@ -143,7 +143,7 @@ app.get('/api/market/pro-candles',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   const period=String(req.query.period||'24H').toUpperCase();
   const spec={ '1H':{cb:60,kr:1,count:60},'24H':{cb:300,kr:5,count:288},'7D':{cb:3600,kr:60,count:168},'30D':{cb:21600,kr:240,count:180} }[period];
-  if(!marketProducts.has(code)||!spec)return res.status(400).json({error:'Unsupported market request'});
+  if((!marketProducts.has(code)&&!['BNB','USDT'].includes(code))||!spec)return res.status(400).json({error:'Unsupported market request'});
   const key=`pro-candles:${code}:${period}`,hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
   let rows=[],source='coinbase';
