@@ -35,7 +35,13 @@
 
   function renderCatalog(filter='all'){
     const list=document.querySelector('#market-list');if(!list)return;
-    const rows=markets.filter(m=>(filter==='all'||m.type===filter)&&(!query||m.symbol.toLowerCase().includes(query)||String(m.name||'').toLowerCase().includes(query)));
+    const rows=markets.filter(m=>{
+      if(filter!=='all'&&m.type!==filter)return false;
+      if(!query)return true;
+      const code=String(m.symbol||'').split('/')[0].toLowerCase();
+      const nameWords=String(m.name||'').toLowerCase().split(/\s+/).filter(Boolean);
+      return code.startsWith(query)||nameWords.some(word=>word.startsWith(query));
+    });
     list.innerHTML='';
     rows.forEach(m=>{
       const row=document.createElement('div');
