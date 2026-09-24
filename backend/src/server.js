@@ -93,6 +93,154 @@ async function adminAuth(req,res,next){const token=req.headers.authorization?.st
 function requireRole(...roles){return (req,res,next)=>roles.includes(req.admin.role)?next():res.status(403).json({error:'Insufficient permission'});}
 async function audit(req,action,targetType,targetId=null,details={}){await pool.query(`INSERT INTO admin_audit_logs(admin_id,action,target_type,target_id,details,ip_address) VALUES($1,$2,$3,$4,$5::jsonb,$6)`,[req.admin?.id||null,action,targetType,targetId,JSON.stringify(details),String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').slice(0,80)]);}
 
+const marketControlCodes=['BTC','ETH','USDT','BNB','SOL','XRP','DOGE','ADA','AVAX','LINK','LTC','TRX','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO'];
+const marketControlSet=new Set(marketControlCodes);
+const marketControlNames={BTC:'Bitcoin',ETH:'Ethereum',USDT:'Tether',BNB:'BNB',SOL:'Solana',XRP:'XRP',DOGE:'Dogecoin',ADA:'Cardano',AVAX:'Avalanche',LINK:'Chainlink',LTC:'Litecoin',TRX:'TRON',BCH:'Bitcoin Cash',UNI:'Uniswap',DOT:'Polkadot',ATOM:'Cosmos',XLM:'Stellar',ETC:'Ethereum Classic',FIL:'Filecoin',NEAR:'NEAR Protocol',APT:'Aptos',ARB:'Arbitrum',OP:'Optimism',SUI:'Sui',SHIB:'Shiba Inu',AAVE:'Aave',MKR:'Maker',INJ:'Injective',RENDER:'Render',FET:'Artificial Superintelligence Alliance',TON:'Toncoin',HBAR:'Hedera',ICP:'Internet Computer',VET:'VeChain',ALGO:'Algorand',SEI:'Sei',IMX:'Immutable',GRT:'The Graph',LDO:'Lido DAO'};
+const marketControlColors={BTC:'#f7931a',ETH:'#627eea',USDT:'#26a17b',BNB:'#c99b14',SOL:'#6d4cd8',XRP:'#111111',DOGE:'#9f842c',ADA:'#3468d4',AVAX:'#e84142',LINK:'#2a5ada',LTC:'#345d9d',TRX:'#d71920',BCH:'#8dc351',UNI:'#ff007a',DOT:'#e6007a',ATOM:'#5064fb',XLM:'#232323'};
+const marketControlStaticIds={BTC:'bitcoin',ETH:'ethereum',USDT:'tether',BNB:'binancecoin',SOL:'solana',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',LINK:'chainlink',LTC:'litecoin',TRX:'tron',BCH:'bitcoin-cash',UNI:'uniswap',DOT:'polkadot',ATOM:'cosmos',XLM:'stellar',ETC:'ethereum-classic',FIL:'filecoin',NEAR:'near',APT:'aptos',ARB:'arbitrum',OP:'optimism',SUI:'sui',SHIB:'shiba-inu',AAVE:'aave',MKR:'maker',INJ:'injective-protocol',TON:'the-open-network',HBAR:'hedera-hashgraph',ICP:'internet-computer',VET:'vechain',ALGO:'algorand',SEI:'sei-network',IMX:'immutable-x',GRT:'the-graph',LDO:'lido-dao'};
+const marketControlPeriods={
+  '1H':{coinbase:60,kraken:1,count:60,seconds:60,days:1},
+  '24H':{coinbase:300,kraken:5,count:288,seconds:300,days:1},
+  '7D':{coinbase:3600,kraken:60,count:168,seconds:3600,days:7},
+  '30D':{coinbase:21600,kraken:240,count:180,seconds:21600,days:30}
+};
+const marketControlCache=new Map();
+let marketDirectoryCache={at:0,byCode:new Map(),byId:new Map()};
+
+async function loadMarketDirectory(){
+  if(Date.now()-marketDirectoryCache.at<300000&&marketDirectoryCache.byCode.size)return marketDirectoryCache;
+  const all=[];
+  try{
+    for(let page=1;page<=4;page++){
+      const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);
+      if(Array.isArray(rows))all.push(...rows);
+    }
+  }catch(_){}
+  if(all.length){
+    const byCode=new Map(),byId=new Map();
+    for(const row of all){
+      const code=String(row?.symbol||'').toUpperCase();
+      if(code&&!byCode.has(code))byCode.set(code,row);
+      if(row?.id)byId.set(String(row.id),row);
+    }
+    marketDirectoryCache={at:Date.now(),byCode,byId};
+  }
+  return marketDirectoryCache;
+}
+async function marketControlMeta(code){
+  const directory=await loadMarketDirectory();
+  const staticId=marketControlStaticIds[code];
+  const row=(staticId&&directory.byId.get(staticId))||directory.byCode.get(code)||null;
+  return {code,cgId:staticId||row?.id||null,row};
+}
+async function marketControlQuote(code){
+  const key='market-control-quote:'+code,hit=marketControlCache.get(key);
+  if(hit&&Date.now()-hit.at<1200)return hit.data;
+  let data=null;
+  if(code!=='USDT'){
+    try{
+      const [ticker,stats]=await Promise.all([
+        marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/ticker`,5000),
+        marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/stats`,5000)
+      ]);
+      const price=Number(ticker.price);
+      if(Number.isFinite(price)&&price>0){
+        const open=Number(stats.open),high=Number(stats.high),low=Number(stats.low);
+        data={symbol:code,price,time:ticker.time||new Date().toISOString(),change24h:Number.isFinite(open)&&open>0?(price/open-1)*100:0,high24h:high,low24h:low,volume24h:Number(stats.volume)||0};
+      }
+    }catch(_){}
+  }
+  if(!data){
+    try{
+      const meta=await marketControlMeta(code);
+      if(meta.cgId){
+        const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(meta.cgId)}&sparkline=false&price_change_percentage=24h`,9000);
+        const row=Array.isArray(rows)?rows[0]:null,price=Number(row?.current_price);
+        if(Number.isFinite(price)&&price>0)data={symbol:code,price,time:new Date().toISOString(),change24h:Number(row?.price_change_percentage_24h)||0,high24h:Number(row?.high_24h)||price,low24h:Number(row?.low_24h)||price,volume24h:Number(row?.total_volume)||0};
+      }
+    }catch(_){}
+  }
+  if(!data&&hit&&Date.now()-hit.at<120000)return {...hit.data,stale:true};
+  if(!data)throw new Error('Market quote unavailable');
+  marketControlCache.set(key,{at:Date.now(),data});
+  return data;
+}
+async function marketControlCandles(code,period){
+  const spec=marketControlPeriods[period];
+  if(!spec)throw new Error('Unsupported period');
+  const key=`market-control-candles:${code}:${period}`,hit=marketControlCache.get(key);
+  if(hit&&Date.now()-hit.at<5000)return hit.data;
+  let rows=[];
+  if(code!=='USDT'){
+    try{
+      const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${spec.coinbase}`,9000);
+      rows=(Array.isArray(d)?d:[]).slice(0,spec.count).map(v=>({time:Number(v[0]),open:Number(v[3]),high:Number(v[2]),low:Number(v[1]),close:Number(v[4]),volume:Number(v[5]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
+    }catch(_){}
+  }
+  if(!rows.length&&code!=='USDT'){
+    const bases=[code,code==='BTC'?'XBT':code];
+    for(const base of [...new Set(bases)]){
+      try{
+        const since=Math.floor(Date.now()/1000)-spec.kraken*60*spec.count;
+        const d=await marketJson(`https://api.kraken.com/0/public/OHLC?pair=${encodeURIComponent(base+'/USD')}&interval=${spec.kraken}&since=${since}`,9000);
+        if((d.error||[]).length)continue;
+        const raw=Object.entries(d.result||{}).find(([k])=>k!=='last')?.[1]||[];
+        rows=raw.slice(-spec.count).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[6]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite));
+        if(rows.length)break;
+      }catch(_){}
+    }
+  }
+  if(!rows.length){
+    try{
+      const meta=await marketControlMeta(code);
+      if(meta.cgId){
+        const d=await marketJson(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(meta.cgId)}/market_chart?vs_currency=usd&days=${spec.days}`,12000);
+        const points=(Array.isArray(d.prices)?d.prices:[]).map(v=>({ts:Number(v[0]),price:Number(v[1])})).filter(v=>Number.isFinite(v.ts)&&Number.isFinite(v.price)&&v.price>0);
+        const step=spec.seconds*1000,grouped=[];
+        for(const p of points){
+          const bucket=Math.floor(p.ts/step)*step,last=grouped[grouped.length-1];
+          if(last&&last.bucket===bucket){last.high=Math.max(last.high,p.price);last.low=Math.min(last.low,p.price);last.close=p.price}
+          else grouped.push({bucket,time:Math.floor(bucket/1000),open:p.price,high:p.price,low:p.price,close:p.price,volume:0});
+        }
+        rows=grouped.slice(-spec.count).map(({bucket,...v})=>v);
+      }
+    }catch(_){}
+  }
+  if(!rows.length&&hit)return hit.data;
+  if(!rows.length)throw new Error('Market candles unavailable');
+  const data={symbol:code,period,candles:rows};
+  marketControlCache.set(key,{at:Date.now(),data});
+  return data;
+}
+
+app.get('/api/market/config',async(req,res)=>{
+  try{
+    const [settings,directory]=await Promise.all([pool.query(`SELECT symbol,enabled,sort_order FROM market_settings`),loadMarketDirectory()]);
+    const overrides=new Map(settings.rows.map(r=>[String(r.symbol).split('/')[0].toUpperCase(),r]));
+    const markets=[];
+    for(let i=0;i<marketControlCodes.length;i++){
+      const code=marketControlCodes[i],override=overrides.get(code);
+      if(override&&override.enabled===false)continue;
+      const meta=await marketControlMeta(code),row=meta.row;
+      const price=Number(row?.current_price)||0;
+      markets.push({symbol:code+'/USDT',code,name:marketControlNames[code]||row?.name||code,type:'crypto',bg:marketControlColors[code]||'#24344d',price,change:Number(row?.price_change_percentage_24h)||0,high:Number(row?.high_24h)||price,low:Number(row?.low_24h)||price,sortOrder:Number.isFinite(Number(override?.sort_order))?Number(override.sort_order):100+i});
+    }
+    markets.sort((a,b)=>a.sortOrder-b.sortOrder||a.symbol.localeCompare(b.symbol));
+    res.json({quoteIntervalMs:1200,periods:Object.entries(marketControlPeriods).map(([id,v])=>({id,seconds:v.seconds,count:v.count})),markets});
+  }catch(e){console.error(e);res.status(503).json({error:'Market configuration unavailable'})}
+});
+app.get('/api/market/quote',async(req,res)=>{
+  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!marketControlSet.has(code))return res.status(400).json({error:'Unsupported market'});
+  try{res.json(await marketControlQuote(code))}catch(e){res.status(503).json({error:'Market quote unavailable'})}
+});
+app.get('/api/market/chart',async(req,res)=>{
+  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const period=String(req.query.period||'24H').toUpperCase();
+  if(!marketControlSet.has(code)||!marketControlPeriods[period])return res.status(400).json({error:'Unsupported market request'});
+  try{res.json(await marketControlCandles(code,period))}catch(e){res.status(503).json({error:'Market candles unavailable'})}
+});
+
 const marketIds=new Set(['bitcoin','ethereum','solana','ripple','litecoin','dogecoin','cardano','avalanche-2','chainlink','binancecoin','tron','bitcoin-cash','polkadot','stellar','tether']);
 const marketProducts=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
 const marketGranularities=new Set([60,300,900,3600,21600,86400]);
