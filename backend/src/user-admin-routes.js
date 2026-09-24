@@ -23,6 +23,25 @@ export function registerUserAdminRoutes(app,{pool,adminAuth,requireRole,audit}){
     }catch(e){console.error(e);res.status(500).json({error:'Unable to update account status'});}
   });
 
+  app.delete('/api/admin/users/:publicId',adminAuth,requireRole('super_admin'),async(req,res)=>{
+    const publicId=String(req.params.publicId||'').trim();
+    const confirmPublicId=String(req.body?.confirmPublicId||'').trim();
+    if(!publicId||confirmPublicId!==publicId)return res.status(400).json({error:'Account deletion confirmation does not match user ID'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const q=await client.query(`SELECT id,public_id FROM users WHERE public_id=$1 FOR UPDATE`,[publicId]);
+      const u=q.rows[0];
+      if(!u){await client.query('ROLLBACK');return res.status(404).json({error:'User not found'})}
+      const ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').slice(0,80);
+      await client.query(`INSERT INTO admin_audit_logs(admin_id,action,target_type,target_id,details,ip_address) VALUES($1,'user.account.delete','user',$2,$3::jsonb,$4)`,[req.admin.id,publicId,JSON.stringify({permanent:true}),ip]);
+      await client.query(`DELETE FROM users WHERE id=$1`,[u.id]);
+      await client.query('COMMIT');
+      res.json({ok:true,publicId});
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to delete account'});}
+    finally{client.release()}
+  });
+
   app.get('/api/admin/users/:publicId/detail',adminAuth,async(req,res)=>{
     try{
       const uq=await pool.query(`SELECT id,public_id,registration_type,identifier,display_name,status,created_at,updated_at FROM users WHERE public_id=$1`,[req.params.publicId]);
