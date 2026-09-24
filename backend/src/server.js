@@ -112,26 +112,36 @@ const marketControlPeriods={
 };
 const marketControlCache=new Map();
 let marketDirectoryCache={at:0,byCode:new Map(),byId:new Map()};
+let marketDirectoryRefresh=null;
 
 async function loadMarketDirectory(){
   if(Date.now()-marketDirectoryCache.at<300000&&marketDirectoryCache.byCode.size)return marketDirectoryCache;
-  const all=[];
-  try{
-    for(let page=1;page<=4;page++){
-      const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);
-      if(Array.isArray(rows))all.push(...rows);
+  if(marketDirectoryRefresh)return marketDirectoryRefresh;
+  marketDirectoryRefresh=(async()=>{
+    const all=[];
+    try{
+      for(let page=1;page<=4;page++){
+        const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);
+        if(Array.isArray(rows))all.push(...rows);
+      }
+    }catch(_){}
+    if(all.length){
+      const byCode=new Map(),byId=new Map();
+      for(const row of all){
+        const code=String(row?.symbol||'').toUpperCase();
+        if(code&&!byCode.has(code))byCode.set(code,row);
+        if(row?.id)byId.set(String(row.id),row);
+      }
+      marketDirectoryCache={at:Date.now(),byCode,byId};
     }
-  }catch(_){}
-  if(all.length){
-    const byCode=new Map(),byId=new Map();
-    for(const row of all){
-      const code=String(row?.symbol||'').toUpperCase();
-      if(code&&!byCode.has(code))byCode.set(code,row);
-      if(row?.id)byId.set(String(row.id),row);
-    }
-    marketDirectoryCache={at:Date.now(),byCode,byId};
-  }
-  return marketDirectoryCache;
+    return marketDirectoryCache;
+  })();
+  try{return await marketDirectoryRefresh}finally{marketDirectoryRefresh=null}
+}
+function marketControlMetaCached(code){
+  const directory=marketDirectoryCache,staticId=marketControlStaticIds[code];
+  const row=(staticId&&directory.byId.get(staticId))||directory.byCode.get(code)||null;
+  return {code,cgId:staticId||row?.id||null,row};
 }
 async function marketControlMeta(code){
   const directory=await loadMarketDirectory();
@@ -230,13 +240,14 @@ async function marketControlCandles(code,period){
 
 app.get('/api/market/config',async(req,res)=>{
   try{
-    const [settings,directory]=await Promise.all([pool.query(`SELECT symbol,enabled,sort_order FROM market_settings`),loadMarketDirectory()]);
+    const settings=await pool.query(`SELECT symbol,enabled,sort_order FROM market_settings`);
+    loadMarketDirectory().catch(()=>{});
     const overrides=new Map(settings.rows.map(r=>[String(r.symbol).split('/')[0].toUpperCase(),r]));
     const markets=[];
     for(let i=0;i<marketControlCodes.length;i++){
       const code=marketControlCodes[i],override=overrides.get(code);
       if(override&&override.enabled===false)continue;
-      const meta=await marketControlMeta(code),row=meta.row;
+      const meta=marketControlMetaCached(code),row=meta.row;
       const price=Number(row?.current_price)||0;
       markets.push({symbol:code+'/USDT',code,name:marketControlNames[code]||row?.name||code,type:'crypto',bg:marketControlColors[code]||'#24344d',price,change:Number(row?.price_change_percentage_24h)||0,high:Number(row?.high_24h)||price,low:Number(row?.low_24h)||price,sortOrder:Number.isFinite(Number(override?.sort_order))?Number(override.sort_order):100+i});
     }
