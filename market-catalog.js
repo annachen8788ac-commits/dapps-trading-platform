@@ -55,6 +55,8 @@
     const preferred=['BTC/USDT','ETH/USDT','USDT/USDT','BNB/USDT','SOL/USDT','XRP/USDT','DOGE/USDT','ADA/USDT','AVAX/USDT','LINK/USDT'];
     let set=preferred.map(symbol=>markets.find(m=>m.symbol===symbol)).filter(Boolean);
     if(set.length<6)set=markets.slice(0,10);
+    const selected=currentMarket?.symbol?(markets.find(m=>m.symbol===currentMarket.symbol)||currentMarket):null;
+    if(selected&&!set.some(m=>m.symbol===selected.symbol))set=[selected,...set].slice(0,10);
     bar.innerHTML=set.map(m=>`<button type="button" class="trade-quick-market${currentMarket?.symbol===m.symbol?' active':''}" data-symbol="${m.symbol}">${tradeIconHTML(m)}<span>${m.symbol}</span></button>`).join('');
     bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m){selectMarket(m);renderQuickMarkets()}});
   }
