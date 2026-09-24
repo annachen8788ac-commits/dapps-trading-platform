@@ -97,9 +97,18 @@
     inflight.set(key,task);return task;
   }
   async function ticker(){
-    const m=selected(),code=codeOf(m);if(!m||!supported.has(code)||tickerBusy)return;
+    const m=selected(),code=codeOf(m);if(!m||tickerBusy)return;
     tickerBusy=true;
     try{
+      if(!supported.has(code)){
+        if(!['BNB','USDT'].includes(code))return;
+        const id=ids[code],d=await json(`${backend}/api/market/quotes?ids=${encodeURIComponent(id)}`);
+        if(m!==selected())return;
+        const v=d?.[id];if(!v)return;
+        quote(m,Number(v.usd),Date.now());
+        if(Number.isFinite(v.usd_24h_change))m.change=Number(v.usd_24h_change);
+        return;
+      }
       const d=await json(`${backend}/api/market/ticker?symbol=${encodeURIComponent(code)}`);
       if(m!==selected())return;
       m.volume24h=Number(d.volume24h)||m.volume24h||0;
