@@ -112,7 +112,7 @@
     try{
       const data=await json(`${backend}/api/market/quotes?ids=${idList.join(',')}`);
       if(data.stale)return;
-      for(const m of entries){const value=data[ids[codeOf(m)]];if(!value||Date.now()-(observed.get(m.symbol)||0)<30000)continue;m.price=Number(value.usd)||m.price;if(Number.isFinite(value.usd_24h_change))m.change=value.usd_24h_change}
+      for(const m of entries){const value=data[ids[codeOf(m)]];if(!value||Date.now()-(observed.get(m.symbol)||0)<30000)continue;m.price=Number(value.usd)||m.price;if(Number.isFinite(value.usd_24h_change))m.change=value.usd_24h_change;if(['BNB','USDT'].includes(codeOf(m))&&Number.isFinite(m.price)&&m.price>0)observed.set(m.symbol,Date.now())}
       window.dispatchEvent(new Event('dapps:markets-updated'));
     }catch{}
   }
