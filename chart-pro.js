@@ -19,6 +19,8 @@ function selectedSymbol(){return (typeof currentMarket!=='undefined'&&currentMar
 function baseCode(){return selectedSymbol().split('/')[0].toUpperCase()}
 function periodList(){return Array.isArray(window.__marketConfig?.periods)?window.__marketConfig.periods:[]}
 function periodInfo(id=state.period){return periodList().find(p=>p.id===id)||null}
+let historyTimer=null;
+function queueHistory(delay=40){clearTimeout(historyTimer);historyTimer=setTimeout(history,delay)}
 function size(){const dpr=Math.min(devicePixelRatio||1,2),r=el.getBoundingClientRect(),w=Math.max(320,Math.floor(r.width)),h=Math.max(420,Math.floor(r.height));if(canvas.width!==w*dpr||canvas.height!==h*dpr){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px'}ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h}}
 function fmt(n){if(!Number.isFinite(+n))return'—';n=+n;return n.toLocaleString('en-US',{minimumFractionDigits:n>=1000?2:4,maximumFractionDigits:n>=1?4:8})}
 function compact(n){n=+n;if(!Number.isFinite(n))return'—';return Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n)}
@@ -81,7 +83,7 @@ function live(price,time){
 }
 function beginSwitch(){
   state.liveReady=false;state.historyToken++;state.rows=[];state.offset=0;state.symbol=selectedSymbol();draw();
-  if(periodInfo())setTimeout(history,40);
+  if(periodInfo())queueHistory(40);
 }
 
 canvas.addEventListener('wheel',e=>{e.preventDefault();const old=state.visible,f=e.deltaY>0?1.12:.88;state.visible=Math.max(20,Math.min(state.rows.length,Math.round(old*f)));state.offset=Math.min(state.offset,Math.max(0,state.rows.length-state.visible));draw()},{passive:false});
@@ -106,14 +108,13 @@ function installPeriods(){
     if(!periodInfo(p)||p===state.period)return;
     state.period=p;
     wrap.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===btn));
-    state.liveReady=false;state.rows=[];state.offset=0;draw();history();
+    state.liveReady=false;state.rows=[];state.offset=0;draw();queueHistory(0);
   }));
   return true;
 }
 
 window.addEventListener('dapps:market-config',()=>{
-  installPeriods();
-  beginSwitch();
+  if(installPeriods())beginSwitch();
 });
 window.addEventListener('dapps:market-selected',beginSwitch);
 window.addEventListener('dapps:market-quote',e=>{
@@ -122,6 +123,16 @@ window.addEventListener('dapps:market-quote',e=>{
 });
 new ResizeObserver(draw).observe(el);
 window.drawChart=draw;
-if(window.__marketConfig&&installPeriods())setTimeout(history,40);
-else draw();
+if(window.__marketConfig&&installPeriods()){
+  queueHistory(40);
+}else{
+  draw();
+  let tries=0;
+  const waitForConfig=setInterval(()=>{
+    if(window.__marketConfig&&installPeriods()){
+      clearInterval(waitForConfig);
+      queueHistory(20);
+    }else if(++tries>=50)clearInterval(waitForConfig);
+  },100);
+}
 })();
