@@ -8,12 +8,10 @@ export async function initializeTradeSchema(pool){
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_trades_user_opened ON trades(user_id,opened_at DESC)`);await pool.query(`CREATE INDEX IF NOT EXISTS idx_trades_result_expires ON trades(result,expires_at)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS user_trade_controls (user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,result_control VARCHAR(12) NOT NULL DEFAULT 'auto' CHECK(result_control IN ('auto','win','loss')),note VARCHAR(300),updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`ALTER TABLE user_trade_controls ADD COLUMN IF NOT EXISTS sequence_queue JSONB NOT NULL DEFAULT '[]'::jsonb`);
-  await pool.query(`DO $ BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_trade_controls' AND column_name='sequence_result')
-       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_trade_controls' AND column_name='sequence_remaining') THEN
-      EXECUTE 'UPDATE user_trade_controls SET sequence_queue=jsonb_build_array(jsonb_build_object(''result'',sequence_result,''count'',sequence_remaining)) WHERE jsonb_array_length(sequence_queue)=0 AND sequence_remaining>0 AND sequence_result IN (''win'',''loss'')';
-    END IF;
-  END $`);
+  const legacyControlColumns=(await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='user_trade_controls' AND column_name IN ('sequence_result','sequence_remaining')`)).rows.map(r=>r.column_name);
+  if(legacyControlColumns.includes('sequence_result')&&legacyControlColumns.includes('sequence_remaining')){
+    await pool.query(`UPDATE user_trade_controls SET sequence_queue=jsonb_build_array(jsonb_build_object('result',sequence_result,'count',sequence_remaining)) WHERE jsonb_array_length(sequence_queue)=0 AND sequence_remaining>0 AND sequence_result IN ('win','loss')`);
+  }
   await pool.query(`ALTER TABLE user_trade_controls DROP COLUMN IF EXISTS bias_level, DROP COLUMN IF EXISTS sequence_result, DROP COLUMN IF EXISTS sequence_remaining`);
   await pool.query(`ALTER TABLE trades DROP COLUMN IF EXISTS bias_level, DROP COLUMN IF EXISTS bias_roll`);
 }
