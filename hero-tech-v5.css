@@ -341,3 +341,7 @@
   .tech-market{top:-28px!important;right:-18px!important}
   .tech-map{bottom:-22px!important;right:-18px!important}
 }
+/* Data cards stay fully readable in the foreground throughout the turn. */
+.tech-hud{z-index:24!important}
+.tech-chart,.tech-market,.tech-map{overflow:visible!important}
+.tech-logo-stage{z-index:12!important}
