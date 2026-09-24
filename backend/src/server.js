@@ -15,9 +15,10 @@ const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-change-me';
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || JWT_SECRET;
 const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(x=>x.trim()).filter(Boolean);
+const trustedFrontendOrigins = new Set(['https://futures.dappsplatformusa.com']);
 
 app.disable('x-powered-by');
-app.use(cors({origin(origin,cb){if(!origin||allowedOrigins.includes('*')||allowedOrigins.includes(origin))return cb(null,true);return cb(new Error('Origin not allowed'));}}));
+app.use(cors({origin(origin,cb){if(!origin||allowedOrigins.includes('*')||allowedOrigins.includes(origin)||trustedFrontendOrigins.has(origin))return cb(null,true);return cb(new Error('Origin not allowed'));}}));
 app.use(express.json({limit:'6mb'}));
 
 async function bootstrapAdmin(){
