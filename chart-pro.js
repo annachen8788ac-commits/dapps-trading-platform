@@ -12,12 +12,13 @@ document.querySelector('#chart-legend')?.remove();
 document.querySelector('.chart-zoom-controls')?.remove();
 
 const backend=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
-const state={symbol:'BTC/USDT',period:'24H',rows:[],visible:120,offset:0,hover:null,drag:false,lastX:0,pendingPrice:null,pendingSymbol:'',historyToken:0,liveReady:false,priceAcceptAfter:0};
-const spec={'1H':{count:60,sec:60},'24H':{count:288,sec:300},'7D':{count:168,sec:3600},'30D':{count:180,sec:21600}};
+const state={symbol:'BTC/USDT',period:'24H',rows:[],visible:120,offset:0,hover:null,drag:false,lastX:0,historyToken:0,liveReady:false};
 const overlays=[{period:7,label:'EMA 7',color:'#f5c84c'},{period:25,label:'EMA 25',color:'#b978ff'},{period:99,label:'EMA 99',color:'#38bdf8'}];
 
 function selectedSymbol(){return (typeof currentMarket!=='undefined'&&currentMarket?.symbol)||$('#trade-symbol')?.textContent?.trim()||'BTC/USDT'}
 function baseCode(){return selectedSymbol().split('/')[0].toUpperCase()}
+function periodList(){return Array.isArray(window.__marketConfig?.periods)?window.__marketConfig.periods:[]}
+function periodInfo(id=state.period){return periodList().find(p=>p.id===id)||null}
 function size(){const dpr=Math.min(devicePixelRatio||1,2),r=el.getBoundingClientRect(),w=Math.max(320,Math.floor(r.width)),h=Math.max(420,Math.floor(r.height));if(canvas.width!==w*dpr||canvas.height!==h*dpr){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px'}ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h}}
 function fmt(n){if(!Number.isFinite(+n))return'—';n=+n;return n.toLocaleString('en-US',{minimumFractionDigits:n>=1000?2:4,maximumFractionDigits:n>=1?4:8})}
 function compact(n){n=+n;if(!Number.isFinite(n))return'—';return Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n)}
@@ -50,27 +51,77 @@ function draw(){
   if(state.hover){const mx=Math.max(L,Math.min(L+W,state.hover.x)),my=Math.max(mainT,Math.min(mainT+mainH,state.hover.y)),idx=Math.max(0,Math.min(rows.length-1,Math.floor((mx-L)/W*rows.length))),d=rows[idx],gi=start+idx,crossPrice=hi-(my-mainT)/mainH*(hi-lo);ctx.strokeStyle='rgba(181,207,230,.72)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(mx,mainT);ctx.lineTo(mx,rsiT+rsiH);ctx.moveTo(L,my);ctx.lineTo(L+W,my);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#b5cfe6';ctx.fillRect(L+W+4,my-8,78,16);ctx.fillStyle='#04101f';ctx.font='bold 10px Inter,Arial';ctx.fillText(fmt(crossPrice),L+W+8,my+3);const emaText=overlays.map(o=>o.label+' '+fmt(emaValues(all,o.period)[gi])).join(' · '),rv=r[gi],mv=m.macd[gi],sv=m.signal[gi];tip.innerHTML='<b>'+state.symbol+'</b><span>'+new Date(d.time*1000).toLocaleString()+'</span><span>O '+fmt(d.open)+' · H '+fmt(d.high)+' · L '+fmt(d.low)+' · C '+fmt(d.close)+'</span><span>'+emaText+'</span><span>VOL '+compact(d.volume||0)+' · MACD '+fmt(mv)+' / '+fmt(sv)+' · RSI '+(Number.isFinite(rv)?rv.toFixed(1):'—')+'</span>';tip.style.left=Math.min(mx+14,w-300)+'px';tip.style.top='36px';tip.classList.add('show')}else tip.classList.remove('show');
 }
 async function json(url){const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});if(!r.ok)throw Error(String(r.status));return r.json()}
-async function history(){const token=++state.historyToken,loadingSymbol=selectedSymbol(),period=state.period;state.symbol=loadingSymbol;state.liveReady=false;state.rows=[];state.offset=0;draw();try{const d=await json(backend+'/api/market/pro-candles?symbol='+encodeURIComponent(baseCode())+'&period='+encodeURIComponent(period));if(token!==state.historyToken||selectedSymbol()!==loadingSymbol)return;const rows=(Array.isArray(d.candles)?d.candles:[]).map(v=>({time:+v.time,open:+v.open,high:+v.high,low:+v.low,close:+v.close,volume:+v.volume||0})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);if(!rows.length)throw Error('empty');state.rows=rows;state.visible=Math.min(rows.length,period==='1H'?60:120);state.offset=0;state.liveReady=true;draw();if(state.pendingSymbol===loadingSymbol&&Number.isFinite(state.pendingPrice)&&plausibleLive(state.pendingPrice))live(state.pendingPrice)}catch(_){if(token===state.historyToken){state.rows=[];draw()}}}
+async function history(){
+  const info=periodInfo();if(!info)return;
+  const token=++state.historyToken,loadingSymbol=selectedSymbol(),period=state.period;
+  state.symbol=loadingSymbol;state.liveReady=false;state.rows=[];state.offset=0;draw();
+  try{
+    const d=await json(backend+'/api/market/chart?symbol='+encodeURIComponent(baseCode())+'&period='+encodeURIComponent(period));
+    if(token!==state.historyToken||selectedSymbol()!==loadingSymbol)return;
+    const rows=(Array.isArray(d.candles)?d.candles:[]).map(v=>({time:+v.time,open:+v.open,high:+v.high,low:+v.low,close:+v.close,volume:+v.volume||0})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
+    if(!rows.length)throw Error('empty');
+    state.rows=rows;state.visible=Math.min(rows.length,Number(info.count)||120);state.offset=0;state.liveReady=true;draw();
+  }catch(_){if(token===state.historyToken){state.rows=[];state.liveReady=false;draw()}}
+}
 function plausibleLive(price){const last=state.rows[state.rows.length-1]?.close;if(!Number.isFinite(price)||!Number.isFinite(last)||last<=0)return false;return Math.abs(price-last)/last<=.25}
-function live(price){price=+price;if(!state.liveReady||state.pendingSymbol!==state.symbol||!Number.isFinite(price)||!state.rows.length||!plausibleLive(price))return;const sec=spec[state.period]?.sec||300,bucket=Math.floor(Date.now()/1000/sec)*sec,last=state.rows[state.rows.length-1];if(last.time===bucket){last.close=price;last.high=Math.max(last.high,price);last.low=Math.min(last.low,price)}else if(bucket>last.time){state.rows.push({time:bucket,open:last.close,high:price,low:price,close:price,volume:0});if(state.rows.length>600)state.rows.shift()}draw()}
-function beginSwitch(){state.liveReady=false;state.pendingPrice=null;state.pendingSymbol='';state.priceAcceptAfter=Date.now()+900;state.historyToken++;state.rows=[];state.offset=0;draw();setTimeout(history,80)}
+function live(price,time){
+  price=+price;
+  const info=periodInfo();
+  if(!info||!state.liveReady||!Number.isFinite(price)||!state.rows.length||!plausibleLive(price))return;
+  const sec=Number(info.seconds)||300,stamp=Number.isFinite(Date.parse(time))?Date.parse(time):Date.now(),bucket=Math.floor(stamp/1000/sec)*sec,last=state.rows[state.rows.length-1];
+  let changed=false;
+  if(last.time===bucket){
+    if(last.close!==price){last.close=price;last.high=Math.max(last.high,price);last.low=Math.min(last.low,price);changed=true}
+  }else if(bucket>last.time){
+    state.rows.push({time:bucket,open:last.close,high:price,low:price,close:price,volume:0});
+    if(state.rows.length>600)state.rows.shift();
+    changed=true;
+  }
+  if(changed)draw();
+}
+function beginSwitch(){
+  state.liveReady=false;state.historyToken++;state.rows=[];state.offset=0;state.symbol=selectedSymbol();draw();
+  if(periodInfo())setTimeout(history,40);
+}
 
 canvas.addEventListener('wheel',e=>{e.preventDefault();const old=state.visible,f=e.deltaY>0?1.12:.88;state.visible=Math.max(20,Math.min(state.rows.length,Math.round(old*f)));state.offset=Math.min(state.offset,Math.max(0,state.rows.length-state.visible));draw()},{passive:false});
 canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();state.hover={x:e.clientX-r.left,y:e.clientY-r.top};if(state.drag){const dx=e.clientX-state.lastX,step=Math.round(dx/(r.width/Math.max(20,state.visible)));if(step){state.offset=Math.max(0,Math.min(Math.max(0,state.rows.length-state.visible),state.offset+step));state.lastX=e.clientX}}draw()});
 canvas.addEventListener('mouseleave',()=>{state.hover=null;state.drag=false;canvas.classList.remove('dragging');draw()});
 canvas.addEventListener('mousedown',e=>{state.drag=true;state.lastX=e.clientX;canvas.classList.add('dragging')});
 window.addEventListener('mouseup',()=>{state.drag=false;canvas.classList.remove('dragging')});
-canvas.addEventListener('dblclick',()=>{state.offset=0;state.visible=Math.min(state.rows.length,state.period==='1H'?60:120);draw()});
+canvas.addEventListener('dblclick',()=>{const info=periodInfo();state.offset=0;state.visible=Math.min(state.rows.length,Number(info?.count)||120);draw()});
 
 let touchStartDistance=0,touchStartVisible=0,touchLastX=null,touchMode='';
 canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){touchMode='pinch';touchStartDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchStartVisible=state.visible}else if(e.touches.length===1){touchMode='pan';touchLastX=e.touches[0].clientX}},{passive:true});
 canvas.addEventListener('touchmove',e=>{if(touchMode==='pinch'&&e.touches.length===2){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(touchStartDistance>0){state.visible=Math.max(20,Math.min(state.rows.length,Math.round(touchStartVisible*(touchStartDistance/d))));state.offset=Math.min(state.offset,Math.max(0,state.rows.length-state.visible));draw()}}else if(touchMode==='pan'&&e.touches.length===1&&touchLastX!==null){const dx=e.touches[0].clientX-touchLastX;if(Math.abs(dx)>6){e.preventDefault();const step=Math.round(dx/(canvas.getBoundingClientRect().width/Math.max(20,state.visible)));if(step){state.offset=Math.max(0,Math.min(Math.max(0,state.rows.length-state.visible),state.offset+step));touchLastX=e.touches[0].clientX;draw()}}}},{passive:false});
 canvas.addEventListener('touchend',()=>{touchMode='';touchLastX=null;touchStartDistance=0},{passive:true});
 
-const pe=$('#trade-price');if(pe){const capture=()=>{if(Date.now()<state.priceAcceptAfter)return;const n=parseFloat(pe.textContent.replace(/[$,]/g,''));if(Number.isFinite(n)){state.pendingPrice=n;state.pendingSymbol=selectedSymbol()}};new MutationObserver(capture).observe(pe,{childList:true,subtree:true,characterData:true});capture();setInterval(()=>{if(state.liveReady&&state.pendingSymbol===state.symbol&&Number.isFinite(state.pendingPrice))live(state.pendingPrice)},1000)}
-const sym=$('#trade-symbol');if(sym)new MutationObserver(beginSwitch).observe(sym,{childList:true,subtree:true,characterData:true});
-document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>{const p=btn.dataset.period||btn.textContent.trim();if(!spec[p])return;state.period=p;chartTimeframe=p;state.liveReady=false;state.pendingPrice=null;state.pendingSymbol='';state.priceAcceptAfter=Date.now()+300;setTimeout(history,30)}));
+function installPeriods(){
+  const list=periodList(),wrap=document.querySelector('.timeframes');
+  if(!wrap||!list.length)return false;
+  if(!list.some(p=>p.id===state.period))state.period=(list.find(p=>p.id==='24H')||list[0]).id;
+  wrap.innerHTML=list.map(p=>`<button type="button" data-period="${p.id}" class="${p.id===state.period?'active':''}">${p.id}</button>`).join('');
+  wrap.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{
+    const p=btn.dataset.period;
+    if(!periodInfo(p)||p===state.period)return;
+    state.period=p;
+    wrap.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===btn));
+    state.liveReady=false;state.rows=[];state.offset=0;draw();history();
+  }));
+  return true;
+}
+
+window.addEventListener('dapps:market-config',()=>{
+  installPeriods();
+  beginSwitch();
+});
+window.addEventListener('dapps:market-selected',beginSwitch);
+window.addEventListener('dapps:market-quote',e=>{
+  const d=e.detail||{};
+  if(d.symbol===state.symbol)live(Number(d.price),d.time);
+});
 new ResizeObserver(draw).observe(el);
-drawChart=draw;
-setTimeout(history,60);
+window.drawChart=draw;
+if(window.__marketConfig&&installPeriods())setTimeout(history,40);
+else draw();
 })();
