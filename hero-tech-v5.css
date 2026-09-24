@@ -276,3 +276,26 @@
   80%{transform:rotateX(-2deg) rotateY(288deg) translateY(-6px)}
   100%{transform:rotateX(-7deg) rotateY(360deg) translateY(0)}
 }
+
+/* Reference artwork: luminous blue/cyan face, clean solid sidewalls, soft stage light. */
+.tech-logo-stack{isolation:auto;perspective:none}
+.tech-logo-layer.depth{
+  filter:none;
+  opacity:1!important;
+  mix-blend-mode:normal!important;
+  backface-visibility:visible;
+  z-index:auto;
+}
+.tech-logo-layer.back{opacity:1!important;z-index:auto}
+.tech-logo-layer.front{
+  z-index:auto;
+  filter:brightness(1.12) saturate(1.35)
+    drop-shadow(0 0 12px rgba(0,115,255,.65))
+    drop-shadow(0 0 30px rgba(29,224,255,.34))!important;
+}
+.tech-logo-glow{
+  background:radial-gradient(ellipse,rgba(58,246,255,.62),rgba(0,99,255,.32) 35%,rgba(0,45,255,.08) 60%,transparent 73%)!important;
+  filter:blur(12px)!important;
+}
+.tech-visual::before{filter:blur(2px)}
+@media(prefers-reduced-motion:reduce){.tech-logo-stack{transform:rotateX(-7deg) rotateY(-24deg)!important}}

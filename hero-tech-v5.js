@@ -4,6 +4,7 @@
   const stack=hero.querySelector('.tech-logo-stack');
   const layers=[...hero.querySelectorAll('.tech-logo-layer.depth')];
   const back=hero.querySelector('.tech-logo-layer.back');
+  const front=hero.querySelector('.tech-logo-layer.front');
 
   const totalDepth=54;
   const step=totalDepth/Math.max(1,layers.length);
@@ -11,16 +12,13 @@
     const z=-(i+1)*step;
     el.style.transform=`translateZ(${z.toFixed(2)}px)`;
     const t=i/Math.max(1,layers.length-1);
-    const brightness=(.72-.30*t).toFixed(3);
-    const saturation=(1.95-.25*t).toFixed(2);
-    el.style.filter=`brightness(${brightness}) contrast(1.22) saturate(${saturation}) hue-rotate(-3deg)`;
-    el.style.opacity=String(.98);
-    el.style.zIndex=String(80-i);
+    const brightness=(1.12-.36*t).toFixed(3);
+    el.style.setProperty('filter',`brightness(${brightness}) drop-shadow(0 0 1px rgba(14,152,255,.25))`,'important');
   });
   if(back){
     back.style.transform=`translateZ(-${(totalDepth+1).toFixed(1)}px) rotateY(180deg)`;
-    back.style.zIndex='40';
   }
+  if(front) front.style.transform='translateZ(2px)';
 
   let tx=0,ty=0,cx=0,cy=0,raf=0;
   const paint=()=>{
