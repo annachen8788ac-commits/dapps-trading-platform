@@ -6,6 +6,8 @@
   const supported=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
   const ids={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',LTC:'litecoin',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',LINK:'chainlink',BNB:'binancecoin',TRX:'tron',BCH:'bitcoin-cash',DOT:'polkadot',XLM:'stellar',USDT:'tether'};
   const observed=new Map();
+  const lastPrices=new Map();
+  const tickDirections=new Map();
   const historyCache=new Map();
   const inflight=new Map();
   let request=0,lastPaint=0,tickerTimer=null,tickerBusy=false;
@@ -37,14 +39,18 @@
     const price=document.querySelector('#trade-price'),change=document.querySelector('#trade-change');
     if(price)price.textContent=age<180000?fmt(m.price,decimals(m.price)):'--';
     if(change)change.textContent=age<180000?`${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%`:'--';
-    if(price)price.className=m.change>=0?'positive':'negative';
-    if(change)change.className=price?.className||'';
+    const tick=tickDirections.get(m.symbol)||0;
+    if(price)price.className=tick>0?'positive':tick<0?'negative':(m.change>=0?'positive':'negative');
+    if(change)change.className=m.change>=0?'positive':'negative';
     for(const [id,value] of [['#trade-high',m.high],['#trade-low',m.low]]){const el=document.querySelector(id);if(el)el.textContent=age<180000?fmt(value,decimals(value)):'--'}
     if((force||Date.now()-lastPaint>150)&&document.querySelector('#page-trade')?.classList.contains('active')){lastPaint=Date.now();drawChart()}
     window.dispatchEvent(new Event('dapps:markets-updated'));
   }
   function quote(m,p,ts=Date.now(),open,hi,lo,size=0){
     if(!m||!Number.isFinite(p)||p<=0)return;
+    const previous=lastPrices.get(m.symbol);
+    if(Number.isFinite(previous)){if(p>previous)tickDirections.set(m.symbol,1);else if(p<previous)tickDirections.set(m.symbol,-1)}
+    lastPrices.set(m.symbol,p);
     m.price=p;
     if(Number.isFinite(open)&&open>0)m.change=(p/open-1)*100;
     if(Number.isFinite(hi)&&hi>0)m.high=hi;
