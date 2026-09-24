@@ -97,7 +97,8 @@
     inflight.set(key,task);return task;
   }
   async function ticker(){
-    const m=selected(),code=codeOf(m);if(!m||!supported.has(code)||tickerBusy)return;
+    const m=selected(),code=codeOf(m);if(!m||tickerBusy)return;
+    if(!supported.has(code)){if(Number.isFinite(Number(m.price))&&Number(m.price)>0)observed.set(m.symbol,Date.now());return;}
     tickerBusy=true;
     try{
       const d=await json(`${backend}/api/market/ticker?symbol=${encodeURIComponent(code)}`);
@@ -108,16 +109,17 @@
     finally{tickerBusy=false}
   }
   async function fallback(){
-    const entries=markets.filter(m=>ids[codeOf(m)]),idList=[...new Set(entries.map(m=>ids[codeOf(m)]))];
+    const idFor=m=>m?.cgId||ids[codeOf(m)];
+    const entries=markets.filter(m=>idFor(m)),idList=[...new Set(entries.map(m=>idFor(m)))];
     try{
       const data=await json(`${backend}/api/market/quotes?ids=${idList.join(',')}`);
       if(data.stale)return;
-      for(const m of entries){const value=data[ids[codeOf(m)]];if(!value||Date.now()-(observed.get(m.symbol)||0)<30000)continue;m.price=Number(value.usd)||m.price;if(Number.isFinite(value.usd_24h_change))m.change=value.usd_24h_change}
+      for(const m of entries){const value=data[idFor(m)];if(!value||Date.now()-(observed.get(m.symbol)||0)<30000)continue;m.price=Number(value.usd)||m.price;if(Number.isFinite(value.usd_24h_change))m.change=value.usd_24h_change;if(Number.isFinite(m.price)&&m.price>0)observed.set(m.symbol,Date.now())}
       window.dispatchEvent(new Event('dapps:markets-updated'));
     }catch{}
   }
   async function fallbackHistory(m){
-    const id=ids[codeOf(m)];if(!id||historyCache.get(cacheKey(m))?.candles?.length)return;
+    const id=m?.cgId||ids[codeOf(m)];if(!id||historyCache.get(cacheKey(m))?.candles?.length)return;
     const serial=request,days=chartTimeframe==='30D'?30:chartTimeframe==='7D'?7:chartTimeframe==='24H'?1:1;
     try{
       const data=await json(`${backend}/api/market/history?id=${encodeURIComponent(id)}&days=${days}`);
