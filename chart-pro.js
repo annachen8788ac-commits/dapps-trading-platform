@@ -1,5 +1,5 @@
 (() => {
-  const state={mouseX:null,mouseY:null,zoom:1,isTouching:false,pinchStartDistance:null,pinchStartZoom:1};
+  const state={mouseX:null,mouseY:null,zoom:1,isTouching:false,pinchStartDistance:null,pinchStartZoom:1,pan:0,dragX:null,dragPan:0,dragging:false};
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const isMobile=()=>window.matchMedia('(max-width:720px)').matches||'ontouchstart'in window;
   const tfCounts={'1m':72,'5m':72,'15m':72,'1H':84,'4H':90,'1D':96};
@@ -93,14 +93,16 @@
     }
 
     const local=(cx,cy)=>{const r=canvas.getBoundingClientRect();return{x:clamp(cx-r.left,0,r.width),y:clamp(cy-r.top,0,r.height)}};
-    canvas.onmousemove=e=>{const p=local(e.clientX,e.clientY);state.mouseX=p.x;state.mouseY=p.y;drawChart()};
-    canvas.onmouseleave=()=>{if(state.isTouching)return;state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()};
+    canvas.onpointerdown=e=>{state.dragX=e.clientX;state.dragPan=state.pan;state.dragging=true;canvas.setPointerCapture(e.pointerId)};
+    canvas.onpointerup=e=>{state.dragging=false;state.dragX=null;try{canvas.releasePointerCapture(e.pointerId)}catch{}};
+    canvas.onmousemove=e=>{if(state.dragging&&state.dragX!=null){const source=ensureChartHistory(currentMarket),width=canvas.getBoundingClientRect().width,visible=Math.min(source.length,Math.max(24,Math.round((tfCounts[chartTimeframe]||84)/state.zoom)));state.pan=clamp(state.dragPan+Math.round((e.clientX-state.dragX)/(Math.max(1,width-85)/Math.max(1,visible))),0,Math.max(0,source.length-visible));drawChart();return}const p=local(e.clientX,e.clientY);state.mouseX=p.x;state.mouseY=p.y;drawChart()};
+    canvas.onmouseleave=()=>{if(state.isTouching||state.dragging)return;state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()};
     canvas.onwheel=e=>{e.preventDefault();state.zoom=clamp(state.zoom*(e.deltaY<0?1.12:.89),.6,3.2);state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()};
-    canvas.ontouchstart=e=>{e.preventDefault();state.isTouching=true;if(e.touches.length===2){const[a,b]=e.touches;state.pinchStartDistance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);state.pinchStartZoom=state.zoom}else if(e.touches.length===1){const p=local(e.touches[0].clientX,e.touches[0].clientY);state.mouseX=p.x;state.mouseY=p.y;drawChart()}};
-    canvas.ontouchmove=e=>{e.preventDefault();if(e.touches.length===2&&state.pinchStartDistance){const[a,b]=e.touches;const dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);state.zoom=clamp(state.pinchStartZoom*(dist/state.pinchStartDistance),.6,3.2);state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()}else if(e.touches.length===1){const p=local(e.touches[0].clientX,e.touches[0].clientY);state.mouseX=p.x;state.mouseY=p.y;drawChart()}};
-    canvas.ontouchend=()=>{state.isTouching=false;state.pinchStartDistance=null;setTimeout(()=>{if(!state.isTouching){state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()}},500)};
+    canvas.ontouchstart=e=>{e.preventDefault();state.isTouching=true;if(e.touches.length===2){const[a,b]=e.touches;state.pinchStartDistance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);state.pinchStartZoom=state.zoom}else if(e.touches.length===1){state.dragX=e.touches[0].clientX;state.dragPan=state.pan;const p=local(e.touches[0].clientX,e.touches[0].clientY);state.mouseX=p.x;state.mouseY=p.y;drawChart()}};
+    canvas.ontouchmove=e=>{e.preventDefault();if(e.touches.length===2&&state.pinchStartDistance){const[a,b]=e.touches;const dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);state.zoom=clamp(state.pinchStartZoom*(dist/state.pinchStartDistance),.6,3.2);state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()}else if(e.touches.length===1){const source=ensureChartHistory(currentMarket),visible=Math.min(source.length,Math.max(24,Math.round((tfCounts[chartTimeframe]||84)/state.zoom))),width=canvas.getBoundingClientRect().width;state.pan=clamp(state.dragPan+Math.round((e.touches[0].clientX-state.dragX)/(Math.max(1,width-70)/Math.max(1,visible))),0,Math.max(0,source.length-visible));state.mouseX=state.mouseY=null;drawChart()}};
+    canvas.ontouchend=()=>{state.isTouching=false;state.pinchStartDistance=null;state.dragX=null;setTimeout(()=>{if(!state.isTouching){state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()}},500)};
     controls.onclick=e=>{const a=e.target.closest('button')?.dataset.chartZoom;if(!a)return;if(a==='in')state.zoom=clamp(state.zoom*1.2,.6,3.2);if(a==='out')state.zoom=clamp(state.zoom/1.2,.6,3.2);if(a==='reset')state.zoom=1;drawChart()};
-    document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>{chartTimeframe=btn.textContent.trim();document.querySelectorAll('.timeframes button').forEach(x=>x.classList.toggle('active',x===btn));state.zoom=1;state.mouseX=state.mouseY=null;drawChart()}));
+    document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>{chartTimeframe=btn.textContent.trim();document.querySelectorAll('.timeframes button').forEach(x=>x.classList.toggle('active',x===btn));state.zoom=1;state.pan=0;state.mouseX=state.mouseY=null;drawChart()}));
   }
 
   function drawContinuous(ctx,values,x,y,color,width){
