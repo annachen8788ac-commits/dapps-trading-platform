@@ -70,7 +70,7 @@
 
     const legend=document.createElement('div');
     legend.id='chart-legend';legend.className='chart-legend';
-    legend.innerHTML='<span id="legend-ohlc">O -- H -- L -- C --</span><span class="ma7">MA7</span><span class="ma20">MA20</span><span class="legend-live"><i></i> LIVE</span>';
+    legend.innerHTML='<span id="legend-ohlc">O -- H -- L -- C --</span><span class="ma7">EMA7</span><span class="ma25">EMA25</span><span class="ma99">EMA99</span><span class="legend-live"><i></i> LIVE</span>';
     stage.appendChild(legend);
 
     const tooltip=document.createElement('div');
@@ -85,7 +85,7 @@
     if(!document.querySelector('#professional-chart-style')){
       const style=document.createElement('style');style.id='professional-chart-style';style.textContent=`
       .chart-stage{position:relative;overflow:hidden;touch-action:none;background:linear-gradient(180deg,rgba(11,15,25,.18),rgba(11,15,25,.02))}.chart-stage canvas{cursor:crosshair;touch-action:none}
-      .chart-legend{position:absolute;left:14px;top:10px;z-index:4;display:flex;gap:13px;align-items:center;padding:5px 8px;border-radius:6px;background:rgba(8,11,18,.72);font-size:10px;color:#9aa7bd;pointer-events:none}.chart-legend .ma7{color:#f0b90b}.chart-legend .ma20{color:#8d94ff}.legend-live{color:#40d99a;font-weight:700}.legend-live i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#40d99a;margin-right:5px;box-shadow:0 0 8px rgba(64,217,154,.7)}
+      .chart-legend{position:absolute;left:14px;top:10px;z-index:4;display:flex;gap:13px;align-items:center;padding:5px 8px;border-radius:6px;background:rgba(8,11,18,.72);font-size:10px;color:#9aa7bd;pointer-events:none}.chart-legend .ma7{color:#f0b90b}.chart-legend .ma25{color:#8d94ff}.chart-legend .ma99{color:#c37dff}.legend-live{color:#40d99a;font-weight:700}.legend-live i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#40d99a;margin-right:5px;box-shadow:0 0 8px rgba(64,217,154,.7)}
       .chart-tooltip{position:absolute;display:none;z-index:10;width:198px;padding:11px 12px;border-radius:8px;background:rgba(4,6,10,.97);border:1px solid rgba(255,255,255,.11);box-shadow:0 12px 35px rgba(0,0,0,.5);font-size:11px;color:#e9eef8;pointer-events:none}.chart-tooltip.show{display:block}.tt-head{display:flex;justify-content:space-between;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid rgba(255,255,255,.08)}.tt-head span,.tt-grid span{color:#7f8ba2}.tt-grid{display:grid;grid-template-columns:auto 1fr;gap:5px 16px}.tt-grid b{text-align:right;font-weight:600}.tt-grid b.positive{color:#29c77d}.tt-grid b.negative{color:#ff5b67}
       .chart-zoom-controls{position:absolute;right:82px;top:9px;z-index:8;display:flex;gap:4px}.chart-zoom-controls button{width:28px;height:28px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(8,12,20,.86);color:#b8c3d8;cursor:pointer;font-size:15px}.chart-zoom-controls button:hover{color:#fff;background:#20283a}
       @media(max-width:720px){.chart-legend{left:8px;top:7px;gap:8px;max-width:calc(100% - 16px);font-size:9px}.chart-zoom-controls{right:7px;top:42px}.chart-tooltip{left:8px!important;right:8px!important;top:auto!important;bottom:8px!important;width:auto}.tt-grid{grid-template-columns:repeat(3,auto 1fr);gap:4px 7px}.chart-stage canvas{cursor:default}}
@@ -103,6 +103,13 @@
     canvas.ontouchend=()=>{state.isTouching=false;state.pinchStartDistance=null;state.dragX=null;setTimeout(()=>{if(!state.isTouching){state.mouseX=state.mouseY=null;tooltip.classList.remove('show');drawChart()}},500)};
     controls.onclick=e=>{const a=e.target.closest('button')?.dataset.chartZoom;if(!a)return;if(a==='in')state.zoom=clamp(state.zoom*1.2,.6,3.2);if(a==='out')state.zoom=clamp(state.zoom/1.2,.6,3.2);if(a==='reset')state.zoom=1;drawChart()};
     document.querySelectorAll('.timeframes button').forEach(btn=>btn.addEventListener('click',()=>{chartTimeframe=btn.textContent.trim();document.querySelectorAll('.timeframes button').forEach(x=>x.classList.toggle('active',x===btn));state.zoom=1;state.pan=0;state.mouseX=state.mouseY=null;drawChart()}));
+  }
+
+  function emaSeries(values,period){
+    if(!values.length)return [];
+    const k=2/(period+1),out=[];let e=values[0];
+    for(let i=0;i<values.length;i++){e=i===0?values[i]:values[i]*k+e*(1-k);out.push(e)}
+    return out;
   }
 
   function drawContinuous(ctx,values,x,y,color,width){
@@ -139,9 +146,8 @@
     const sampled=data.some(d=>d.sampled),maxVol=Math.max(...data.map(d=>d.volume||0),1),cw=Math.max(3,Math.min(10,step*.62));
     if(!sampled)data.forEach((d,i)=>{const xx=x(i),up=d.close>=d.open,color=up?'#22b87a':'#ef5362';const vh=(d.volume||0)/maxVol*(volH-9);ctx.fillStyle=up?'rgba(34,184,122,.20)':'rgba(239,83,98,.20)';if(d.volume>0)ctx.fillRect(xx-cw/2,volTop+volH-vh,cw,vh);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.high));ctx.lineTo(xx,y(d.low));ctx.stroke();const bt=Math.min(y(d.open),y(d.close)),bh=Math.max(1.5,Math.abs(y(d.close)-y(d.open)));ctx.fillRect(xx-cw/2,bt,cw,bh)});
 
-    const closes=data.map(d=>d.close),ma7=movingAverage(closes,7),ma20=movingAverage(closes,20);
-    // A continuous close-price trace makes the market structure readable instead of visually fragmented.
-    const grad=ctx.createLinearGradient(0,pad.top,0,pad.top+priceH);grad.addColorStop(0,'rgba(75,145,255,.92)');grad.addColorStop(1,'rgba(69,184,255,.62)');drawContinuous(ctx,closes,x,y,grad,1.65);drawContinuous(ctx,ma7,x,y,'#f0b90b',1.25);drawContinuous(ctx,ma20,x,y,'#8d94ff',1.25);
+    const closes=data.map(d=>d.close),allCloses=source.map(d=>d.close),ema7=emaSeries(allCloses,7).slice(end-count,end),ema25=emaSeries(allCloses,25).slice(end-count,end),ema99=emaSeries(allCloses,99).slice(end-count,end);
+    const grad=ctx.createLinearGradient(0,pad.top,0,pad.top+priceH);grad.addColorStop(0,'rgba(75,145,255,.92)');grad.addColorStop(1,'rgba(69,184,255,.62)');drawContinuous(ctx,closes,x,y,grad,1.35);drawContinuous(ctx,ema7,x,y,'#f0b90b',1.15);drawContinuous(ctx,ema25,x,y,'#8d94ff',1.15);drawContinuous(ctx,ema99,x,y,'#c37dff',1.05);
 
     const currentY=y(currentMarket.price);if(state.pan===0&&currentY>=pad.top&&currentY<=pad.top+priceH){ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(77,151,255,.82)';ctx.beginPath();ctx.moveTo(pad.left,currentY);ctx.lineTo(pad.left+plotW,currentY);ctx.stroke();ctx.restore();const lastX=x(data.length-1);ctx.fillStyle='#4d97ff';ctx.beginPath();ctx.arc(lastX,currentY,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(7,11,19,.98)';ctx.fillRect(pad.left+plotW+3,currentY-10,pad.right-5,20);ctx.fillStyle='#7fb0ff';ctx.textAlign='left';ctx.fillText(fmt(currentMarket.price,decimals(currentMarket.price)),pad.left+plotW+8,currentY)}
 
