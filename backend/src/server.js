@@ -165,6 +165,20 @@ app.get('/api/market/pro-candles',async(req,res)=>{
       }catch(_){}
     }
   }
+  if(!rows.length&&['BNB','USDT'].includes(code)){
+    const id=code==='BNB'?'binancecoin':'tether',days=period==='30D'?30:period==='7D'?7:1,step=spec.cb*1000;
+    try{
+      const d=await marketJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,12000);
+      const points=(Array.isArray(d.prices)?d.prices:[]).map(v=>({ts:Number(v[0]),price:Number(v[1])})).filter(v=>Number.isFinite(v.ts)&&Number.isFinite(v.price)&&v.price>0);
+      const grouped=[];
+      for(const p of points){
+        const bucket=Math.floor(p.ts/step)*step,last=grouped[grouped.length-1];
+        if(last&&last.bucket===bucket){last.high=Math.max(last.high,p.price);last.low=Math.min(last.low,p.price);last.close=p.price}
+        else grouped.push({bucket,time:Math.floor(bucket/1000),open:p.price,high:p.price,low:p.price,close:p.price,volume:0});
+      }
+      rows=grouped.slice(-spec.count).map(({bucket,...v})=>v);
+    }catch(_){}
+  }
   if(!rows.length){if(hit)return res.json(hit.data);return res.status(503).json({error:'Market candles unavailable'})}
   const data={symbol:code,period,candles:rows};
   marketCache.set(key,{at:Date.now(),data});res.json(data);
