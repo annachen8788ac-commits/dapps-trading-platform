@@ -123,16 +123,12 @@ window.addEventListener('dapps:market-quote',e=>{
 });
 new ResizeObserver(draw).observe(el);
 window.drawChart=draw;
+draw();
 if(window.__marketConfig&&installPeriods()){
-  queueHistory(40);
-}else{
-  draw();
-  let tries=0;
-  const waitForConfig=setInterval(()=>{
-    if(window.__marketConfig&&installPeriods()){
-      clearInterval(waitForConfig);
-      queueHistory(20);
-    }else if(++tries>=50)clearInterval(waitForConfig);
-  },100);
+  queueHistory(20);
+}else if(window.__marketConfigReady?.then){
+  window.__marketConfigReady.then(()=>{
+    if(installPeriods())queueHistory(20);
+  });
 }
 })();
