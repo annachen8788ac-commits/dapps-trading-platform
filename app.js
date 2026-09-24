@@ -1,5 +1,14 @@
 const markets = [
-  {symbol:'BTC/USDT',name:'Bitcoin',icon:'BTC',price:0,change:0,high:0,low:0,type:'crypto',bg:'#f7931a'}
+  {symbol:'BTC/USDT',name:'Bitcoin',icon:'BTC',price:0,change:0,high:0,low:0,type:'crypto',bg:'#f7931a'},
+  {symbol:'ETH/USDT',name:'Ethereum',icon:'ETH',price:0,change:0,high:0,low:0,type:'crypto',bg:'#627eea'},
+  {symbol:'BNB/USDT',name:'BNB',icon:'BNB',price:0,change:0,high:0,low:0,type:'crypto',bg:'#c99b14'},
+  {symbol:'SOL/USDT',name:'Solana',icon:'SOL',price:0,change:0,high:0,low:0,type:'crypto',bg:'#6d4cd8'},
+  {symbol:'XRP/USDT',name:'XRP',icon:'XRP',price:0,change:0,high:0,low:0,type:'crypto',bg:'#111111'},
+  {symbol:'DOGE/USDT',name:'Dogecoin',icon:'DOGE',price:0,change:0,high:0,low:0,type:'crypto',bg:'#9f842c'},
+  {symbol:'ADA/USDT',name:'Cardano',icon:'ADA',price:0,change:0,high:0,low:0,type:'crypto',bg:'#3468d4'},
+  {symbol:'AVAX/USDT',name:'Avalanche',icon:'AVAX',price:0,change:0,high:0,low:0,type:'crypto',bg:'#e84142'},
+  {symbol:'LINK/USDT',name:'Chainlink',icon:'LINK',price:0,change:0,high:0,low:0,type:'crypto',bg:'#2a5ada'},
+  {symbol:'LTC/USDT',name:'Litecoin',icon:'LTC',price:0,change:0,high:0,low:0,type:'crypto',bg:'#345d9d'}
 ]
 const demoSessionId=new URLSearchParams(location.search).get('demo');
 const isDemoSession=Boolean(demoSessionId);
