@@ -37,7 +37,11 @@
     const page=document.querySelector('#page-assets');if(!page)return;
     page.querySelectorAll('.asset-row,.asset-table-head,.portfolio-asset-row').forEach(x=>x.remove());
     const head=document.createElement('div');head.className='asset-table-head';head.innerHTML='<span>Asset</span><span>Total</span><span>Available</span><span>Locked</span><span>Value (USDT)</span><span></span>';page.appendChild(head);
-    const visible=assets.filter(a=>Number(a.available||0)!==0||Number(a.locked||0)!==0);
+    const basics=['BTC','ETH','USDC','USDT'];
+    const byAsset=new Map(assets.map(a=>[String(a.asset||'').toUpperCase(),a]));
+    const baseRows=basics.map(asset=>byAsset.get(asset)||{asset,available:0,locked:0,priceUsd:null,valueUsd:0});
+    const extraRows=assets.filter(a=>!basics.includes(String(a.asset||'').toUpperCase())&&(Number(a.available||0)!==0||Number(a.locked||0)!==0));
+    const visible=[...baseRows,...extraRows];
     for(const a of visible){const total=Number(a.available||0)+Number(a.locked||0),value=a.valueUsd==null?(a.asset==='USDT'?total:null):Number(a.valueUsd);const row=document.createElement('div');row.className='portfolio-asset-row';row.innerHTML=`<span class="asset-name"><b class="asset-symbol">${String(a.asset).slice(0,4)}</b><strong>${a.asset}</strong></span><span><strong>${qty(total)}</strong><small>${a.asset}</small></span><span>${qty(a.available)}<small>${a.asset}</small></span><span>${qty(a.locked)}<small>${a.asset}</small></span><span>${value==null?'—':money(value)}<small>USDT</small></span><button>Trade</button>`;row.querySelector('button').onclick=()=>{const m=Array.isArray(window.markets)?window.markets.find(x=>x.symbol===a.asset+'/USDT'):null;if(m&&typeof selectMarket==='function')selectMarket(m);navigate('trade')};page.appendChild(row)}
     if(!visible.length){const empty=document.createElement('div');empty.className='portfolio-asset-row';empty.innerHTML='<span class="muted">No assets held.</span>';page.appendChild(empty)}
   }
