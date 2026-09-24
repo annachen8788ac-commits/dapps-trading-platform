@@ -9,8 +9,10 @@
     // Canvas 2D renderer for devices where WebGL is disabled. It projects the
     // same extruded contours, so the logo still turns with visible side walls.
     const ctx=canvas.getContext('2d');if(!ctx)return;
-    const img=new Image();img.src='dp-logo-user.svg';
-    Promise.all([img.decode(),fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
+    const img=new Image();
+    const imageReady=new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject});
+    img.src='dp-logo-user.svg';
+    Promise.all([imageReady,fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
       const faceTexture=document.createElement('canvas');faceTexture.width=540;faceTexture.height=453;
       const faceCtx=faceTexture.getContext('2d');faceCtx.drawImage(img,0,0,540,453);
       faceCtx.globalCompositeOperation='source-atop';
@@ -26,7 +28,6 @@
         const length=path.getTotalLength(),count=Math.ceil(length/2);
         return Array.from({length:count},(_,i)=>path.getPointAtLength(i*length/count));
       });
-      canvas.classList.add('ready');
       const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
       let begin=0;
       function render(time){
@@ -35,7 +36,7 @@
         if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
         ctx.clearRect(0,0,w,h);
         const mobile=matchMedia('(max-width: 720px)').matches;
-        const a=reduced?-.46:mobile?-.38+Math.sin((time-begin)*Math.PI*2/8500)*.78:-.46+(time-begin)*Math.PI*2/12000;
+        const a=reduced&&!mobile?-.46:-.46+(time-begin)*Math.PI*2/(mobile?10500:12000);
         const cs=Math.cos(a),sn=Math.sin(a),scale=Math.min(w/210,h/175),cx=w/2,cy=h/2;
         const point=(p,z)=>[cx+((p.x-90)*cs+z*sn)*scale,cy+(p.y-75.5)*scale];
         const face=z=>{
@@ -66,7 +67,8 @@
           edges.forEach(edge=>{ctx.beginPath();edge.forEach((p,i)=>i?ctx.lineTo(p.x-90,p.y-75.5):ctx.moveTo(p.x-90,p.y-75.5));ctx.closePath();ctx.stroke()});
           ctx.restore();
         }else{ctx.save();ctx.globalAlpha=.68;face(-25);ctx.restore()}
-        if(!reduced)requestAnimationFrame(render);
+        if(!canvas.classList.contains('ready'))canvas.classList.add('ready');
+        if(!reduced||mobile)requestAnimationFrame(render);
       }
       requestAnimationFrame(render);
     }).catch(()=>{});
