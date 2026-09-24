@@ -28,7 +28,7 @@
     markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{
       const row=document.createElement('div');
       row.className='market-row';
-      row.innerHTML=`<div class="market-name"><span class="coin-icon small" style="background:${m.bg}">${m.icon}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span>`;
+      row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span>`;
       row.addEventListener('click',()=>{selectMarket(m);navigate('trade')});
       marketList.appendChild(row);
     });
@@ -56,7 +56,7 @@
       const item=document.createElement('button');
       item.type='button';
       item.className='pair-item'+(m.symbol===currentMarket.symbol?' active':'');
-      item.innerHTML=`<span class="left"><span class="mini-icon" style="background:${m.bg}">${m.icon}</span><span><strong>${m.symbol}</strong><small>${m.name}</small></span></span><span class="price"><b>${fmt(m.price,decimals(m.price))}</b><span class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</span></span>`;
+      item.innerHTML=`<span class="left"><span class="mini-icon">${tradeIconHTML(m)}</span><span><strong>${m.symbol}</strong><small>${m.name}</small></span></span><span class="price"><b>${fmt(m.price,decimals(m.price))}</b><span class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</span></span>`;
       item.addEventListener('click',()=>{selectMarket(m);menu.classList.remove('open');search.value='';renderPairList();window.renderQuickMarkets?.()});
       list.appendChild(item);
     });

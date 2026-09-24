@@ -24,7 +24,7 @@
     let bar=document.querySelector('#page-trade .trade-quick-markets');if(!bar){bar=document.createElement('div');bar.className='trade-quick-markets';grid.parentNode.insertBefore(bar,grid)}
     const preferred=['BTC/USDT','ETH/USDT','USDT/USDT','BNB/USDT','SOL/USDT','XRP/USDT','DOGE/USDT','ADA/USDT','AVAX/USDT','LINK/USDT'];
     const set=preferred.map(s=>markets.find(m=>m.symbol===s)).filter(Boolean);
-    bar.innerHTML=set.map(m=>`<button type="button" class="trade-quick-market${window.currentMarket?.symbol===m.symbol?' active':''}" data-symbol="${m.symbol}">${m.symbol}</button>`).join('');
+    bar.innerHTML=set.map(m=>`<button type="button" class="trade-quick-market${window.currentMarket?.symbol===m.symbol?' active':''}" data-symbol="${m.symbol}">${tradeIconHTML(m)}<span>${m.symbol}</span></button>`).join('');
     bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m){selectMarket(m);renderQuickMarkets()}})
   }
 
@@ -35,7 +35,7 @@
     tools.querySelector('.market-search').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();renderCatalog(document.querySelector('.filter.active')?.dataset.filter||'all')});
   }
 
-  function iconHTML(m,cls='coin-icon small'){return m.image?`<span class="${cls}"><img src="${m.image}" alt=""></span>`:`<span class="${cls}" style="background:${m.bg||'#24344d'}">${String(m.icon||m.symbol.split('/')[0]).slice(0,5)}</span>`}
+  function iconHTML(m,cls='coin-icon small'){return `<span class="${cls}">${tradeIconHTML(m)}</span>`}
   function renderCatalog(filter='all'){
     const list=document.querySelector('#market-list');if(!list)return;
     const rows=markets.filter(m=>(filter==='all'||m.type===filter)&&(!query||m.symbol.toLowerCase().includes(query)||m.name.toLowerCase().includes(query)));
