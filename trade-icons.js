@@ -18,7 +18,7 @@
     const code=String(m?.symbol||'').split('/')[0].toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)||'?';
     const [light,dark]=colors[code]||[/^#[0-9a-f]{6}$/i.test(m?.bg||'')?m.bg:'#3579c4','#11233c'];
     const mark=marks[code]||`<text x="32" y="40" text-anchor="middle" font-size="${code.length>3?17:code.length>2?22:29}" font-weight="800" fill="#fff">${code}</text>`;
-    return `<svg class="market-symbol-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><linearGradient id="g-${code}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#g-${code})"/><circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".25"/><path d="M14 15Q31 3 49 17" fill="none" stroke="#fff" stroke-opacity=".20" stroke-width="2" stroke-linecap="round"/>${mark}</svg>`;
+    return `<svg class="market-symbol-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="30" fill="${light}"/><path d="M5 39q25 17 54-13a30 30 0 0 1-54 13Z" fill="${dark}" opacity=".62"/><circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".28"/><path d="M14 15Q31 3 49 17" fill="none" stroke="#fff" stroke-opacity=".24" stroke-width="2" stroke-linecap="round"/>${mark}</svg>`;
   }
   window.tradeIconHTML=icon;
   window.paintTradeIcon=(el,m)=>{if(el){el.textContent='';el.style.background='transparent';el.innerHTML=icon(m)}};
