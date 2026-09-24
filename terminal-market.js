@@ -18,11 +18,6 @@
       <div class="terminal-panel-head"><div class="label"><small>MARKET DEPTH</small><strong>Order Book</strong></div><span class="terminal-live">LIVE</span></div>
       <div class="book-head"><span>Price</span><span>Size</span><span>Total</span></div>
       <div class="book-scroll"><div id="terminal-asks"></div><div class="book-mid"><strong id="terminal-mid">--</strong><span id="terminal-spread">Spread --</span></div><div id="terminal-bids"></div></div>
-    </section>
-    <section class="terminal-panel">
-      <div class="terminal-panel-head"><div class="label"><small>TAPE</small><strong>Recent Trades</strong></div><span class="terminal-live">STREAM</span></div>
-      <div class="trade-tape-head"><span>Price</span><span>Size</span><span>Time</span></div>
-      <div class="trade-tape-scroll" id="terminal-trades"></div>
     </section>`;
   const studies=document.createElement('div');
   studies.className='terminal-study-grid';
@@ -109,7 +104,7 @@
     drawStudies();
   }
 
-  let bookController=null,tradesController=null,serial=0;
+  let bookController=null,serial=0;
   async function get(url,controller){const r=await fetch(url,{cache:'no-store',signal:controller.signal});if(!r.ok)throw Error(String(r.status));return r.json()}
   function rowBook(type,[price,size],max){
     const pct=Math.min(100,Math.max(3,(size/max)*100));
@@ -132,14 +127,6 @@
       document.getElementById('micro-ask-depth').textContent=compact(askDepth)+' '+c;
     }catch(e){if(e.name!=='AbortError'){}}
   }
-  async function loadTrades(){
-    const c=code();tradesController?.abort();tradesController=new AbortController();
-    try{
-      const d=await get(`${api}/api/market/trades?symbol=${encodeURIComponent(c)}`,tradesController);
-      if(c!==code())return;
-      document.getElementById('terminal-trades').innerHTML=(d.trades||[]).slice(0,11).map(t=>`<div class="trade-tape-row ${t.side==='sell'?'sell':'buy'}"><span>${money(t.price)}</span><span>${compact(t.size)}</span><span>${new Date(t.time).toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span></div>`).join('');
-    }catch(e){if(e.name!=='AbortError'){}}
-  }
   function paintStats(){
     const m=activeMarket();if(!m)return;
     const volume=Number(m.volume24h||m.volume||0);
@@ -147,9 +134,9 @@
     const a=document.getElementById('trade-volume'),b=document.getElementById('micro-volume');if(a)a.textContent=text;if(b)b.textContent=text;
     indicatorsPaint();
   }
-  function refresh(){loadBook();loadTrades();paintStats()}
+  function refresh(){loadBook();paintStats()}
   window.addEventListener('dapps:markets-updated',paintStats);
   const base=window.selectMarket;
   if(typeof base==='function')window.selectMarket=function(m){const out=base(m);setTimeout(refresh,20);return out};
-  refresh();setInterval(()=>{if(page.classList.contains('active')){loadBook();loadTrades();paintStats()}},1800);
+  refresh();setInterval(()=>{if(page.classList.contains('active')){loadBook();paintStats()}},1800);
 })();
