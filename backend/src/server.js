@@ -97,21 +97,20 @@ const marketIds=new Set(['bitcoin','ethereum','solana','ripple','litecoin','doge
 const marketProducts=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
 const marketGranularities=new Set([60,300,900,3600,21600,86400]);
 const marketCache=new Map();
-const marketIconUrls=new Map();
 const marketJson=async(url,timeout=9000)=>{
   const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0','accept':'application/json'},signal:AbortSignal.timeout(timeout)});
   if(!upstream.ok)throw Error(String(upstream.status));
   return upstream.json();
 };
 app.get('/api/market/quotes',async(req,res)=>{
-  const ids=String(req.query.ids||'').split(',').map(id=>id.trim()).filter(id=>/^[a-zA-Z0-9._-]{1,120}$/.test(id)).slice(0,20);
+  const ids=String(req.query.ids||'').split(',').filter(id=>marketIds.has(id)).slice(0,20);
   if(!ids.length)return res.status(400).json({error:'Unsupported market'});
   const key='quotes:'+ids.join(','),hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<15000)return res.json(hit.data);
   try{const data=await marketJson(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit&&Date.now()-hit.at<120000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market data unavailable'})}
 });
 app.get('/api/market/history',async(req,res)=>{
-  const id=String(req.query.id||'').trim();if(!/^[a-zA-Z0-9._-]{1,120}$/.test(id))return res.status(400).json({error:'Unsupported market'});
+  const id=String(req.query.id||'');if(!marketIds.has(id))return res.status(400).json({error:'Unsupported market'});
   const days=[1,7,30,90,365].includes(Number(req.query.days))?Number(req.query.days):1;
   const key='history:'+id+':'+days,hit=marketCache.get(key);if(hit&&Date.now()-hit.at<60000)return res.json(hit.data);
   try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market history unavailable'})}
@@ -119,27 +118,7 @@ app.get('/api/market/history',async(req,res)=>{
 app.get('/api/market/catalog',async(req,res)=>{
   const page=Math.min(4,Math.max(1,Number(req.query.page)||1)),key='catalog:'+page,hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<30000)return res.json(hit.data);
-  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);if(Array.isArray(data))for(const c of data){if(c?.id&&c?.image)marketIconUrls.set(String(c.id),String(c.image))}marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market catalog unavailable'})}
-});
-app.get('/api/market/icon',async(req,res)=>{
-  const id=String(req.query.id||'').trim();
-  if(!/^[a-zA-Z0-9._-]{1,120}$/.test(id))return res.status(400).end();
-  let url=marketIconUrls.get(id);
-  try{
-    if(!url){
-      const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(id)}&per_page=1&page=1&sparkline=false`,10000);
-      url=Array.isArray(rows)&&rows[0]?.image?String(rows[0].image):'';
-      if(url)marketIconUrls.set(id,url);
-    }
-    if(!url)return res.status(404).end();
-    const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0'},signal:AbortSignal.timeout(8000)});
-    if(!upstream.ok)return res.status(502).end();
-    const type=upstream.headers.get('content-type')||'image/png';
-    const buf=Buffer.from(await upstream.arrayBuffer());
-    res.setHeader('Content-Type',type);
-    res.setHeader('Cache-Control','public, max-age=86400');
-    res.send(buf);
-  }catch(_){res.status(503).end()}
+  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market catalog unavailable'})}
 });
 app.get('/api/market/ticker',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -162,10 +141,9 @@ app.get('/api/market/candles',async(req,res)=>{
 });
 app.get('/api/market/pro-candles',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const cgId=String(req.query.cgId||'').trim().replace(/[^a-zA-Z0-9._-]/g,'');
   const period=String(req.query.period||'24H').toUpperCase();
-  const spec={ '1H':{cb:60,kr:1,count:60,days:1,step:60000},'24H':{cb:300,kr:5,count:288,days:1,step:300000},'7D':{cb:3600,kr:60,count:168,days:7,step:3600000},'30D':{cb:21600,kr:240,count:180,days:30,step:21600000} }[period];
-  if(!code||!spec)return res.status(400).json({error:'Unsupported market request'});
+  const spec={ '1H':{cb:60,kr:1,count:60},'24H':{cb:300,kr:5,count:288},'7D':{cb:3600,kr:60,count:168},'30D':{cb:21600,kr:240,count:180} }[period];
+  if(!marketProducts.has(code)||!spec)return res.status(400).json({error:'Unsupported market request'});
   const key=`pro-candles:${code}:${period}`,hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
   let rows=[],source='coinbase';
@@ -173,7 +151,7 @@ app.get('/api/market/pro-candles',async(req,res)=>{
     const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${spec.cb}`,9000);
     rows=(Array.isArray(d)?d:[]).slice(0,spec.count).map(v=>({time:Number(v[0]),open:Number(v[3]),high:Number(v[2]),low:Number(v[1]),close:Number(v[4]),volume:Number(v[5]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
   }catch(_){}
-  if(!rows.length&&marketProducts.has(code)){
+  if(!rows.length){
     source='kraken';
     const bases=[code,code==='BTC'?'XBT':code];
     for(const base of [...new Set(bases)]){
@@ -186,20 +164,6 @@ app.get('/api/market/pro-candles',async(req,res)=>{
         if(rows.length)break;
       }catch(_){}
     }
-  }
-  if(!rows.length&&cgId){
-    try{
-      source='catalog';
-      const d=await marketJson(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(cgId)}/market_chart?vs_currency=usd&days=${spec.days}`,12000);
-      const points=(Array.isArray(d.prices)?d.prices:[]).map(v=>({ts:Number(v[0]),price:Number(v[1])})).filter(v=>Number.isFinite(v.ts)&&Number.isFinite(v.price)&&v.price>0);
-      const grouped=[];
-      for(const p of points){
-        const bucket=Math.floor(p.ts/spec.step)*spec.step,last=grouped[grouped.length-1];
-        if(last&&last.bucket===bucket){last.high=Math.max(last.high,p.price);last.low=Math.min(last.low,p.price);last.close=p.price}
-        else grouped.push({bucket,time:Math.floor(bucket/1000),open:p.price,high:p.price,low:p.price,close:p.price,volume:0});
-      }
-      rows=grouped.slice(-spec.count).map(({bucket,...v})=>v);
-    }catch(_){}
   }
   if(!rows.length){if(hit)return res.json(hit.data);return res.status(503).json({error:'Market candles unavailable'})}
   const data={symbol:code,period,candles:rows};
