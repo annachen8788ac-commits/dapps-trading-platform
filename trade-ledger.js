@@ -33,7 +33,7 @@
   const fmtTime=ts=>new Date(ts).toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
   let backendTrades=[],mode='active',settling=new Set(),dialogTradeNo=null,dialogTimer=null,settleExpiredTrade=null;
   const authHeaders=()=>({'content-type':'application/json',Authorization:'Bearer '+token});
-  async function api(path,options={}){const r=await fetch(API+path,{...options,headers:{...authHeaders(),...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Request failed');return d}
+  async function api(path,options={}){const method=String(options.method||'GET').toUpperCase();const r=await fetch(API+path,{...options,cache:method==='GET'?'no-store':options.cache,headers:{...authHeaders(),...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Request failed');return d}
   function marketBySymbol(symbol){return markets.find(m=>m.symbol===symbol)||currentMarket}
   function closeDialog(){document.querySelector('.trade-dialog-backdrop')?.remove();if(dialogTimer)clearInterval(dialogTimer);dialogTimer=null;dialogTradeNo=null}
   function liveEstimate(t){const m=marketBySymbol(t.symbol),price=Number(m?.price||t.entryPrice),entry=Number(t.entryPrice),amount=Number(t.amount),rate=Number(t.profitRate||rates[t.duration]||0);const movePct=entry?((price-entry)/entry)*100:0;const itm=t.direction==='up'?price>entry:price<entry;const flat=Math.abs(price-entry)<Math.max(Math.abs(entry)*1e-9,1e-12);const est=flat?0:(itm?amount*rate/100:-amount);return{price,movePct,est,itm,flat}}
