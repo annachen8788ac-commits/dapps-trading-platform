@@ -73,8 +73,8 @@ async function initializeDatabase(){
     await pool.query(`INSERT INTO trade_products(duration_seconds,minimum_amount,profit_rate) VALUES($1,$2,$3) ON CONFLICT(duration_seconds) DO NOTHING`,[d,m,r]);
   for(const item of [['flexible','Flexible',0,4.8,100],['30-day','30-Day',30,6.5,500],['90-day','90-Day',90,8.2,1000]])
     await pool.query(`INSERT INTO pledge_products(product_code,product_name,term_days,apy,minimum_amount) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_code) DO NOTHING`,item);
-  const markets=['BTC/USDT','ETH/USDT','XAU/USDT','XAG/USDT','XRP/USDT','LTC/USDT','BNB/USDT','SOL/USDT','DOGE/USDT','TRX/USDT'];
-  for(let i=0;i<markets.length;i++)await pool.query(`INSERT INTO market_settings(symbol,display_name,sort_order) VALUES($1,$1,$2) ON CONFLICT(symbol) DO NOTHING`,[markets[i],i+1]);
+  const marketSymbols=marketControlCodes.map(code=>code+'/USDT');
+  for(let i=0;i<marketSymbols.length;i++)await pool.query(`INSERT INTO market_settings(symbol,display_name,sort_order) VALUES($1,$1,$2) ON CONFLICT(symbol) DO NOTHING`,[marketSymbols[i],i+1]);
   await pool.query(`INSERT INTO platform_settings(setting_key,setting_value) VALUES('general',$1::jsonb) ON CONFLICT(setting_key) DO NOTHING`,[JSON.stringify({platformName:'DApps Platform',announcement:'',maintenanceMode:false})]);
   await bootstrapAdmin();
   await initializeWalletSchema(pool);
@@ -93,6 +93,11 @@ async function adminAuth(req,res,next){const token=req.headers.authorization?.st
 function requireRole(...roles){return (req,res,next)=>roles.includes(req.admin.role)?next():res.status(403).json({error:'Insufficient permission'});}
 async function audit(req,action,targetType,targetId=null,details={}){await pool.query(`INSERT INTO admin_audit_logs(admin_id,action,target_type,target_id,details,ip_address) VALUES($1,$2,$3,$4,$5::jsonb,$6)`,[req.admin?.id||null,action,targetType,targetId,JSON.stringify(details),String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').slice(0,80)]);}
 
+const marketJson=async(url,timeout=9000)=>{
+  const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0','accept':'application/json'},signal:AbortSignal.timeout(timeout)});
+  if(!upstream.ok)throw Error(String(upstream.status));
+  return upstream.json();
+};
 const marketControlCodes=['BTC','ETH','USDT','BNB','SOL','XRP','DOGE','ADA','AVAX','LINK','LTC','TRX','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO'];
 const marketControlSet=new Set(marketControlCodes);
 const marketControlNames={BTC:'Bitcoin',ETH:'Ethereum',USDT:'Tether',BNB:'BNB',SOL:'Solana',XRP:'XRP',DOGE:'Dogecoin',ADA:'Cardano',AVAX:'Avalanche',LINK:'Chainlink',LTC:'Litecoin',TRX:'TRON',BCH:'Bitcoin Cash',UNI:'Uniswap',DOT:'Polkadot',ATOM:'Cosmos',XLM:'Stellar',ETC:'Ethereum Classic',FIL:'Filecoin',NEAR:'NEAR Protocol',APT:'Aptos',ARB:'Arbitrum',OP:'Optimism',SUI:'Sui',SHIB:'Shiba Inu',AAVE:'Aave',MKR:'Maker',INJ:'Injective',RENDER:'Render',FET:'Artificial Superintelligence Alliance',TON:'Toncoin',HBAR:'Hedera',ICP:'Internet Computer',VET:'VeChain',ALGO:'Algorand',SEI:'Sei',IMX:'Immutable',GRT:'The Graph',LDO:'Lido DAO'};
@@ -241,118 +246,6 @@ app.get('/api/market/chart',async(req,res)=>{
   try{res.json(await marketControlCandles(code,period))}catch(e){res.status(503).json({error:'Market candles unavailable'})}
 });
 
-const marketIds=new Set(['bitcoin','ethereum','solana','ripple','litecoin','dogecoin','cardano','avalanche-2','chainlink','binancecoin','tron','bitcoin-cash','polkadot','stellar','tether']);
-const marketProducts=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
-const marketGranularities=new Set([60,300,900,3600,21600,86400]);
-const marketCache=new Map();
-const marketJson=async(url,timeout=9000)=>{
-  const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0','accept':'application/json'},signal:AbortSignal.timeout(timeout)});
-  if(!upstream.ok)throw Error(String(upstream.status));
-  return upstream.json();
-};
-app.get('/api/market/quotes',async(req,res)=>{
-  const ids=String(req.query.ids||'').split(',').filter(id=>marketIds.has(id)).slice(0,20);
-  if(!ids.length)return res.status(400).json({error:'Unsupported market'});
-  const key='quotes:'+ids.join(','),hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<15000)return res.json(hit.data);
-  try{const data=await marketJson(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit&&Date.now()-hit.at<120000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market data unavailable'})}
-});
-app.get('/api/market/history',async(req,res)=>{
-  const id=String(req.query.id||'');if(!marketIds.has(id))return res.status(400).json({error:'Unsupported market'});
-  const days=[1,7,30,90,365].includes(Number(req.query.days))?Number(req.query.days):1;
-  const key='history:'+id+':'+days,hit=marketCache.get(key);if(hit&&Date.now()-hit.at<60000)return res.json(hit.data);
-  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market history unavailable'})}
-});
-app.get('/api/market/catalog',async(req,res)=>{
-  const page=Math.min(4,Math.max(1,Number(req.query.page)||1)),key='catalog:'+page,hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<30000)return res.json(hit.data);
-  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market catalog unavailable'})}
-});
-app.get('/api/market/ticker',async(req,res)=>{
-  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
-  const key='ticker:'+code,hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<700)return res.json(hit.data);
-  try{
-    const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/ticker`,5000);
-    const stats=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/stats`,5000);
-    const data={symbol:code,price:Number(d.price),time:d.time||new Date().toISOString(),size:Number(d.size||0),open24h:Number(stats.open),high24h:Number(stats.high),low24h:Number(stats.low),volume24h:Number(stats.volume)};
-    marketCache.set(key,{at:Date.now(),data});res.json(data);
-  }catch(e){if(hit&&Date.now()-hit.at<15000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market ticker unavailable'})}
-});
-app.get('/api/market/candles',async(req,res)=>{
-  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,''),granularity=Number(req.query.granularity)||3600;
-  if(!marketProducts.has(code)||!marketGranularities.has(granularity))return res.status(400).json({error:'Unsupported market request'});
-  const key=`candles:${code}:${granularity}`,hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
-  try{const rows=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${granularity}`,9000);const data={symbol:code,granularity,candles:Array.isArray(rows)?rows:[]};marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market candles unavailable'})}
-});
-app.get('/api/market/pro-candles',async(req,res)=>{
-  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const period=String(req.query.period||'24H').toUpperCase();
-  const spec={ '1H':{cb:60,kr:1,count:60},'24H':{cb:300,kr:5,count:288},'7D':{cb:3600,kr:60,count:168},'30D':{cb:21600,kr:240,count:180} }[period];
-  if((!marketProducts.has(code)&&!['BNB','USDT'].includes(code))||!spec)return res.status(400).json({error:'Unsupported market request'});
-  const key=`pro-candles:${code}:${period}`,hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
-  let rows=[],source='coinbase';
-  try{
-    const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${spec.cb}`,9000);
-    rows=(Array.isArray(d)?d:[]).slice(0,spec.count).map(v=>({time:Number(v[0]),open:Number(v[3]),high:Number(v[2]),low:Number(v[1]),close:Number(v[4]),volume:Number(v[5]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
-  }catch(_){}
-  if(!rows.length){
-    source='kraken';
-    const bases=[code,code==='BTC'?'XBT':code];
-    for(const base of [...new Set(bases)]){
-      try{
-        const since=Math.floor(Date.now()/1000)-spec.kr*60*spec.count;
-        const d=await marketJson(`https://api.kraken.com/0/public/OHLC?pair=${encodeURIComponent(base+'/USD')}&interval=${spec.kr}&since=${since}`,9000);
-        if((d.error||[]).length)continue;
-        const raw=Object.entries(d.result||{}).find(([k])=>k!=='last')?.[1]||[];
-        rows=raw.slice(-spec.count).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[6]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite));
-        if(rows.length)break;
-      }catch(_){}
-    }
-  }
-  if(!rows.length&&['BNB','USDT'].includes(code)){
-    const id=code==='BNB'?'binancecoin':'tether',days=period==='30D'?30:period==='7D'?7:1,step=spec.cb*1000;
-    try{
-      const d=await marketJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,12000);
-      const points=(Array.isArray(d.prices)?d.prices:[]).map(v=>({ts:Number(v[0]),price:Number(v[1])})).filter(v=>Number.isFinite(v.ts)&&Number.isFinite(v.price)&&v.price>0);
-      const grouped=[];
-      for(const p of points){
-        const bucket=Math.floor(p.ts/step)*step,last=grouped[grouped.length-1];
-        if(last&&last.bucket===bucket){last.high=Math.max(last.high,p.price);last.low=Math.min(last.low,p.price);last.close=p.price}
-        else grouped.push({bucket,time:Math.floor(bucket/1000),open:p.price,high:p.price,low:p.price,close:p.price,volume:0});
-      }
-      rows=grouped.slice(-spec.count).map(({bucket,...v})=>v);
-    }catch(_){}
-  }
-  if(!rows.length){if(hit)return res.json(hit.data);return res.status(503).json({error:'Market candles unavailable'})}
-  const data={symbol:code,period,candles:rows};
-  marketCache.set(key,{at:Date.now(),data});res.json(data);
-});
-app.get('/api/market/orderbook',async(req,res)=>{
-  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
-  const level=[1,2].includes(Number(req.query.level))?Number(req.query.level):2,key=`book:${code}:${level}`,hit=marketCache.get(key);
-  if(hit&&Date.now()-hit.at<700)return res.json(hit.data);
-  try{
-    const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/book?level=${level}`,5000);
-    const normalize=rows=>(Array.isArray(rows)?rows:[]).slice(0,24).map(r=>[Number(r[0]),Number(r[1]),Number(r[2]||0)]).filter(r=>Number.isFinite(r[0])&&Number.isFinite(r[1]));
-    const data={symbol:code,bids:normalize(d.bids),asks:normalize(d.asks),sequence:d.sequence||null,time:new Date().toISOString()};
-    marketCache.set(key,{at:Date.now(),data});res.json(data);
-  }catch(e){if(hit&&Date.now()-hit.at<10000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market depth unavailable'})}
-});
-app.get('/api/market/trades',async(req,res)=>{
-  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
-  const key='trades:'+code,hit=marketCache.get(key);if(hit&&Date.now()-hit.at<900)return res.json(hit.data);
-  try{
-    const rows=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/trades?limit=60`,5000);
-    const trades=(Array.isArray(rows)?rows:[]).slice(0,40).map(t=>({tradeId:t.trade_id,price:Number(t.price),size:Number(t.size),side:t.side,time:t.time})).filter(t=>Number.isFinite(t.price)&&Number.isFinite(t.size));
-    const data={symbol:code,trades};marketCache.set(key,{at:Date.now(),data});res.json(data);
-  }catch(e){if(hit&&Date.now()-hit.at<10000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Recent trades unavailable'})}
-});
 app.get('/api/health',async(req,res)=>{try{await pool.query('SELECT 1');res.json({ok:true,service:'dapps-platform-backend',database:'connected'});}catch{res.status(503).json({ok:false,service:'dapps-platform-backend',database:'unavailable'});}});
 app.post('/api/auth/register',async(req,res)=>{const {registrationType,identifier,displayName,password}=req.body||{};if(!['email','mobile','username'].includes(registrationType))return res.status(400).json({error:'Choose email, mobile or username registration'});const normalized=normalizeIdentifier(registrationType,identifier);if(!normalized||!String(displayName||'').trim()||!password)return res.status(400).json({error:'All fields are required'});if(String(password).length<8)return res.status(400).json({error:'Password must be at least 8 characters'});if(registrationType==='email'&&!/^\S+@\S+\.\S+$/.test(normalized))return res.status(400).json({error:'Enter a valid email address'});if(registrationType==='mobile'&&!/^\+?[0-9]{7,15}$/.test(normalized))return res.status(400).json({error:'Enter a valid mobile number with country code'});if(registrationType==='username'&&!/^[A-Za-z0-9_.-]{4,32}$/.test(normalized))return res.status(400).json({error:'Username must be 4-32 characters using letters, numbers, ., _ or -'});try{const hash=await bcrypt.hash(String(password),12);let row;for(let i=0;i<5;i++){try{const q=await pool.query(`INSERT INTO users(public_id,registration_type,identifier,display_name,password_hash) VALUES($1,$2,$3,$4,$5) RETURNING *`,[makePublicId(),registrationType,normalized,String(displayName).trim().slice(0,80),hash]);row=q.rows[0];break;}catch(e){if(e.code==='23505'&&e.constraint?.includes('public_id'))continue;throw e;}}if(!row)throw new Error('Unable to allocate account ID');await pool.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[row.id]);res.status(201).json({token:signUser(row),user:userPayload(row)});}catch(e){if(e.code==='23505')return res.status(409).json({error:'This email, mobile number or username is already registered'});console.error(e);res.status(500).json({error:'Registration failed'});}});
 app.post('/api/auth/login',async(req,res)=>{const id=String(req.body?.identifier||'').trim(),password=String(req.body?.password||'');if(!id||!password)return res.status(400).json({error:'Identifier and password are required'});try{const q=await pool.query(`SELECT * FROM users WHERE identifier=ANY($1::text[]) LIMIT 1`,[[id.toLowerCase(),id.replace(/\s+/g,'')]]);const r=q.rows[0];if(!r||!(await bcrypt.compare(password,r.password_hash)))return res.status(401).json({error:'Incorrect account or password'});if(r.status!=='active')return res.status(403).json({error:'Account is not active'});res.json({token:signUser(r),user:userPayload(r)});}catch(e){console.error(e);res.status(500).json({error:'Sign in failed'});}});
