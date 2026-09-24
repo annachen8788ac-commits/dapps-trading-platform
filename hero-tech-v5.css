@@ -334,3 +334,10 @@
 .tech-chart{left:-30px!important}
 .tech-market{right:-18px!important}
 .tech-map{right:-22px!important}
+/* Reserve separate space for the chart, market card and rotating mark. */
+@media(min-width:1101px){
+  .tech-logo-stage{right:-35px!important}
+  .tech-chart{left:-20px!important;top:110px!important;width:160px!important}
+  .tech-market{top:-28px!important;right:-18px!important}
+  .tech-map{bottom:-22px!important;right:-18px!important}
+}
