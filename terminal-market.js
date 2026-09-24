@@ -24,8 +24,6 @@
       <div class="trade-tape-head"><span>Price</span><span>Size</span><span>Time</span></div>
       <div class="trade-tape-scroll" id="terminal-trades"></div>
     </section>`;
-  grid.appendChild(sidebar);
-
   const studies=document.createElement('div');
   studies.className='terminal-study-grid';
   studies.innerHTML='<div class="terminal-study"><label>MACD 12/26/9</label><canvas id="terminal-macd-chart"></canvas></div><div class="terminal-study"><label>RSI 14</label><canvas id="terminal-rsi-chart"></canvas></div>';
@@ -36,10 +34,9 @@
   indicators.innerHTML='<span class="indicator-e7">EMA 7 <b id="term-ema7">--</b></span><span class="indicator-e25">EMA 25 <b id="term-ema25">--</b></span><span class="indicator-e99">EMA 99 <b id="term-ema99">--</b></span><span>VOL <b id="term-vol">--</b></span><span class="indicator-macd">MACD <b id="term-macd">--</b></span><span class="indicator-rsi">RSI <b id="term-rsi">--</b></span>';
   page.querySelector('.chart-panel')?.appendChild(indicators);
 
-  const exec=document.createElement('div');
-  exec.className='terminal-execution';
-  positions.parentNode.insertBefore(exec,positions);
-  exec.appendChild(orderCard);
+  // Desktop terminal: chart / market depth / execution in one compact workspace.
+  grid.appendChild(sidebar);
+  grid.appendChild(orderCard);
 
   const micro=document.createElement('section');
   micro.className='micro-panel';
@@ -53,7 +50,7 @@
       <div><span>Ask Depth</span><strong id="micro-ask-depth">--</strong></div>
       <div><span>24H Volume</span><strong id="micro-volume">--</strong></div>
     </div>`;
-  exec.insertBefore(micro,orderCard);
+  positions.parentNode.insertBefore(micro,positions);
 
   const volumeStat=document.createElement('div');
   volumeStat.className='terminal-stat';
