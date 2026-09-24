@@ -125,12 +125,15 @@
     const canvas=document.querySelector('#price-chart');if(!canvas)return;const rect=canvas.getBoundingClientRect();if(rect.width<20||rect.height<20)return;
     const dpr=window.devicePixelRatio||1;canvas.width=Math.floor(rect.width*dpr);canvas.height=Math.floor(rect.height*dpr);const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     const w=rect.width,h=rect.height,pad={top:40,right:isMobile()?62:78,bottom:28,left:10},plotW=w-pad.left-pad.right,fullH=h-pad.top-pad.bottom,volH=Math.max(34,fullH*.18),priceH=fullH-volH-8,volTop=pad.top+priceH+8;ctx.clearRect(0,0,w,h);
-    const source=normalizeSeries(currentMarket),base=tfCounts[chartTimeframe]||84,count=Math.min(source.length,Math.max(24,Math.round(base/state.zoom))),data=source.slice(-count);if(data.length<2)return;
+    const source=normalizeSeries(currentMarket),base=tfCounts[chartTimeframe]||84,count=Math.min(source.length,Math.max(24,Math.round(base/state.zoom))),maxPan=Math.max(0,source.length-count);state.pan=clamp(state.pan,0,maxPan);const end=source.length-state.pan,data=source.slice(end-count,end);if(data.length<2)return;
+    window.__chartView={total:source.length,visible:data.length,pan:state.pan,first:data[0].ts,last:data[data.length-1].ts};
     const rawMin=Math.min(...data.map(d=>d.low)),rawMax=Math.max(...data.map(d=>d.high)),range=Math.max(rawMax-rawMin,currentMarket.price*.0025),min=rawMin-range*.08,max=rawMax+range*.08,y=v=>pad.top+(max-v)/(max-min)*priceH,step=plotW/data.length,x=i=>pad.left+i*step+step/2;
 
     ctx.font=`${isMobile()?10:11}px Inter,sans-serif`;ctx.textBaseline='middle';
     for(let i=0;i<=5;i++){const yy=pad.top+priceH*i/5;ctx.strokeStyle='rgba(123,139,169,.14)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(pad.left+plotW,yy);ctx.stroke();ctx.fillStyle='rgba(168,180,205,.68)';ctx.textAlign='left';ctx.fillText(fmt(max-(max-min)*i/5,decimals(currentMarket.price)),pad.left+plotW+7,yy)}
     for(let i=0;i<=6;i++){const xx=pad.left+plotW*i/6;ctx.strokeStyle='rgba(123,139,169,.08)';ctx.beginPath();ctx.moveTo(xx,pad.top);ctx.lineTo(xx,volTop+volH);ctx.stroke()}
+    ctx.fillStyle='rgba(168,180,205,.75)';ctx.textAlign='center';ctx.font='10px Inter,sans-serif';
+    for(let i=0;i<=4;i++){const index=Math.min(data.length-1,Math.round((data.length-1)*i/4)),date=new Date(data[index].ts);if(Number.isFinite(date.getTime()))ctx.fillText(chartTimeframe==='1D'?date.toLocaleDateString('en-US',{month:'short',day:'numeric'}):date.toLocaleString('en-US',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),x(index),h-11)}
 
     const maxVol=Math.max(...data.map(d=>d.volume||1),1),cw=Math.max(3,Math.min(10,step*.62));
     data.forEach((d,i)=>{const xx=x(i),up=d.close>=d.open,color=up?'#22b87a':'#ef5362';const vh=(d.volume||1)/maxVol*(volH-9);ctx.fillStyle=up?'rgba(34,184,122,.20)':'rgba(239,83,98,.20)';ctx.fillRect(xx-cw/2,volTop+volH-vh,cw,vh);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.high));ctx.lineTo(xx,y(d.low));ctx.stroke();const bt=Math.min(y(d.open),y(d.close)),bh=Math.max(1.5,Math.abs(y(d.close)-y(d.open)));ctx.fillRect(xx-cw/2,bt,cw,bh)});
