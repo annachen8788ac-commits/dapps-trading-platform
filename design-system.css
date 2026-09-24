@@ -68,3 +68,9 @@ body.admin-ui :is(.badge,.status){background:rgba(20,113,232,.18)!important;colo
 body.admin-ui :is(.top,.bar){border-color:var(--dp-border)!important}
 @media(max-width:720px){body.platform-ui :is(.card,.panel,.home-market-card),body.admin-ui :is(.card,.panel){border-radius:15px!important}body.platform-ui .shell>.top{min-height:62px}}
 @media(prefers-reduced-motion:reduce){body.platform-ui :is(button,a),body.admin-ui :is(button,a){transition:none!important}}
+/* Preserve the hero composition while sharing the rest of the system. */
+body.platform-ui .tech-title{letter-spacing:-.068em!important}
+body.platform-ui .tech-title .gradient{color:transparent!important}
+body.platform-ui .shell>.top .brand::before,
+body.admin-ui :is(.side,.login-card) .brand::before{content:""!important;display:block!important;width:40px!important;height:34px!important;flex:none!important;background:url('dp-logo-user.svg') center/contain no-repeat!important;filter:drop-shadow(0 4px 10px rgba(5,129,255,.36))}
+body.admin-ui .login-card .brand{display:flex!important;align-items:center!important;gap:10px!important}
