@@ -97,20 +97,21 @@ const marketIds=new Set(['bitcoin','ethereum','solana','ripple','litecoin','doge
 const marketProducts=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
 const marketGranularities=new Set([60,300,900,3600,21600,86400]);
 const marketCache=new Map();
+const marketIconUrls=new Map();
 const marketJson=async(url,timeout=9000)=>{
   const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0','accept':'application/json'},signal:AbortSignal.timeout(timeout)});
   if(!upstream.ok)throw Error(String(upstream.status));
   return upstream.json();
 };
 app.get('/api/market/quotes',async(req,res)=>{
-  const ids=String(req.query.ids||'').split(',').filter(id=>marketIds.has(id)).slice(0,20);
+  const ids=String(req.query.ids||'').split(',').map(id=>id.trim()).filter(id=>/^[a-zA-Z0-9._-]{1,120}$/.test(id)).slice(0,20);
   if(!ids.length)return res.status(400).json({error:'Unsupported market'});
   const key='quotes:'+ids.join(','),hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<15000)return res.json(hit.data);
   try{const data=await marketJson(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit&&Date.now()-hit.at<120000)return res.json({...hit.data,stale:true});res.status(503).json({error:'Market data unavailable'})}
 });
 app.get('/api/market/history',async(req,res)=>{
-  const id=String(req.query.id||'');if(!marketIds.has(id))return res.status(400).json({error:'Unsupported market'});
+  const id=String(req.query.id||'').trim();if(!/^[a-zA-Z0-9._-]{1,120}$/.test(id))return res.status(400).json({error:'Unsupported market'});
   const days=[1,7,30,90,365].includes(Number(req.query.days))?Number(req.query.days):1;
   const key='history:'+id+':'+days,hit=marketCache.get(key);if(hit&&Date.now()-hit.at<60000)return res.json(hit.data);
   try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market history unavailable'})}
@@ -118,7 +119,27 @@ app.get('/api/market/history',async(req,res)=>{
 app.get('/api/market/catalog',async(req,res)=>{
   const page=Math.min(4,Math.max(1,Number(req.query.page)||1)),key='catalog:'+page,hit=marketCache.get(key);
   if(hit&&Date.now()-hit.at<30000)return res.json(hit.data);
-  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market catalog unavailable'})}
+  try{const data=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false&price_change_percentage=24h`,12000);if(Array.isArray(data))for(const c of data){if(c?.id&&c?.image)marketIconUrls.set(String(c.id),String(c.image))}marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market catalog unavailable'})}
+});
+app.get('/api/market/icon',async(req,res)=>{
+  const id=String(req.query.id||'').trim();
+  if(!/^[a-zA-Z0-9._-]{1,120}$/.test(id))return res.status(400).end();
+  let url=marketIconUrls.get(id);
+  try{
+    if(!url){
+      const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(id)}&per_page=1&page=1&sparkline=false`,10000);
+      url=Array.isArray(rows)&&rows[0]?.image?String(rows[0].image):'';
+      if(url)marketIconUrls.set(id,url);
+    }
+    if(!url)return res.status(404).end();
+    const upstream=await fetch(url,{headers:{'user-agent':'DAppsPlatformMarketData/1.0'},signal:AbortSignal.timeout(8000)});
+    if(!upstream.ok)return res.status(502).end();
+    const type=upstream.headers.get('content-type')||'image/png';
+    const buf=Buffer.from(await upstream.arrayBuffer());
+    res.setHeader('Content-Type',type);
+    res.setHeader('Cache-Control','public, max-age=86400');
+    res.send(buf);
+  }catch(_){res.status(503).end()}
 });
 app.get('/api/market/ticker',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
