@@ -96,6 +96,7 @@
     try{
       const d=await json(`${backend}/api/market/ticker?symbol=${encodeURIComponent(code)}`);
       if(m!==selected())return;
+      m.volume24h=Number(d.volume24h)||m.volume24h||0;
       quote(m,Number(d.price),Date.parse(d.time)||Date.now(),Number(d.open24h),Number(d.high24h),Number(d.low24h),Number(d.size||0));
     }catch(e){if(Date.now()-(observed.get(m.symbol)||0)>10000)label('LIVE · reconnecting',false)}
     finally{tickerBusy=false}
