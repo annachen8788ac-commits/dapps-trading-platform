@@ -10,7 +10,7 @@
     // same extruded contours, so the logo still turns with visible side walls.
     const ctx=canvas.getContext('2d');if(!ctx)return;
     const img=new Image();img.src='dp-logo-user.svg';
-    Promise.all([new Promise(resolve=>img.onload=resolve),fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
+    Promise.all([img.decode(),fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
       const faceTexture=document.createElement('canvas');faceTexture.width=540;faceTexture.height=453;
       const faceCtx=faceTexture.getContext('2d');faceCtx.drawImage(img,0,0,540,453);
       faceCtx.globalCompositeOperation='source-atop';
@@ -34,7 +34,8 @@
         const ratio=Math.min(devicePixelRatio||1,2),w=Math.round(canvas.clientWidth*ratio),h=Math.round(canvas.clientHeight*ratio);
         if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
         ctx.clearRect(0,0,w,h);
-        const a=reduced?-.46:-.46+(time-begin)*Math.PI*2/12000;
+        const mobile=matchMedia('(max-width: 720px)').matches;
+        const a=reduced?-.46:mobile?-.38+Math.sin((time-begin)*Math.PI*2/8500)*.78:-.46+(time-begin)*Math.PI*2/12000;
         const cs=Math.cos(a),sn=Math.sin(a),scale=Math.min(w/210,h/175),cx=w/2,cy=h/2;
         const point=(p,z)=>[cx+((p.x-90)*cs+z*sn)*scale,cy+(p.y-75.5)*scale];
         const face=z=>{
