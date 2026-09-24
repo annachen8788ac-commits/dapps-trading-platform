@@ -61,7 +61,14 @@
     bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m)selectMarket(m)});
   }
   window.renderQuickMarkets=renderQuickMarkets;
-  window.addEventListener('dapps:market-selected',renderQuickMarkets);
+  function syncQuickMarketActive(symbol=currentMarket?.symbol){
+    if(!symbol)return;
+    const bar=document.querySelector('#page-trade .trade-quick-markets');if(!bar)return;
+    let buttons=[...bar.querySelectorAll('.trade-quick-market')];
+    if(!buttons.some(btn=>btn.dataset.symbol===symbol)){renderQuickMarkets();buttons=[...bar.querySelectorAll('.trade-quick-market')]}
+    buttons.forEach(btn=>btn.classList.toggle('active',btn.dataset.symbol===symbol));
+  }
+  window.addEventListener('dapps:market-selected',e=>syncQuickMarketActive(e.detail?.market?.symbol));
 
   function applyConfig(data){
     if(!data||!Array.isArray(data.markets)||!Array.isArray(data.periods)||!data.markets.length)return;
