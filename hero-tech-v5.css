@@ -345,3 +345,4 @@
 .tech-hud{z-index:24!important}
 .tech-chart,.tech-market,.tech-map{overflow:visible!important}
 .tech-logo-stage{z-index:12!important}
+@media(min-width:1101px){.tech-logo-stage{right:-66px!important}}
