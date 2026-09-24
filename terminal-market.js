@@ -6,7 +6,7 @@
   if(!page||!grid||!orderCard||!positions)return;
 
   const api=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
-  const code=()=>String(window.currentMarket?.symbol||'BTC/USDT').split('/')[0].toUpperCase();
+  const activeMarket=()=>typeof currentMarket!=='undefined'?currentMarket:null;\n  const code=()=>String(activeMarket()?.symbol||'BTC/USDT').split('/')[0].toUpperCase();
   const money=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:decimals(Number(v)||0),maximumFractionDigits:decimals(Number(v)||0)});
   const compact=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:4});
 
@@ -67,7 +67,7 @@
     if(loss===0)return 100;const rs=(gain/period)/(loss/period);return 100-(100/(1+rs));
   }
   function indicatorsPaint(){
-    const data=window.chartHistory?.get?.(window.currentMarket?.symbol)||[];
+    const data=(typeof chartHistory!=='undefined'&&activeMarket())?(chartHistory.get(activeMarket().symbol)||[]):[];
     const closes=data.map(x=>Number(x.close)).filter(Number.isFinite);
     if(!closes.length)return;
     const e7=ema(closes,7),e25=ema(closes,25),e99=ema(closes,99),macd=ema(closes,12)-ema(closes,26),r=rsi(closes);
@@ -108,7 +108,7 @@
     }catch(e){if(e.name!=='AbortError'){}}
   }
   function paintStats(){
-    const m=window.currentMarket;if(!m)return;
+    const m=activeMarket();if(!m)return;
     const volume=Number(m.volume24h||m.volume||0);
     const text=volume?compact(volume)+' '+code():'--';
     const a=document.getElementById('trade-volume'),b=document.getElementById('micro-volume');if(a)a.textContent=text;if(b)b.textContent=text;
