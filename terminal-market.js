@@ -38,7 +38,7 @@
 
   const exec=document.createElement('div');
   exec.className='terminal-execution';
-  orderCard.parentNode.insertBefore(exec,positions);
+  positions.parentNode.insertBefore(exec,positions);
   exec.appendChild(orderCard);
 
   const micro=document.createElement('section');
