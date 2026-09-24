@@ -49,6 +49,12 @@
   const search = selector.querySelector('#pair-search');
   const list = selector.querySelector('#pair-list');
 
+  function closePairMenu(){
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded','false');
+    search.blur();
+  }
+
   function renderPairList(query=''){
     const q=String(query||'').trim().toLowerCase();
     list.innerHTML='';
@@ -57,20 +63,21 @@
       item.type='button';
       item.className='pair-item'+(m.symbol===currentMarket.symbol?' active':'');
       item.innerHTML=`<span class="left"><span class="mini-icon">${tradeIconHTML(m)}</span><span><strong>${m.symbol}</strong><small>${m.name}</small></span></span><span class="price"><b>${fmt(m.price,decimals(m.price))}</b><span class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</span></span>`;
-      item.addEventListener('click',()=>{selectMarket(m);menu.classList.remove('open');search.value='';renderPairList();window.renderQuickMarkets?.()});
+      item.addEventListener('click',()=>{selectMarket(m);search.value='';renderPairList();window.renderQuickMarkets?.()});
       list.appendChild(item);
     });
   }
   window.__renderPairList=()=>renderPairList(search.value);
 
-  btn.addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('open');if(menu.classList.contains('open')){renderPairList();setTimeout(()=>search.focus(),0)}});
+  btn.setAttribute('aria-expanded','false');
+  btn.addEventListener('click',e=>{e.stopPropagation();const opening=!menu.classList.contains('open');menu.classList.toggle('open',opening);btn.setAttribute('aria-expanded',opening?'true':'false');if(opening){renderPairList();setTimeout(()=>search.focus(),0)}});
   search.addEventListener('input',()=>renderPairList(search.value));
   menu.addEventListener('click',e=>e.stopPropagation());
-  document.addEventListener('click',()=>menu.classList.remove('open'));
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')menu.classList.remove('open')});
+  document.addEventListener('click',closePairMenu);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePairMenu()});
 
   const baseSelectMarket = window.selectMarket;
-  window.selectMarket = function(m){const result = baseSelectMarket(m);renderPairList(search.value);window.renderQuickMarkets?.();return result;};
+  window.selectMarket = function(m){const result = baseSelectMarket(m);closePairMenu();renderPairList(search.value);window.renderQuickMarkets?.();return result;};
 
   renderMarkets(document.querySelector('.filter.active')?.dataset.filter||'all');
   renderPairList();
