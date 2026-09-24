@@ -12,7 +12,7 @@ const markets = [
 ];
 const demoSessionId=new URLSearchParams(location.search).get('demo');
 const isDemoSession=Boolean(demoSessionId);
-let currentMarket=markets[0],direction='up',duration=60,balance=isDemoSession?50000:0,totalPledged=0,activeTrades=[],selectedPledge={product:'Flexible',min:100},chartTimeframe='1H';
+let currentMarket=markets[0],direction='up',duration=60,balance=isDemoSession?50000:0,totalPledged=0,activeTrades=[],selectedPledge={product:'Flexible',min:100},chartTimeframe='24H';
 const profitRates={30:21,60:29,90:37,180:45,360:53};
 const minimumTradeAmounts={30:200,60:1000,90:10000,180:50000,360:250000};
 const chartHistory=new Map(),$=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
