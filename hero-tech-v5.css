@@ -346,3 +346,12 @@
 .tech-chart,.tech-market,.tech-map{overflow:visible!important}
 .tech-logo-stage{z-index:12!important}
 @media(min-width:1101px){.tech-logo-stage{right:-66px!important}}
+/* Readable, opaque market data over the moving scene. */
+.tech-hud{background:#061a35!important;backdrop-filter:none!important;filter:none!important;opacity:1!important;border:1px solid #287dc0!important;box-shadow:0 12px 30px rgba(0,4,18,.6)!important;transform:none!important}
+.tech-chart small,.tech-map small{color:#b9daf5!important;font-size:10px!important;letter-spacing:.08em!important}
+.tech-chart b{color:#40e8ff!important;text-shadow:none!important;font-size:20px!important}
+.tech-line svg{filter:none!important}
+.tech-market-row{font-size:12px!important;color:#eaf7ff!important}
+.tech-market-row span,.tech-market-row b{color:#f1faff!important;font-size:12px!important}
+.tech-market-row em{font-size:11px!important;text-shadow:none!important}
+.tech-map small{position:relative;z-index:2}
