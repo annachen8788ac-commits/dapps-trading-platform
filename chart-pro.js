@@ -21,6 +21,7 @@ function periodList(){return Array.isArray(window.__marketConfig?.periods)?windo
 function periodInfo(id=state.period){return periodList().find(p=>p.id===id)||null}
 let historyTimer=null;
 function queueHistory(delay=40){clearTimeout(historyTimer);historyTimer=setTimeout(history,delay)}
+let installedPeriodKey='';
 function size(){const dpr=Math.min(devicePixelRatio||1,2),r=el.getBoundingClientRect(),w=Math.max(320,Math.floor(r.width)),h=Math.max(420,Math.floor(r.height));if(canvas.width!==w*dpr||canvas.height!==h*dpr){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px'}ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h}}
 function fmt(n){if(!Number.isFinite(+n))return'—';n=+n;return n.toLocaleString('en-US',{minimumFractionDigits:n>=1000?2:4,maximumFractionDigits:n>=1?4:8})}
 function compact(n){n=+n;if(!Number.isFinite(n))return'—';return Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n)}
@@ -101,7 +102,10 @@ canvas.addEventListener('touchend',()=>{touchMode='';touchLastX=null;touchStartD
 function installPeriods(){
   const list=periodList(),wrap=document.querySelector('.timeframes');
   if(!wrap||!list.length)return false;
+  const key=list.map(p=>p.id+':'+p.seconds+':'+p.count).join('|');
   if(!list.some(p=>p.id===state.period))state.period=(list.find(p=>p.id==='24H')||list[0]).id;
+  if(key===installedPeriodKey)return true;
+  installedPeriodKey=key;
   wrap.innerHTML=list.map(p=>`<button type="button" data-period="${p.id}" class="${p.id===state.period?'active':''}">${p.id}</button>`).join('');
   wrap.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{
     const p=btn.dataset.period;
@@ -114,7 +118,8 @@ function installPeriods(){
 }
 
 window.addEventListener('dapps:market-config',()=>{
-  if(installPeriods())beginSwitch();
+  const before=installedPeriodKey;
+  if(installPeriods()&&(!state.rows.length||installedPeriodKey!==before))beginSwitch();
 });
 window.addEventListener('dapps:market-selected',beginSwitch);
 window.addEventListener('dapps:market-quote',e=>{
