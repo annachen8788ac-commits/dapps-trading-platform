@@ -10,7 +10,7 @@
     if(!data.length)return data;
     for(let i=0;i<data.length;i++){
       const c=data[i];
-      if(i>0)c.open=data[i-1].close;
+      if(i>0&&!c.ts)c.open=data[i-1].close;
       c.high=Math.max(c.high,c.open,c.close);
       c.low=Math.min(c.low,c.open,c.close);
       if(c.volume==null)c.volume=Math.round(55+Math.random()*130);

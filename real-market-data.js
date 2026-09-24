@@ -1,53 +1,25 @@
 (()=>{
-  if(typeof markets==='undefined'||!Array.isArray(markets))return;
-  const API='https://api.coingecko.com/api/v3';
-  let selectedRequest=0;
-
-  function lockMarket(m,price,high,low,change){
-    if(!m||!Number.isFinite(Number(price)))return;
-    if(m.__realLocked){m.__setReal?.({price,high,low,change});return;}
-    let p=Number(price),h=Number(high)||p,l=Number(low)||p,c=Number(change)||0;
-    Object.defineProperty(m,'price',{configurable:true,enumerable:true,get:()=>p,set:()=>{}});
-    Object.defineProperty(m,'high',{configurable:true,enumerable:true,get:()=>h,set:()=>{}});
-    Object.defineProperty(m,'low',{configurable:true,enumerable:true,get:()=>l,set:()=>{}});
-    Object.defineProperty(m,'change',{configurable:true,enumerable:true,get:()=>c,set:()=>{}});
-    Object.defineProperty(m,'__realLocked',{value:true,configurable:true});
-    Object.defineProperty(m,'__setReal',{value:v=>{if(Number.isFinite(Number(v.price)))p=Number(v.price);if(Number.isFinite(Number(v.high)))h=Number(v.high);if(Number.isFinite(Number(v.low)))l=Number(v.low);if(Number.isFinite(Number(v.change)))c=Number(v.change)},configurable:true});
-  }
-
-  function lockCatalog(){markets.forEach(m=>{if(m.source==='coingecko'||m.cgId)lockMarket(m,m.price,m.high,m.low,m.change)})}
-
-  async function loadHistory(m){
-    if(!m?.cgId||typeof chartHistory==='undefined')return;
-    const request=++selectedRequest;
-    try{
-      const r=await fetch(`${API}/coins/${encodeURIComponent(m.cgId)}/market_chart?vs_currency=usd&days=1`,{cache:'no-store'});
-      if(!r.ok)throw new Error('history');
-      const d=await r.json();if(request!==selectedRequest||!Array.isArray(d.prices)||d.prices.length<4)return;
-      const prices=d.prices.map(x=>({ts:Number(x[0]),price:Number(x[1])})).filter(x=>Number.isFinite(x.price));
-      const desired=120,group=Math.max(1,Math.floor(prices.length/desired)),candles=[];
-      for(let i=0;i<prices.length;i+=group){const chunk=prices.slice(i,i+group);if(!chunk.length)continue;const vals=chunk.map(x=>x.price);candles.push({open:vals[0],high:Math.max(...vals),low:Math.min(...vals),close:vals[vals.length-1],volume:0,ts:chunk[chunk.length-1].ts})}
-      if(candles.length){chartHistory.set(m.symbol,candles.slice(-180));m.__setReal?.({price:candles[candles.length-1].close});if(typeof drawChart==='function')drawChart()}
-    }catch(e){console.warn('Real history unavailable for',m.symbol)}
-  }
-
-  async function refreshSelected(){
-    const m=window.currentMarket||((typeof currentMarket!=='undefined')?currentMarket:null);if(!m?.cgId)return;
-    try{
-      const r=await fetch(`${API}/simple/price?ids=${encodeURIComponent(m.cgId)}&vs_currencies=usd&include_24hr_change=true`,{cache:'no-store'});if(!r.ok)return;const d=await r.json(),v=d[m.cgId];if(!v)return;
-      m.__setReal?.({price:Number(v.usd),change:Number(v.usd_24h_change)});
-      const p=document.querySelector('#trade-price');if(p){p.textContent=fmt(m.price,decimals(m.price));p.className=m.change>=0?'positive':'negative'}const ch=document.querySelector('#trade-change');if(ch){ch.textContent=`${m.change>=0?'+':''}${m.change.toFixed(2)}%`;ch.className=m.change>=0?'positive':'negative'}const badge=document.querySelector('#chart-price-badge');if(badge)badge.textContent=fmt(m.price,decimals(m.price));
-    }catch{}
-  }
-
-  const baseSelect=window.selectMarket;
-  if(typeof baseSelect==='function')window.selectMarket=function(m){const out=baseSelect(m);window.currentMarket=m;lockCatalog();loadHistory(m);refreshSelected();return out};
-
-  window.addEventListener('dapps:markets-updated',()=>{lockCatalog();const m=window.currentMarket||((typeof currentMarket!=='undefined')?currentMarket:null);if(m){loadHistory(m);refreshSelected()}});
-
-  // Prevent the old synthetic candle writer from inventing price movement once real market data is enabled.
+  if(typeof markets==='undefined'||typeof chartHistory==='undefined')return;
+  const rest='https://api.exchange.coinbase.com/products/';
+  const durations={'1m':60,'5m':300,'15m':900,'1H':3600,'4H':21600,'1D':86400};
+  const supported=new Set(['BTC','ETH','SOL','XRP','LTC','DOGE','ADA','AVAX','LINK','BCH','UNI','DOT','ATOM','XLM','ETC','FIL','NEAR','APT','ARB','OP','SUI','SHIB','AAVE','MKR','INJ','RENDER','FET','TON','HBAR','ICP','VET','ALGO','SEI','IMX','GRT','LDO']);
+  const pair=m=>{const code=m?.symbol?.split('/')[0];return supported.has(code)?`${code}-USD`:null};
+  const selected=()=>typeof currentMarket!=='undefined'?currentMarket:null;
+  const observed=new Map();let socket,retry=1000,request=0,lastPaint=0;
+  const existingEnsure=ensureChartHistory;
+  ensureChartHistory=function(m){return chartHistory.get(m.symbol)||[]};
+  // Remove placeholder candles and prices from the public feed view.
+  chartHistory.clear();
   try{pushChartTick=function(){};}catch{}
-  lockCatalog();
-  setTimeout(()=>{const m=window.currentMarket||((typeof currentMarket!=='undefined')?currentMarket:null);if(m){loadHistory(m);refreshSelected()}},1200);
-  setInterval(refreshSelected,20000);
+  const status=document.querySelector('.legend-live');
+  function label(message,live=false){if(status){status.innerHTML=`<i></i> ${message}`;status.style.color=live?'#40d99a':'#a8b7cd';status.querySelector('i').style.background=live?'#40d99a':'#a8b7cd'}}
+  function paint(){const m=selected();if(!m)return;const live=Date.now()-(observed.get(m.symbol)||0)<30000;label(live?'LIVE · USD reference':pair(m)?'Connecting · USD reference':'Data unavailable',live);const price=document.querySelector('#trade-price'),change=document.querySelector('#trade-change');if(price)price.textContent=observed.has(m.symbol)?fmt(m.price,decimals(m.price)):'--';if(change)change.textContent=observed.has(m.symbol)?`${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%`:'--';if(price)price.className=m.change>=0?'positive':'negative';if(change)change.className=price?.className||'';for(const [id,value] of [['#trade-high',m.high],['#trade-low',m.low]]){const el=document.querySelector(id);if(el)el.textContent=observed.has(m.symbol)?fmt(value,decimals(value)):'--'}if(document.querySelector('#page-trade')?.classList.contains('active'))drawChart();window.dispatchEvent(new Event('dapps:markets-updated'))}
+  function quote(m,p,ts,open,hi,lo,size){if(!Number.isFinite(p)||p<=0)return;const prior=m.price;m.price=p;if(Number.isFinite(open)&&open>0)m.change=(p/open-1)*100;if(Number.isFinite(hi)&&hi>0)m.high=hi;if(Number.isFinite(lo)&&lo>0)m.low=lo;observed.set(m.symbol,Date.now());if(m===selected()){const data=chartHistory.get(m.symbol);if(data?.length){const interval=durations[chartTimeframe]||3600,bucket=Math.floor(ts/1000/interval)*interval*1000,last=data[data.length-1];if(bucket>last.ts){data.push({ts:bucket,open:last.close,high:p,low:p,close:p,volume:size||0});if(data.length>180)data.shift()}else if(bucket===last.ts){last.high=Math.max(last.high,p);last.low=Math.min(last.low,p);last.close=p;last.volume+=(size||0)}}if(Date.now()-lastPaint>400){lastPaint=Date.now();paint()}}else if(Date.now()-lastPaint>1000){lastPaint=Date.now();window.dispatchEvent(new Event('dapps:markets-updated'))}}
+  async function history(m){const product=pair(m),id=++request;if(!product){chartHistory.delete(m.symbol);paint();return}chartHistory.delete(m.symbol);paint();try{const granularity=durations[chartTimeframe]||3600;const response=await fetch(`${rest}${product}/candles?granularity=${granularity}`,{cache:'no-store'});if(!response.ok)throw Error(String(response.status));const rows=await response.json();if(id!==request||m!==selected()||!Array.isArray(rows)||!rows.length)return;const candles=rows.map(c=>({ts:Number(c[0])*1000,low:Number(c[1]),high:Number(c[2]),open:Number(c[3]),close:Number(c[4]),volume:Number(c[5])})).filter(c=>Number.isFinite(c.close)&&c.close>0).sort((a,b)=>a.ts-b.ts).slice(-180);chartHistory.set(m.symbol,candles);const latest=candles[candles.length-1];if(latest&&!observed.has(m.symbol))quote(m,latest.close,latest.ts,NaN,NaN,NaN,0);paint()}catch(e){if(id===request){label('Data unavailable');console.warn('Market history unavailable',m.symbol,e)}}}
+  function connect(){if(socket&&socket.readyState<=1)return;try{socket=new WebSocket('wss://ws-feed.exchange.coinbase.com');socket.onopen=()=>{retry=1000;socket.send(JSON.stringify({type:'subscribe',product_ids:[...supported].map(x=>`${x}-USD`),channels:['ticker']}))};socket.onmessage=event=>{let d;try{d=JSON.parse(event.data)}catch{return}if(d.type!=='ticker')return;const code=d.product_id?.split('-')[0],m=markets.find(x=>x.symbol===`${code}/USDT`);if(!m)return;quote(m,Number(d.price),Date.parse(d.time)||Date.now(),Number(d.open_24h),Number(d.high_24h),Number(d.low_24h),Number(d.last_size))};socket.onclose=()=>{socket=null;setTimeout(connect,retry);retry=Math.min(retry*2,30000)};socket.onerror=()=>socket.close()}catch(e){setTimeout(connect,retry)}}
+  const baseSelect=window.selectMarket;
+  if(typeof baseSelect==='function')window.selectMarket=function(m){const out=baseSelect(m);window.currentMarket=m;history(m);return out};
+  document.querySelectorAll('.timeframes button').forEach(button=>button.addEventListener('click',()=>history(selected())));
+  window.addEventListener('dapps:markets-updated',()=>{});
+  connect();history(selected());setInterval(()=>{const m=selected();if(m)paint()},5000);
 })();
