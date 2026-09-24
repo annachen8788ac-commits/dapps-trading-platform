@@ -1,6 +1,7 @@
 const markets = [
   {symbol:'BTC/USDT',name:'Bitcoin',icon:'BTC',price:0,change:0,high:0,low:0,type:'crypto',bg:'#f7931a'},
   {symbol:'ETH/USDT',name:'Ethereum',icon:'ETH',price:0,change:0,high:0,low:0,type:'crypto',bg:'#627eea'},
+  {symbol:'USDT/USDT',name:'Tether',icon:'USDT',price:1,change:0,high:1,low:1,type:'crypto',bg:'#34bd9d'},
   {symbol:'BNB/USDT',name:'BNB',icon:'BNB',price:0,change:0,high:0,low:0,type:'crypto',bg:'#c99b14'},
   {symbol:'SOL/USDT',name:'Solana',icon:'SOL',price:0,change:0,high:0,low:0,type:'crypto',bg:'#6d4cd8'},
   {symbol:'XRP/USDT',name:'XRP',icon:'XRP',price:0,change:0,high:0,low:0,type:'crypto',bg:'#111111'},
