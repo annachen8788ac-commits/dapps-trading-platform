@@ -43,7 +43,7 @@
     if(price)price.className=tick>0?'positive':tick<0?'negative':(m.change>=0?'positive':'negative');
     if(change)change.className=m.change>=0?'positive':'negative';
     for(const [id,value] of [['#trade-high',m.high],['#trade-low',m.low]]){const el=document.querySelector(id);if(el)el.textContent=age<180000?fmt(value,decimals(value)):'--'}
-    if((force||Date.now()-lastPaint>150)&&document.querySelector('#page-trade')?.classList.contains('active')){lastPaint=Date.now();drawChart()}
+    if(force||Date.now()-lastPaint>150)lastPaint=Date.now();
     window.dispatchEvent(new Event('dapps:markets-updated'));
   }
   function quote(m,p,ts=Date.now(),open,hi,lo,size=0){
