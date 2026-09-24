@@ -139,9 +139,11 @@ async function marketControlMeta(code){
   return {code,cgId:staticId||row?.id||null,row};
 }
 async function marketControlQuote(code){
-  const key='market-control-quote:'+code,hit=marketControlCache.get(key);
-  if(hit&&Date.now()-hit.at<1200)return hit.data;
-  let data=null;
+  const key='market-control-quote:'+code,hit=marketControlCache.get(key),age=hit?Date.now()-hit.at:Infinity;
+  const ttl=hit?.source==='coinbase'?1200:15000;
+  if(hit&&age<ttl)return hit.data;
+
+  let data=null,source='coinbase';
   if(code!=='USDT'){
     try{
       const [ticker,stats]=await Promise.all([
@@ -155,19 +157,26 @@ async function marketControlQuote(code){
       }
     }catch(_){}
   }
+
   if(!data){
-    try{
-      const meta=await marketControlMeta(code);
-      if(meta.cgId){
+    source='fallback';
+    const meta=await marketControlMeta(code);
+    if(meta.cgId){
+      try{
         const rows=await marketJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(meta.cgId)}&sparkline=false&price_change_percentage=24h`,9000);
         const row=Array.isArray(rows)?rows[0]:null,price=Number(row?.current_price);
         if(Number.isFinite(price)&&price>0)data={symbol:code,price,time:new Date().toISOString(),change24h:Number(row?.price_change_percentage_24h)||0,high24h:Number(row?.high_24h)||price,low24h:Number(row?.low_24h)||price,volume24h:Number(row?.total_volume)||0};
-      }
-    }catch(_){}
+      }catch(_){}
+    }
+    if(!data&&meta.row){
+      const row=meta.row,price=Number(row.current_price);
+      if(Number.isFinite(price)&&price>0)data={symbol:code,price,time:new Date().toISOString(),change24h:Number(row.price_change_percentage_24h)||0,high24h:Number(row.high_24h)||price,low24h:Number(row.low_24h)||price,volume24h:Number(row.total_volume)||0,stale:true};
+    }
   }
-  if(!data&&hit&&Date.now()-hit.at<120000)return {...hit.data,stale:true};
+
+  if(!data&&hit&&age<120000)return {...hit.data,stale:true};
   if(!data)throw new Error('Market quote unavailable');
-  marketControlCache.set(key,{at:Date.now(),data});
+  marketControlCache.set(key,{at:Date.now(),data,source});
   return data;
 }
 async function marketControlCandles(code,period){
