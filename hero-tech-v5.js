@@ -11,6 +11,13 @@
     const ctx=canvas.getContext('2d');if(!ctx)return;
     const img=new Image();img.src='dp-logo-user.svg';
     Promise.all([new Promise(resolve=>img.onload=resolve),fetch('dp-logo-user.svg').then(r=>r.text())]).then(([,markup])=>{
+      const faceTexture=document.createElement('canvas');faceTexture.width=540;faceTexture.height=453;
+      const faceCtx=faceTexture.getContext('2d');faceCtx.drawImage(img,0,0,540,453);
+      faceCtx.globalCompositeOperation='source-atop';
+      const sheen=faceCtx.createLinearGradient(70,0,470,420);
+      sheen.addColorStop(0,'rgba(108,228,255,.28)');sheen.addColorStop(.32,'rgba(0,132,255,0)');
+      sheen.addColorStop(.66,'rgba(0,28,159,.13)');sheen.addColorStop(1,'rgba(3,8,81,.30)');
+      faceCtx.fillStyle=sheen;faceCtx.fillRect(0,0,540,453);
       const doc=new DOMParser().parseFromString(markup,'image/svg+xml');
       const paths=[...doc.querySelectorAll('path')];
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -32,7 +39,7 @@
         const point=(p,z)=>[cx+((p.x-90)*cs+z*sn)*scale,cy+(p.y-75.5)*scale];
         const face=z=>{
           ctx.save();ctx.translate(cx+z*sn*scale,cy);ctx.scale(cs*scale,scale);
-          ctx.drawImage(img,-90,-75.5,180,151);ctx.restore();
+          ctx.drawImage(faceTexture,-90,-75.5,180,151);ctx.restore();
         };
         const sides=[];
         edges.forEach(edge=>edge.forEach((p,i)=>{
@@ -42,22 +49,22 @@
           sides.push({p,q,z:-(p.x+q.x-180)*sn/2,light:Math.max(.18,.48+facing*.43)});
         }));
         const front=cs>=0;
-        if(front){ctx.save();ctx.globalAlpha=.42;face(-19);ctx.restore()}else face(19);
+        if(front){ctx.save();ctx.globalAlpha=.42;face(-25);ctx.restore()}else face(25);
         sides.sort((a,b)=>a.z-b.z).forEach(({p,q,light})=>{
-          const a=point(p,19),b=point(q,19),c=point(q,-19),d=point(p,-19);
+          const a=point(p,25),b=point(q,25),c=point(q,-25),d=point(p,-25);
           ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.lineTo(...d);ctx.closePath();
           const t=(p.x+q.x)/360;
           ctx.fillStyle=`rgb(${Math.round((10+t*16)*light)},${Math.round((85+t*95)*light)},${Math.round((255-t*20)*light)})`;
           ctx.fill();
         });
         if(front){
-          face(19);
-          ctx.save();ctx.translate(cx+19*sn*scale,cy);ctx.scale(cs*scale,scale);
+          face(25);
+          ctx.save();ctx.translate(cx+25*sn*scale,cy);ctx.scale(cs*scale,scale);
           ctx.lineWidth=1.15/scale;ctx.strokeStyle='rgba(112,231,255,.72)';
           ctx.shadowColor='#35caff';ctx.shadowBlur=5/scale;
           edges.forEach(edge=>{ctx.beginPath();edge.forEach((p,i)=>i?ctx.lineTo(p.x-90,p.y-75.5):ctx.moveTo(p.x-90,p.y-75.5));ctx.closePath();ctx.stroke()});
           ctx.restore();
-        }else{ctx.save();ctx.globalAlpha=.68;face(-19);ctx.restore()}
+        }else{ctx.save();ctx.globalAlpha=.68;face(-25);ctx.restore()}
         if(!reduced)requestAnimationFrame(render);
       }
       requestAnimationFrame(render);

@@ -20,9 +20,9 @@
     for(let i=0;i<75;i++){
       const x=w*(.46+i*.008),height=(22+rand(i+19)*132)*(x/w>.57?1:.5);
       const y=h*.78-height;
-      ctx.fillStyle=`rgba(9,83,172,${.035+rand(i+33)*.11})`;
+      ctx.fillStyle=`rgba(9,83,172,${.10+rand(i+33)*.19})`;
       ctx.fillRect(x,y,4+rand(i+7)*8,height);
-      if(i%3===0){ctx.fillStyle=`rgba(31,162,250,${.11+rand(i+61)*.26})`;for(let j=0;j<height/11;j+=2)ctx.fillRect(x+2,y+j*10,1.3,2.2)}
+      if(i%3===0){ctx.fillStyle=`rgba(31,162,250,${.19+rand(i+61)*.39})`;for(let j=0;j<height/11;j+=2)ctx.fillRect(x+2,y+j*10,1.3,2.2)}
     }
     // Translucent candlesticks continue behind the floating panels and the logo.
     candles.forEach((c,i)=>{
