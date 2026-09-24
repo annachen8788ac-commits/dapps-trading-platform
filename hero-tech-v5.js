@@ -48,9 +48,16 @@
           ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.lineTo(...d);ctx.closePath();
           const t=(p.x+q.x)/360;
           ctx.fillStyle=`rgb(${Math.round((10+t*16)*light)},${Math.round((85+t*95)*light)},${Math.round((255-t*20)*light)})`;
-          ctx.fill();ctx.strokeStyle='rgba(67,207,255,.22)';ctx.lineWidth=1*ratio;ctx.stroke();
+          ctx.fill();
         });
-        if(front)face(19);else{ctx.save();ctx.globalAlpha=.68;face(-19);ctx.restore()}
+        if(front){
+          face(19);
+          ctx.save();ctx.translate(cx+19*sn*scale,cy);ctx.scale(cs*scale,scale);
+          ctx.lineWidth=1.15/scale;ctx.strokeStyle='rgba(112,231,255,.72)';
+          ctx.shadowColor='#35caff';ctx.shadowBlur=5/scale;
+          edges.forEach(edge=>{ctx.beginPath();edge.forEach((p,i)=>i?ctx.lineTo(p.x-90,p.y-75.5):ctx.moveTo(p.x-90,p.y-75.5));ctx.closePath();ctx.stroke()});
+          ctx.restore();
+        }else{ctx.save();ctx.globalAlpha=.68;face(-19);ctx.restore()}
         if(!reduced)requestAnimationFrame(render);
       }
       requestAnimationFrame(render);

@@ -369,3 +369,6 @@
   .tech-feature{min-height:79px!important;padding:15px 14px!important}
   .tech-feature b{font-size:13px!important}.tech-feature small{font-size:10px!important}
 }
+.tech-earth-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;display:block;filter:drop-shadow(0 0 19px rgba(10,122,255,.7))}
+.tech-globe:has(.tech-earth-canvas.ready) .tech-globe-land{opacity:0}
+.tech-globe:has(.tech-earth-canvas.ready)::before{opacity:.42}
