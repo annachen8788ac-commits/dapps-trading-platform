@@ -139,6 +139,36 @@ app.get('/api/market/candles',async(req,res)=>{
   if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
   try{const rows=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${granularity}`,9000);const data={symbol:code,granularity,candles:Array.isArray(rows)?rows:[]};marketCache.set(key,{at:Date.now(),data});res.json(data)}catch(e){if(hit)return res.json(hit.data);res.status(503).json({error:'Market candles unavailable'})}
 });
+app.get('/api/market/pro-candles',async(req,res)=>{
+  const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const period=String(req.query.period||'24H').toUpperCase();
+  const spec={ '1H':{cb:60,kr:1,count:60},'24H':{cb:300,kr:5,count:288},'7D':{cb:3600,kr:60,count:168},'30D':{cb:21600,kr:240,count:180} }[period];
+  if(!marketProducts.has(code)||!spec)return res.status(400).json({error:'Unsupported market request'});
+  const key=`pro-candles:${code}:${period}`,hit=marketCache.get(key);
+  if(hit&&Date.now()-hit.at<5000)return res.json(hit.data);
+  let rows=[],source='coinbase';
+  try{
+    const d=await marketJson(`https://api.exchange.coinbase.com/products/${code}-USD/candles?granularity=${spec.cb}`,9000);
+    rows=(Array.isArray(d)?d:[]).slice(0,spec.count).map(v=>({time:Number(v[0]),open:Number(v[3]),high:Number(v[2]),low:Number(v[1]),close:Number(v[4]),volume:Number(v[5]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
+  }catch(_){}
+  if(!rows.length){
+    source='kraken';
+    const bases=[code,code==='BTC'?'XBT':code];
+    for(const base of [...new Set(bases)]){
+      try{
+        const since=Math.floor(Date.now()/1000)-spec.kr*60*spec.count;
+        const d=await marketJson(`https://api.kraken.com/0/public/OHLC?pair=${encodeURIComponent(base+'/USD')}&interval=${spec.kr}&since=${since}`,9000);
+        if((d.error||[]).length)continue;
+        const raw=Object.entries(d.result||{}).find(([k])=>k!=='last')?.[1]||[];
+        rows=raw.slice(-spec.count).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[6]||0)})).filter(v=>[v.time,v.open,v.high,v.low,v.close].every(Number.isFinite));
+        if(rows.length)break;
+      }catch(_){}
+    }
+  }
+  if(!rows.length){if(hit)return res.json(hit.data);return res.status(503).json({error:'Market candles unavailable'})}
+  const data={symbol:code,period,candles:rows};
+  marketCache.set(key,{at:Date.now(),data});res.json(data);
+});
 app.get('/api/market/orderbook',async(req,res)=>{
   const code=String(req.query.symbol||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(!marketProducts.has(code))return res.status(400).json({error:'Unsupported market'});
