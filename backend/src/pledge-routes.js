@@ -35,6 +35,12 @@ async function ensureBalance(client,userId){
   await client.query(`INSERT INTO account_balances(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
   return (await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1 FOR UPDATE`,[userId])).rows[0];
 }
+async function syncUsdtAssetMirror(client,userId){
+  const b=await ensureBalance(client,userId);
+  await client.query(`INSERT INTO user_asset_balances(user_id,asset,available_balance,locked_balance) VALUES($1,'USDT',$2,$3)
+    ON CONFLICT(user_id,asset) DO UPDATE SET available_balance=EXCLUDED.available_balance,locked_balance=EXCLUDED.locked_balance,updated_at=NOW()`,[userId,b.available_balance,b.locked_balance]);
+  return b;
+}
 
 async function settleUser(pool,userId){
   const client=await pool.connect();
@@ -64,6 +70,7 @@ async function settleUser(pool,userId){
         await client.query(`UPDATE pledge_orders SET status='completed',completed_at=NOW(),updated_at=NOW() WHERE id=$1`,[o.id]);
       }
     }
+    await syncUsdtAssetMirror(client,userId);
     await client.query('COMMIT');
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 }
@@ -98,6 +105,7 @@ export function registerPledgeRoutes(app,{pool,auth}){
       const orderNo=makeRef();
       await client.query(`UPDATE account_balances SET available_balance=available_balance-$1,locked_balance=locked_balance+$1,updated_at=NOW() WHERE user_id=$2`,[amount,req.auth.sub]);
       const b=(await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[req.auth.sub])).rows[0];
+      await syncUsdtAssetMirror(client,req.auth.sub);
       const endAt=new Date(Date.now()+product.termDays*86400000);
       await client.query(`INSERT INTO pledge_orders(order_no,user_id,product_code,product_name,term_days,daily_rate,principal,end_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[orderNo,req.auth.sub,code,product.name,product.termDays,product.dailyRate,amount,endAt]);
       await client.query(`INSERT INTO wallet_ledger(user_id,entry_type,amount,available_after,locked_after,reference_type,reference_id,note) VALUES($1,'pledge_lock',$2,$3,$4,'pledge',$5,$6)`,[req.auth.sub,-amount,b.available_balance,b.locked_balance,orderNo,`${product.name} principal locked`]);
