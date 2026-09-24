@@ -61,14 +61,19 @@
     bar.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const m=markets.find(x=>x.symbol===btn.dataset.symbol);if(m)selectMarket(m)});
   }
   window.renderQuickMarkets=renderQuickMarkets;
-  function syncQuickMarketActive(symbol=currentMarket?.symbol){
+  function syncQuickMarketActive(symbol){
+    symbol=String(symbol||'').trim();
     if(!symbol)return;
     const bar=document.querySelector('#page-trade .trade-quick-markets');if(!bar)return;
     let buttons=[...bar.querySelectorAll('.trade-quick-market')];
     if(!buttons.some(btn=>btn.dataset.symbol===symbol)){renderQuickMarkets();buttons=[...bar.querySelectorAll('.trade-quick-market')]}
     buttons.forEach(btn=>btn.classList.toggle('active',btn.dataset.symbol===symbol));
   }
-  window.addEventListener('dapps:market-selected',e=>syncQuickMarketActive(e.detail?.market?.symbol));
+  const tradeSymbol=document.querySelector('#trade-symbol');
+  if(tradeSymbol){
+    new MutationObserver(()=>syncQuickMarketActive(tradeSymbol.textContent)).observe(tradeSymbol,{childList:true,subtree:true,characterData:true});
+    syncQuickMarketActive(tradeSymbol.textContent);
+  }
 
   function applyConfig(data){
     if(!data||!Array.isArray(data.markets)||!Array.isArray(data.periods)||!data.markets.length)return;
