@@ -44,10 +44,16 @@
     const py=h*.84,rx=w*.235;
     const base=ctx.createLinearGradient(0,py-28,0,py+58);
     base.addColorStop(0,'rgba(19,90,225,.16)');base.addColorStop(.45,'rgba(8,36,100,.48)');base.addColorStop(1,'rgba(1,8,33,.06)');
-    ctx.fillStyle=base;ctx.beginPath();ctx.ellipse(right,py+17,rx,42,0,0,Math.PI*2);ctx.fill();
-    ellipse(right,py-8,rx,28,'rgba(33,212,255,.66)',2.5,18);
-    ellipse(right,py+14,rx*.96,30,'rgba(18,102,255,.44)',2,11);
-    ellipse(right,py-10,rx*.72,14,'rgba(45,230,255,.3)',1.4,14);
+    ctx.fillStyle=base;ctx.beginPath();ctx.ellipse(right,py+36,rx*1.08,50,0,0,Math.PI*2);ctx.fill();
+    const metal=ctx.createLinearGradient(right-rx,0,right+rx,0);
+    metal.addColorStop(0,'#031840');metal.addColorStop(.18,'#0b3d91');metal.addColorStop(.42,'#071c56');
+    metal.addColorStop(.67,'#1463c2');metal.addColorStop(.87,'#061c52');metal.addColorStop(1,'#020c2e');
+    ctx.fillStyle=metal;ctx.fillRect(right-rx,py-7,rx*2,34);
+    ctx.beginPath();ctx.ellipse(right,py+27,rx,29,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#061d51';ctx.beginPath();ctx.ellipse(right,py-8,rx,28,0,0,Math.PI*2);ctx.fill();
+    ellipse(right,py-8,rx,28,'rgba(55,227,255,.87)',3,19);
+    ellipse(right,py+25,rx*.99,29,'rgba(19,110,255,.6)',2,13);
+    ellipse(right,py-10,rx*.77,17,'rgba(50,221,255,.49)',1.7,16);
     for(let i=0;i<25;i++){
       const x=w*(.05+i*.043),y=h*(.84+rand(i+500)*.15);
       const a=.06+rand(i+520)*.23;
