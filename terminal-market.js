@@ -11,14 +11,6 @@
   const money=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:decimals(Number(v)||0),maximumFractionDigits:decimals(Number(v)||0)});
   const compact=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:4});
 
-  const sidebar=document.createElement('aside');
-  sidebar.className='terminal-sidebar';
-  sidebar.innerHTML=`
-    <section class="terminal-panel">
-      <div class="terminal-panel-head"><div class="label"><small>MARKET DEPTH</small><strong>Order Book</strong></div><span class="terminal-live">LIVE</span></div>
-      <div class="book-head"><span>Price</span><span>Size</span><span>Total</span></div>
-      <div class="book-scroll"><div id="terminal-asks"></div><div class="book-mid"><strong id="terminal-mid">--</strong><span id="terminal-spread">Spread --</span></div><div id="terminal-bids"></div></div>
-    </section>`;
   const studies=document.createElement('div');
   studies.className='terminal-study-grid';
   studies.innerHTML='<div class="terminal-study"><label>MACD 12/26/9</label><canvas id="terminal-macd-chart"></canvas></div><div class="terminal-study"><label>RSI 14</label><canvas id="terminal-rsi-chart"></canvas></div>';
@@ -30,7 +22,6 @@
   page.querySelector('.chart-panel')?.appendChild(indicators);
 
   // Desktop terminal: chart / market depth / execution in one compact workspace.
-  grid.appendChild(sidebar);
   grid.appendChild(orderCard);
 
   const micro=document.createElement('section');
@@ -103,30 +94,7 @@
     const vol=data.at(-1)?.volume;set('term-vol',vol,v=>compact(v));
     drawStudies();
   }
-
-  let bookController=null,serial=0;
   async function get(url,controller){const r=await fetch(url,{cache:'no-store',signal:controller.signal});if(!r.ok)throw Error(String(r.status));return r.json()}
-  function rowBook(type,[price,size],max){
-    const pct=Math.min(100,Math.max(3,(size/max)*100));
-    return `<div class="book-row ${type}"><i style="width:${pct}%"></i><span>${money(price)}</span><span>${compact(size)}</span><span>${compact(price*size)}</span></div>`;
-  }
-  async function loadBook(){
-    const token=++serial,c=code();bookController?.abort();bookController=new AbortController();
-    try{
-      const d=await get(`${api}/api/market/orderbook?symbol=${encodeURIComponent(c)}&level=2`,bookController);
-      if(token!==serial||c!==code())return;
-      const asks=(d.asks||[]).slice(0,10).reverse(),bids=(d.bids||[]).slice(0,10),max=Math.max(1,...asks.map(x=>x[1]),...bids.map(x=>x[1]));
-      document.getElementById('terminal-asks').innerHTML=asks.map(x=>rowBook('ask',x,max)).join('');
-      document.getElementById('terminal-bids').innerHTML=bids.map(x=>rowBook('bid',x,max)).join('');
-      const bestAsk=Number(d.asks?.[0]?.[0]),bestBid=Number(d.bids?.[0]?.[0]),mid=(bestAsk+bestBid)/2,spread=bestAsk-bestBid;
-      if(Number.isFinite(mid))document.getElementById('terminal-mid').textContent=money(mid);
-      if(Number.isFinite(spread))document.getElementById('terminal-spread').textContent=`Spread ${money(spread)}`;
-      const bidDepth=bids.reduce((a,x)=>a+Number(x[1]||0),0),askDepth=asks.reduce((a,x)=>a+Number(x[1]||0),0);
-      [['micro-bid',bestBid],['micro-ask',bestAsk],['micro-spread',spread]].forEach(([id,v])=>{const el=document.getElementById(id);if(el&&Number.isFinite(v))el.textContent=money(v)});
-      document.getElementById('micro-bid-depth').textContent=compact(bidDepth)+' '+c;
-      document.getElementById('micro-ask-depth').textContent=compact(askDepth)+' '+c;
-    }catch(e){if(e.name!=='AbortError'){}}
-  }
   function paintStats(){
     const m=activeMarket();if(!m)return;
     const volume=Number(m.volume24h||m.volume||0);
@@ -134,9 +102,9 @@
     const a=document.getElementById('trade-volume'),b=document.getElementById('micro-volume');if(a)a.textContent=text;if(b)b.textContent=text;
     indicatorsPaint();
   }
-  function refresh(){loadBook();paintStats()}
+  function refresh(){paintStats()}
   window.addEventListener('dapps:markets-updated',paintStats);
   const base=window.selectMarket;
   if(typeof base==='function')window.selectMarket=function(m){const out=base(m);setTimeout(refresh,20);return out};
-  refresh();setInterval(()=>{if(page.classList.contains('active')){loadBook();paintStats()}},1800);
+  refresh();setInterval(()=>{if(page.classList.contains('active')){paintStats()}},1800);
 })();
