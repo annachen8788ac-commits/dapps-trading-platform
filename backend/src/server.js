@@ -243,8 +243,11 @@ app.get('/api/market/config',async(req,res)=>{
       const code=marketControlCodes[i],override=overrides.get(code);
       if(override&&override.enabled===false)continue;
       const meta=await marketControlMeta(code),row=meta.row;
-      const price=Number(row?.current_price)||0;
-      markets.push({symbol:code+'/USDT',code,name:marketControlNames[code]||row?.name||code,type:'crypto',bg:marketControlColors[code]||'#24344d',price,change:Number(row?.price_change_percentage_24h)||0,high:Number(row?.high_24h)||price,low:Number(row?.low_24h)||price,sortOrder:Number.isFinite(Number(override?.sort_order))?Number(override.sort_order):100+i});
+      const price=code==='USDT'?1:(Number(row?.current_price)||0);
+      const change=code==='USDT'?0:(Number(row?.price_change_percentage_24h)||0);
+      const high=code==='USDT'?1:(Number(row?.high_24h)||price);
+      const low=code==='USDT'?1:(Number(row?.low_24h)||price);
+      markets.push({symbol:code+'/USDT',code,name:marketControlNames[code]||row?.name||code,type:'crypto',bg:marketControlColors[code]||'#24344d',price,change,high,low,sortOrder:Number.isFinite(Number(override?.sort_order))?Number(override.sort_order):100+i});
     }
     markets.sort((a,b)=>a.sortOrder-b.sortOrder||a.symbol.localeCompare(b.symbol));
     res.json({quoteIntervalMs:1200,periods:Object.entries(marketControlPeriods).map(([id,v])=>({id,seconds:v.seconds,count:v.count})),markets});
