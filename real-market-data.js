@@ -73,7 +73,7 @@
     const key=cacheKey(m),cached=historyCache.get(key);
     if(cached&&Date.now()-cached.at<15000){if(!prefetch&&m===selected())installCached(m);return}
     if(inflight.has(key))return inflight.get(key);
-    const serial=++request,controller=new AbortController();
+    const serial=prefetch?request:++request,controller=new AbortController();
     if(!prefetch&&!cached)setLoading(true);
     const task=(async()=>{
       try{
