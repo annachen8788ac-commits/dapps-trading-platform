@@ -355,3 +355,9 @@
 .tech-market-row span,.tech-market-row b{color:#f1faff!important;font-size:12px!important}
 .tech-market-row em{font-size:11px!important;text-shadow:none!important}
 .tech-map small{position:relative;z-index:2}
+/* Live scene layers stay behind copy and the readable data cards. */
+.tech-scene-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none}
+.tech-hero-inner{z-index:2!important}
+.tech-world{background:linear-gradient(180deg,rgba(6,57,126,.25),rgba(2,18,43,.6)),url('hero-world.svg') center/115% auto no-repeat!important}
+.tech-hero-v5{box-shadow:inset 0 0 70px rgba(1,6,22,.36),0 26px 85px rgba(0,3,20,.32)!important}
+@media(max-width:720px){.tech-scene-canvas{opacity:.62}.tech-world{background-size:cover!important}}
