@@ -28,9 +28,9 @@
     candles.forEach((c,i)=>{
       const x=w*(.48+i*.0123),pulse=Math.sin(t*.85+i*.61)*3;
       const y=h*c.y+pulse,body=c.size,wick=body+15+rand(i+21)*18;
-      const color=c.up?'rgba(30,190,255,.45)':'rgba(145,111,246,.36)';
+      const color=c.up?'rgba(35,202,255,.68)':'rgba(159,120,255,.53)';
       line(x,y-wick/2,x,y+wick/2,color,1.2);
-      ctx.fillStyle=color;ctx.shadowColor=c.up?'#12baff':'#8568ff';ctx.shadowBlur=8;
+      ctx.fillStyle=color;ctx.shadowColor=c.up?'#12baff':'#8568ff';ctx.shadowBlur=13;
       ctx.fillRect(x-3.3,y+(c.up?-body:0),6.6,body);ctx.shadowBlur=0;
     });
     stars.forEach((s,i)=>{const shimmer=.75+.25*Math.sin(t*1.4+i);ctx.fillStyle=`rgba(55,205,255,${s.a*shimmer})`;ctx.shadowColor='#1dbdff';ctx.shadowBlur=5;ctx.beginPath();ctx.arc(w*s.x,h*s.y,s.r,0,Math.PI*2);ctx.fill()});ctx.shadowBlur=0;
