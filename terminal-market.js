@@ -6,7 +6,8 @@
   if(!page||!grid||!orderCard||!positions)return;
 
   const api=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
-  const activeMarket=()=>typeof currentMarket!=='undefined'?currentMarket:null;\n  const code=()=>String(activeMarket()?.symbol||'BTC/USDT').split('/')[0].toUpperCase();
+  const activeMarket=()=>typeof currentMarket!=='undefined'?currentMarket:null;
+  const code=()=>String(activeMarket()?.symbol||'BTC/USDT').split('/')[0].toUpperCase();
   const money=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:decimals(Number(v)||0),maximumFractionDigits:decimals(Number(v)||0)});
   const compact=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:4});
 
