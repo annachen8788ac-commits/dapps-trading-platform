@@ -123,6 +123,10 @@ window.addEventListener('dapps:market-config',()=>{
   if(installPeriods()&&(!state.rows.length||installedPeriodKey!==before))beginSwitch();
 });
 window.addEventListener('dapps:market-selected',beginSwitch);
+const tradeSymbol=$('#trade-symbol');
+if(tradeSymbol)new MutationObserver(()=>{
+  if(selectedSymbol()!==state.symbol)beginSwitch();
+}).observe(tradeSymbol,{childList:true,subtree:true,characterData:true});
 window.addEventListener('dapps:market-quote',e=>{
   const d=e.detail||{};
   if(d.symbol===state.symbol)live(Number(d.price),d.time);
