@@ -63,6 +63,7 @@
   function applyConfig(data){
     if(!data||!Array.isArray(data.markets)||!Array.isArray(data.periods)||!data.markets.length)return;
     const previous=new Map(markets.map(m=>[m.symbol,m]));
+    const firstConfig=!window.__marketConfig;
     const now=Date.now();
     const next=data.markets.map(raw=>{
       const old=previous.get(raw.symbol)||{};
@@ -82,7 +83,10 @@
     if(resolveConfigReady){resolveConfigReady(data);resolveConfigReady=null}
     const wanted=currentMarket?.symbol;
     const chosen=markets.find(m=>m.symbol===wanted)||markets[0];
-    if(chosen)selectMarket(chosen);
+    if(chosen){
+      if(firstConfig||chosen.symbol!==wanted)selectMarket(chosen);
+      else currentMarket=chosen;
+    }
     renderCatalog(document.querySelector('.filter.active')?.dataset.filter||'all');
     renderQuickMarkets();
     window.dispatchEvent(new CustomEvent('dapps:market-config',{detail:data}));
