@@ -15,7 +15,7 @@
 #page-trade .timeframes button.active{background:#152131;color:#fff}
 #page-trade .chart-stage{height:405px!important;background:#050b12}
 #page-trade .chart-tools{font-size:9px;letter-spacing:.12em;text-transform:uppercase}
-.terminal-sidebar{display:grid;grid-template-rows:minmax(0,1.05fr) minmax(0,.95fr);gap:8px;min-height:0}
+.terminal-sidebar{display:block;min-height:0}
 .terminal-panel{border:1px solid #182737;border-radius:10px;background:#060d16;overflow:hidden;min-height:0}
 .terminal-panel-head{height:42px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #162433;background:#07101a}
 .terminal-panel-head .label{display:flex;flex-direction:column;gap:2px}.terminal-panel-head small{font-size:8px;letter-spacing:.16em;color:#5f7891}.terminal-panel-head strong{font-size:12px;color:#e8eef6}.terminal-live{font-size:8px;color:#27d99a;letter-spacing:.12em}.terminal-live:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#27d99a;margin-right:5px;box-shadow:0 0 8px rgba(39,217,154,.6)}
@@ -41,4 +41,4 @@
 #page-trade .positions-panel{border-radius:10px;background:#07101a;border-color:#182737;box-shadow:none}
 #page-trade .panel-heading{border-color:#162433}
 @media(max-width:1180px){#page-trade .trade-grid{grid-template-columns:minmax(0,1fr) 300px}.terminal-sidebar{grid-column:2;grid-row:1}.short-trade-card{grid-column:1/-1}.micro-grid{grid-template-columns:repeat(3,1fr)}#page-trade .chart-stage{height:380px!important}}
-@media(max-width:720px){#page-trade .trade-header{grid-template-columns:1fr 1fr;padding:10px}.terminal-stat,#page-trade .trade-stat{display:none}#page-trade .trade-grid{grid-template-columns:1fr}#page-trade .chart-stage{height:330px!important}.terminal-sidebar{grid-column:auto;grid-row:auto;grid-template-columns:1fr;grid-template-rows:330px 280px}.short-trade-card{grid-column:auto}.micro-grid{grid-template-columns:1fr 1fr}.terminal-indicators{padding-bottom:9px}}
+@media(max-width:720px){#page-trade .trade-header{grid-template-columns:1fr 1fr;padding:10px}.terminal-stat,#page-trade .trade-stat{display:none}#page-trade .trade-grid{grid-template-columns:1fr}#page-trade .chart-stage{height:330px!important}.terminal-sidebar{grid-column:auto;grid-row:auto}.short-trade-card{grid-column:auto}.micro-grid{grid-template-columns:1fr 1fr}.terminal-indicators{padding-bottom:9px}}
