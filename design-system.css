@@ -75,3 +75,4 @@ body.platform-ui .shell>.top .brand::before,
 body.admin-ui :is(.side,.login-card) .brand::before{content:""!important;display:block!important;width:40px!important;height:34px!important;flex:none!important;background:url('dp-logo-user.svg') center/contain no-repeat!important;filter:drop-shadow(0 4px 10px rgba(5,129,255,.36))}
 body.admin-ui .login-card .brand{display:flex!important;align-items:center!important;gap:10px!important}
 body.platform-ui .shell>.top .brand{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;white-space:nowrap!important}
+@media(min-width:901px){body.platform-ui .mobile-nav{display:none!important}body.platform-ui .app-shell{padding-bottom:0!important}}
