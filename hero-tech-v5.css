@@ -239,3 +239,40 @@
   border-color:rgba(38,194,255,.34)!important;
   color:#43f2ff!important;
 }
+
+/* solid extrusion pass — visible physical thickness */
+.tech-logo-stack{
+  transform-style:preserve-3d!important;
+  perspective:1400px;
+  will-change:transform;
+}
+.tech-logo-layer{
+  transform-origin:50% 50%;
+}
+.tech-logo-layer.depth{
+  opacity:.98!important;
+  mix-blend-mode:normal!important;
+}
+.tech-logo-layer.back{
+  display:block!important;
+  filter:brightness(.38) contrast(1.18) saturate(1.55) hue-rotate(-5deg)!important;
+  opacity:1!important;
+}
+.tech-logo-layer.front{
+  transform:translateZ(2px)!important;
+}
+.tech-logo-stack::before{
+  content:"";position:absolute;inset:7% 4% 6%;z-index:-1;
+  background:radial-gradient(circle at 52% 45%,rgba(0,124,255,.16),transparent 58%);
+  transform:translateZ(-58px);
+  filter:blur(2px);
+}
+@keyframes dpSpin3d{
+  0%{transform:rotateX(-7deg) rotateY(0deg) translateY(0)}
+  20%{transform:rotateX(-2deg) rotateY(72deg) translateY(-6px)}
+  25%{transform:rotateX(1deg) rotateY(90deg) translateY(-8px)}
+  50%{transform:rotateX(7deg) rotateY(180deg) translateY(0)}
+  75%{transform:rotateX(1deg) rotateY(270deg) translateY(-8px)}
+  80%{transform:rotateX(-2deg) rotateY(288deg) translateY(-6px)}
+  100%{transform:rotateX(-7deg) rotateY(360deg) translateY(0)}
+}
