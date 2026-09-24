@@ -372,3 +372,9 @@
 .tech-earth-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;display:block;filter:drop-shadow(0 0 19px rgba(10,122,255,.7))}
 .tech-globe:has(.tech-earth-canvas.ready) .tech-globe-land{opacity:0}
 .tech-globe:has(.tech-earth-canvas.ready)::before{opacity:.42}
+@media(min-width:1101px){
+  .tech-globe{top:-48px!important}
+  .tech-visual::before{top:-63px!important}
+  .tech-chart{top:4px!important}
+  .tech-market{top:-82px!important}
+}
