@@ -3,6 +3,8 @@
   window.markets=markets;
   const backend=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
   let query='',configBusy=false;
+  let resolveConfigReady=null;
+  if(!window.__marketConfigReady)window.__marketConfigReady=new Promise(resolve=>{resolveConfigReady=resolve});
 
   const style=document.createElement('style');
   style.textContent=`
@@ -77,6 +79,7 @@
     markets.splice(0,markets.length,...next);
     window.markets=markets;
     window.__marketConfig=data;
+    if(resolveConfigReady){resolveConfigReady(data);resolveConfigReady=null}
     const wanted=currentMarket?.symbol;
     const chosen=markets.find(m=>m.symbol===wanted)||markets[0];
     if(chosen)selectMarket(chosen);
