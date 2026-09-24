@@ -403,3 +403,24 @@
   .tech-pedestal{bottom:4px!important;left:50%!important;right:auto!important;transform:translateX(-50%) rotateX(68deg)!important}
   .tech-logo-glow{bottom:9px!important;left:50%!important;right:auto!important;transform:translateX(-50%) rotateX(70deg)!important}
 }
+/* Mobile Safari keeps transformed canvas layers behind the globe. Render the
+   SVG mark in the foreground and animate its solid side silhouette in CSS. */
+@media(max-width:720px){
+  .tech-hero-v5{isolation:isolate!important}
+  .tech-visual{perspective:none!important;transform-style:flat!important;min-height:385px!important;isolation:isolate!important}
+  .tech-visual::before,.tech-scene-canvas,.tech-orbit,.tech-bars{z-index:0!important;pointer-events:none}
+  .tech-globe{z-index:1!important;width:225px!important;height:225px!important;top:105px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;opacity:.68!important;pointer-events:none}
+  .tech-logo-stage{z-index:20!important;top:145px!important;height:220px!important;transform:translateX(-50%)!important}
+  .tech-logo-stack{width:270px!important;height:210px!important;transform-style:preserve-3d!important;animation:mobileLogoTurn 8s ease-in-out infinite alternate!important}
+  .tech-logo-canvas{display:none!important}
+  .tech-logo-fallback,.tech-logo-canvas.ready+.tech-logo-fallback{visibility:visible!important;display:block!important;z-index:3!important;filter:drop-shadow(0 9px 5px rgba(0,3,28,.9)) drop-shadow(0 0 22px rgba(0,174,255,.75))!important}
+  .tech-logo-stack::before{content:""!important;position:absolute!important;inset:0!important;z-index:1!important;background:url('dp-logo-user.svg') center/contain no-repeat!important;transform:translate3d(11px,7px,-18px)!important;filter:brightness(.35) saturate(2) drop-shadow(0 0 9px #087cff)!important}
+  .tech-hud{z-index:40!important;transform:none!important;filter:none!important;opacity:1!important}
+  .tech-chart,.tech-market{overflow:hidden!important;background:#061a35!important}
+  .tech-pedestal{z-index:2!important}
+}
+@keyframes mobileLogoTurn{
+  from{transform:rotateY(-32deg) rotateX(-4deg) translateY(0)}
+  to{transform:rotateY(32deg) rotateX(3deg) translateY(-6px)}
+}
+@media(max-width:720px) and (prefers-reduced-motion:reduce){.tech-logo-stack{animation:none!important;transform:rotateY(-15deg)!important}}
