@@ -120,7 +120,7 @@ function installPeriods(){
 
 window.addEventListener('dapps:market-config',()=>{
   const before=installedPeriodKey;
-  if(installPeriods()&&(!state.rows.length||installedPeriodKey!==before))beginSwitch();
+  if(installPeriods()&&installedPeriodKey!==before)beginSwitch();
 });
 window.addEventListener('dapps:market-selected',beginSwitch);
 const tradeSymbol=$('#trade-symbol');
