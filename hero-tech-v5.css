@@ -421,36 +421,55 @@
 }
 
 
-/* Final hero mark: exact cutout from the supplied artwork.
-   Geometry never changes; all added thickness is Z-only. */
-.tech-visual{
-  perspective:none!important;
-  transform-style:flat!important;
-  isolation:isolate!important;
-}
-.tech-globe{
-  z-index:1!important;
-}
-.tech-logo-stage{
-  perspective:1100px!important;
-  transform-style:flat!important;
-  isolation:isolate!important;
-  z-index:20!important;
-  transform:none!important;
-  transition:none!important;
-}
-.dp-cutout-3d{
-  position:relative!important;
-  width:470px!important;
-  height:382px!important;
-  max-width:94%!important;
+/* Supplied reference artwork: exact geometry, no generated sidewalls or shadow layers. */
+.tech-logo-stage{perspective:1100px!important}
+.dp-reference-spinner{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
   transform-style:preserve-3d!important;
   transform-origin:50% 50%!important;
-  animation:dpCutoutTurn 8s linear infinite!important;
+  animation:dpReferenceSpin 10.5s linear infinite!important;
   will-change:transform!important;
-  z-index:3!important;
 }
-.dp-cutout-3d>img{
+.dp-reference-face{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  opacity:1!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+  pointer-events:none!important;
+}
+.dp-reference-front{transform:rotateY(0deg)!important}
+.dp-reference-back{transform:rotateY(180deg)!important}
+@keyframes dpReferenceSpin{
+  0%{transform:rotateX(-5deg) rotateY(0deg)}
+  25%{transform:rotateX(-1deg) rotateY(90deg)}
+  50%{transform:rotateX(5deg) rotateY(180deg)}
+  75%{transform:rotateX(-1deg) rotateY(270deg)}
+  100%{transform:rotateX(-5deg) rotateY(360deg)}
+}
+@media(max-width:720px){
+  .dp-reference-spinner{animation-duration:12s!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .dp-reference-spinner{animation:dpReferenceSpin 10.5s linear infinite!important}
+}
+
+
+/* Exact single-source hero logo.
+   No contour rebuild, no fake depth, no shadow copies, no 90-degree disappearance. */
+.tech-logo-stage{perspective:1200px!important}
+.dp-hero-logo-exact{
   position:absolute!important;
   inset:0!important;
   width:100%!important;
@@ -461,164 +480,24 @@
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
-  pointer-events:none!important;
-  transform-origin:50% 50%!important;
-}
-.dp-cutout-depth{
   filter:none!important;
   opacity:1!important;
+  transform-origin:50% 50%!important;
+  transform-style:preserve-3d!important;
   backface-visibility:visible!important;
   -webkit-backface-visibility:visible!important;
-  transform:translateZ(calc(var(--layer) * -0.375px))!important;
-  image-rendering:auto!important;
+  animation:dpHeroExactTurn 6.8s ease-in-out infinite!important;
+  will-change:transform!important;
 }
-
-.dp-cutout-front{
-  transform:translateZ(.5px)!important;
-  z-index:40!important;
-  filter:none!important;
-  opacity:1!important;
-  backface-visibility:hidden!important;
-  -webkit-backface-visibility:hidden!important;
-  image-rendering:auto!important;
-}
-.dp-cutout-back{
-  transform:translateZ(-18px) rotateY(180deg)!important;
-  z-index:1!important;
-  filter:none!important;
-  opacity:1!important;
-  backface-visibility:hidden!important;
-  -webkit-backface-visibility:hidden!important;
-}
-@keyframes dpCutoutTurn{
-  from{transform:rotateY(0deg)}
-  to{transform:rotateY(360deg)}
-}
-@media(max-width:1100px){
-  .tech-logo-stage{
-    left:50%!important;
-    right:auto!important;
-    transform:translateX(-50%)!important;
-  }
+@keyframes dpHeroExactTurn{
+  0%,100%{transform:rotateX(-4deg) rotateY(-24deg) translateY(0)}
+  25%{transform:rotateX(-1deg) rotateY(0deg) translateY(-5px)}
+  50%{transform:rotateX(4deg) rotateY(24deg) translateY(0)}
+  75%{transform:rotateX(-1deg) rotateY(0deg) translateY(-5px)}
 }
 @media(max-width:720px){
-  .dp-cutout-3d{
-    width:285px!important;
-    height:235px!important;
-    max-width:94%!important;
-    animation-duration:9.5s!important;
-  }
+  .dp-hero-logo-exact{animation-duration:7.6s!important}
 }
 @media(prefers-reduced-motion:reduce){
-  .dp-cutout-3d{animation:dpCutoutTurn 8s linear infinite!important}
-}
-
-
-/* Institutional trading visual pass: restrained, data-first, premium. */
-@media(min-width:1101px){
-  .tech-logo-stage{
-    right:-18px!important;
-    top:118px!important;
-    width:520px!important;
-    height:390px!important;
-  }
-  .dp-cutout-3d{
-    width:385px!important;
-    height:312px!important;
-    max-width:90%!important;
-    animation-duration:11s!important;
-  }
-  .tech-globe{
-    width:440px!important;
-    height:440px!important;
-    right:70px!important;
-    top:-28px!important;
-    opacity:.42!important;
-    filter:drop-shadow(0 0 8px rgba(0,112,255,.12))!important;
-  }
-  .tech-visual::before{
-    opacity:.34!important;
-    filter:none!important;
-  }
-  .tech-orbit{
-    opacity:.22!important;
-    border-width:1px!important;
-    box-shadow:none!important;
-  }
-  .tech-orbit.o1{opacity:.28!important}
-  .tech-orbit.o2{opacity:.18!important}
-  .tech-orbit.o3{opacity:.12!important}
-
-  .tech-chart{
-    left:-8px!important;
-    top:20px!important;
-    width:178px!important;
-  }
-  .tech-market{
-    right:-2px!important;
-    top:-58px!important;
-    width:214px!important;
-  }
-  .tech-map{
-    right:-4px!important;
-    bottom:-8px!important;
-    width:190px!important;
-  }
-}
-.tech-hud{
-  background:#06162b!important;
-  border:1px solid rgba(74,131,190,.34)!important;
-  box-shadow:0 14px 34px rgba(0,4,18,.38)!important;
-  backdrop-filter:none!important;
-}
-.tech-chart b{
-  color:#dff7ff!important;
-  font-weight:700!important;
-}
-.tech-market-row span,
-.tech-market-row b{
-  color:#e7f0f8!important;
-}
-.tech-market-row em{
-  color:#42d6a4!important;
-  text-shadow:none!important;
-}
-.tech-logo-glow{
-  opacity:.30!important;
-  filter:blur(10px)!important;
-}
-.tech-pedestal{
-  opacity:.42!important;
-  box-shadow:0 0 12px rgba(17,170,255,.22)!important;
-}
-.tech-bars{
-  opacity:.48!important;
-  filter:none!important;
-}
-.tech-scan,
-.tech-particle{
-  opacity:.22!important;
-}
-
-/* 3D logo uses physical extrusion only; remove flat shadow/glow treatment. */
-.tech-logo-glow{
-  display:none!important;
-}
-.dp-cutout-3d,
-.dp-cutout-3d>img,
-.dp-cutout-front,
-.dp-cutout-depth{
-  box-shadow:none!important;
-  text-shadow:none!important;
-}
-
-/* Smooth extrusion: many subpixel slices instead of visible stepped copies. */
-.dp-cutout-3d{
-  transform-style:preserve-3d!important;
-  -webkit-transform-style:preserve-3d!important;
-}
-.dp-cutout-3d>img{
-  image-rendering:auto!important;
-  transform-origin:50% 50%!important;
-  outline:0!important;
+  .dp-hero-logo-exact{animation:dpHeroExactTurn 6.8s ease-in-out infinite!important}
 }
