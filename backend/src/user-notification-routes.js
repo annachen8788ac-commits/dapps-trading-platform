@@ -83,14 +83,12 @@ export function registerUserNotificationRoutes(app,{pool,auth}){
   app.post('/api/notifications/read',auth,async(req,res)=>{
     const sourceType=String(req.body?.sourceType||'').trim();
     const sourceId=String(req.body?.sourceId||'').trim().slice(0,190);
-    const seen=new Date(req.body?.seenAt||Date.now());
-    if(!TYPES.has(sourceType)||!sourceId||Number.isNaN(seen.getTime()))return res.status(400).json({error:'Invalid notification'});
-    const readAt=new Date(Math.min(Date.now(),seen.getTime()));
+    if(!TYPES.has(sourceType)||!sourceId)return res.status(400).json({error:'Invalid notification'});
     try{
       await pool.query(`INSERT INTO user_notification_reads(user_id,source_type,source_id,read_at)
-        VALUES($1,$2,$3,$4)
+        VALUES($1,$2,$3,NOW())
         ON CONFLICT(user_id,source_type,source_id)
-        DO UPDATE SET read_at=GREATEST(user_notification_reads.read_at,EXCLUDED.read_at)`,[req.auth.sub,sourceType,sourceId,readAt]);
+        DO UPDATE SET read_at=GREATEST(user_notification_reads.read_at,NOW())`,[req.auth.sub,sourceType,sourceId]);
       res.json({ok:true});
     }catch(e){console.error(e);res.status(500).json({error:'Unable to mark notification as read'});}
   });
