@@ -32,7 +32,7 @@ body.platform-ui :is(.negative,.loss),body.admin-ui .negative{color:var(--dp-neg
 body.platform-ui .shell{background:linear-gradient(180deg,#071526,#06111f)!important;border-color:var(--dp-border)!important}
 body.platform-ui .shell>.top{background:rgba(5,17,32,.96)!important;border-bottom:1px solid var(--dp-border)!important;backdrop-filter:blur(16px)!important}
 body.platform-ui .shell>.top .brand{font-weight:800!important;letter-spacing:-.035em!important;color:#f4faff!important}
-body.platform-ui .shell>.top .brand::before{background-image:url('dp-logo-user.svg')!important;filter:drop-shadow(0 3px 10px rgba(0,122,255,.32))}
+body.platform-ui .shell>.top .brand::before{background-image:url('dp-logo-header.png?v=20260925-2')!important;filter:drop-shadow(0 3px 10px rgba(0,122,255,.32))}
 body.platform-ui :is(.back,.link,.foot a){color:#71d6f8!important;text-decoration:none}
 body.platform-ui :is(.back,.link,.foot a):hover{color:#b2f4ff!important}
 body.platform-ui :is(.field input,.field select,.field textarea,.row input,.row select,.composer textarea),
@@ -61,7 +61,7 @@ body.platform-ui .tech-hud{background:#061a35!important;border-color:#287dc0!imp
 body.admin-ui .boot{background:#030a15!important}
 body.admin-ui .boot-dot{background:var(--dp-cyan)!important}
 body.admin-ui .side{background:#061425!important;border-right:1px solid var(--dp-border)!important}
-body.admin-ui .side .brand::before,body.admin-ui .login-card .brand::before{background:url('dp-logo-user.svg') center/contain no-repeat!important}
+body.admin-ui .side .brand::before,body.admin-ui .login-card .brand::before{background:url('dp-logo-header.png?v=20260925-2') center/contain no-repeat!important}
 body.admin-ui :is(.nav button:hover,.nav button.active){background:linear-gradient(110deg,rgba(6,113,248,.25),rgba(14,190,235,.1))!important;border-color:rgba(73,177,244,.3)!important;color:#fff!important}
 body.admin-ui :is(.quick a,.card,.panel,.login-card){border-color:var(--dp-border)!important}
 body.admin-ui :is(.badge,.status){background:rgba(20,113,232,.18)!important;color:#a9d8ff!important;border:1px solid rgba(67,171,244,.3)!important}
@@ -72,7 +72,7 @@ body.admin-ui :is(.top,.bar){border-color:var(--dp-border)!important}
 body.platform-ui .tech-title{letter-spacing:-.068em!important}
 body.platform-ui .tech-title .gradient{color:transparent!important}
 body.platform-ui .shell>.top .brand::before,
-body.admin-ui :is(.side,.login-card) .brand::before{content:""!important;display:block!important;width:40px!important;height:34px!important;flex:none!important;background:url('dp-logo-user.svg') center/contain no-repeat!important;filter:drop-shadow(0 4px 10px rgba(5,129,255,.36))}
+body.admin-ui :is(.side,.login-card) .brand::before{content:""!important;display:block!important;width:40px!important;height:34px!important;flex:none!important;background:url('dp-logo-header.png?v=20260925-2') center/contain no-repeat!important;filter:drop-shadow(0 4px 10px rgba(5,129,255,.36))}
 body.admin-ui .login-card .brand{display:flex!important;align-items:center!important;gap:10px!important}
 body.platform-ui .shell>.top .brand{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;white-space:nowrap!important}
 @media(min-width:901px){body.platform-ui .mobile-nav{display:none!important}body.platform-ui .app-shell{padding-bottom:0!important}}
