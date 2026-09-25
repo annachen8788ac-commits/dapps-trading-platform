@@ -27,14 +27,16 @@ export function registerSupportChatRoutes(app,{pool,auth,adminAuth,audit}){
         q=await client.query(`INSERT INTO support_conversations(user_id,user_last_open_at,user_history_from) VALUES($1,NOW(),NOW()) RETURNING id,status,user_last_open_at,user_history_from`,[req.auth.sub]);
         c=q.rows[0];
       }
-      const inactive=!c.user_last_open_at||Date.now()-new Date(c.user_last_open_at).getTime()>=10*60*1000;
+      const lastOpen=c.user_last_open_at?new Date(c.user_last_open_at):null;
+      const inactive=!lastOpen||Date.now()-lastOpen.getTime()>=10*60*1000;
       let historyFrom=c.user_history_from||c.created_at||new Date(0);
       if(inactive){
-        const reset=await client.query(`UPDATE support_conversations SET user_history_from=NOW(),user_last_open_at=NOW(),updated_at=NOW() WHERE id=$1 RETURNING user_history_from`,[c.id]);
+        const cutoff=lastOpen?new Date(lastOpen.getTime()+10*60*1000):new Date();
+        const reset=await client.query(`UPDATE support_conversations SET user_history_from=$2,user_last_open_at=NOW(),updated_at=NOW() WHERE id=$1 RETURNING user_history_from`,[c.id,cutoff]);
         historyFrom=reset.rows[0].user_history_from;
         await client.query(`INSERT INTO user_notification_reads(user_id,source_type,source_id,read_at)
-          VALUES($1,'support_chat',$2,NOW())
-          ON CONFLICT(user_id,source_type,source_id) DO UPDATE SET read_at=NOW()`,[req.auth.sub,String(c.id)]);
+          VALUES($1,'support_chat',$2,$3)
+          ON CONFLICT(user_id,source_type,source_id) DO UPDATE SET read_at=GREATEST(user_notification_reads.read_at,EXCLUDED.read_at)`,[req.auth.sub,String(c.id),cutoff]);
       }else{
         await client.query(`UPDATE support_conversations SET user_last_open_at=NOW() WHERE id=$1`,[c.id]);
       }
