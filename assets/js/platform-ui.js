@@ -65,7 +65,6 @@
   function restoreState(){const savedMarket=safeGet(STORAGE.market);if(savedMarket&&Array.isArray(markets)){const found=markets.find(m=>m.symbol===savedMarket);if(found)selectMarket(found)}const savedDuration=Number(safeGet(STORAGE.duration,'60'));document.querySelector(`[data-duration="${savedDuration}"]`)?.click();const savedDirection=safeGet(STORAGE.direction,'up');document.querySelector(savedDirection==='down'?'#down-btn':'#up-btn')?.click();const savedTf=safeGet(STORAGE.timeframe,'1H');const tfBtn=[...document.querySelectorAll('.timeframes button')].find(b=>b.textContent.trim()===savedTf);if(tfBtn)tfBtn.click();renderStar();syncWalletBalance();if(demoMode){[50,150,400,900,1600].forEach(ms=>setTimeout(syncSimulationBalance,ms))}}
   window.addEventListener('hashchange',()=>{const page=location.hash.replace('#','');if(validPages.has(page))navigate(page)});window.addEventListener('pageshow',()=>{if(demoMode)syncSimulationBalance();else syncWalletBalance()});document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(demoMode)syncSimulationBalance();else syncWalletBalance()}});setTimeout(restoreState,0);
 })();
-;
 
 /* ===== trade-dialog-ui-20260925.js ===== */
 (() => {
