@@ -40,7 +40,7 @@
     const all=[...active,...completed];
     totalPledged=active.reduce((s,o)=>s+Number(o.principal||0),0);
     list.innerHTML=all.length?all.map(o=>{
-      const end=new Date(o.endAt).toLocaleString('en-US');
+      const end=new Date(o.endAt).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'});
       const status=o.status==='active'?'Active':'Completed';
       return `<div class="pledge-row"><span><strong>${o.productName}</strong><small style="display:block;color:#8fa0bc;margin-top:3px">${Number(o.dailyRate).toFixed(2)}% daily · ${o.settledDays}/${o.termDays} days settled</small></span><strong>${nfmt(o.principal)} USDT</strong><span>Profit ${nfmt(o.totalProfit)} USDT</span><span class="${o.status==='active'?'positive':'muted'}">${status}<small style="display:block;margin-top:3px">Ends ${end}</small></span></div>`;
     }).join(''):'<div class="empty-state" style="padding:18px">No pledge orders yet.</div>';

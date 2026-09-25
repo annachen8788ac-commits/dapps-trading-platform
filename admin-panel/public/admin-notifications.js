@@ -2,7 +2,7 @@
   const API='/admin-api';
   let items=[],firstLoad=true,lastKeys=new Set(),timer=null,open=false;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-  const dt=v=>{try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch{return ''}};
+  const dt=v=>{try{return new Date(v).toLocaleString('zh-CN',{timeZone:'America/New_York',timeZoneName:'short',hour12:false})}catch{return ''}};
   async function api(path,opt={}){
     const r=await fetch(API+path,{cache:'no-store',...opt,headers:{'content-type':'application/json',...(opt.headers||{})}});
     const d=await r.json().catch(()=>({}));

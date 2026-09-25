@@ -63,7 +63,7 @@
     const ui=mount();if(!ui)return;
     ui.btn.classList.toggle('has-unread',items.length>0);
     const list=ui.panel.querySelector('.user-notify-list');
-    list.innerHTML=items.length?items.map((x,i)=>`<button class="user-notify-item" type="button" data-i="${i}"><b>${esc(x.title)}</b><span>${esc(x.text||'')}</span><small>${new Date(x.createdAt).toLocaleString('en-US')}</small></button>`).join(''):'<div class="user-notify-empty">No unread notifications</div>';
+    list.innerHTML=items.length?items.map((x,i)=>`<button class="user-notify-item" type="button" data-i="${i}"><b>${esc(x.title)}</b><span>${esc(x.text||'')}</span><small>${new Date(x.createdAt).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'})}</small></button>`).join(''):'<div class="user-notify-empty">No unread notifications</div>';
     list.querySelectorAll('[data-i]').forEach(b=>b.onclick=async()=>{const x=items[Number(b.dataset.i)];await mark(x.type,x.sourceId,x.createdAt);location.href=x.href||'profile.html'});
   }
   async function refresh(){
