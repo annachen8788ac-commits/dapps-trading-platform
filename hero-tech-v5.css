@@ -464,3 +464,40 @@
 @media(prefers-reduced-motion:reduce){
   .dp-reference-spinner{animation:dpReferenceSpin 10.5s linear infinite!important}
 }
+
+
+/* Exact single-source hero logo.
+   No contour rebuild, no fake depth, no shadow copies, no 90-degree disappearance. */
+.tech-logo-stage{perspective:1200px!important}
+.dp-hero-logo-exact{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  opacity:1!important;
+  transform-origin:50% 50%!important;
+  transform-style:preserve-3d!important;
+  backface-visibility:visible!important;
+  -webkit-backface-visibility:visible!important;
+  animation:dpHeroExactTurn 6.8s ease-in-out infinite!important;
+  will-change:transform!important;
+}
+@keyframes dpHeroExactTurn{
+  0%,100%{transform:rotateX(-4deg) rotateY(-24deg) translateY(0)}
+  25%{transform:rotateX(-1deg) rotateY(0deg) translateY(-5px)}
+  50%{transform:rotateX(4deg) rotateY(24deg) translateY(0)}
+  75%{transform:rotateX(-1deg) rotateY(0deg) translateY(-5px)}
+}
+@media(max-width:720px){
+  .dp-hero-logo-exact{animation-duration:7.6s!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .dp-hero-logo-exact{animation:dpHeroExactTurn 6.8s ease-in-out infinite!important}
+}
