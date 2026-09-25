@@ -423,8 +423,21 @@
 
 /* Final hero mark: exact cutout from the supplied artwork.
    Geometry never changes; all added thickness is Z-only. */
+.tech-visual{
+  perspective:none!important;
+  transform-style:flat!important;
+  isolation:isolate!important;
+}
+.tech-globe{
+  z-index:1!important;
+}
 .tech-logo-stage{
   perspective:1100px!important;
+  transform-style:flat!important;
+  isolation:isolate!important;
+  z-index:20!important;
+  transform:none!important;
+  transition:none!important;
 }
 .dp-cutout-3d{
   position:relative!important;
@@ -492,8 +505,15 @@
   -webkit-backface-visibility:hidden!important;
 }
 @keyframes dpCutoutTurn{
-  from{transform:rotateX(-5deg) rotateY(0deg)}
-  to{transform:rotateX(-5deg) rotateY(360deg)}
+  from{transform:rotateY(0deg)}
+  to{transform:rotateY(360deg)}
+}
+@media(max-width:1100px){
+  .tech-logo-stage{
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+  }
 }
 @media(max-width:720px){
   .dp-cutout-3d{
