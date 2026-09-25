@@ -12,7 +12,7 @@
   function style(){
     if(document.getElementById('admin-notify-style'))return;
     const s=document.createElement('style');s.id='admin-notify-style';s.textContent=`
-      .admin-notify{position:relative;display:inline-flex;align-items:center;z-index:9998}
+      .admin-notify{position:relative;display:none;align-items:center;z-index:9998}
       .admin-notify-btn{position:relative;border:1px solid #2a3955;background:#152036;color:#eef4ff;border-radius:10px;padding:9px 12px;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}
       .admin-notify-btn:hover{background:#1b2a45}
       .admin-notify-badge{position:absolute;right:-7px;top:-7px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#ff4058;color:#fff;border:2px solid #0b111b;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
@@ -67,7 +67,7 @@
       const next=Array.isArray(d.items)?d.items:[];
       const keys=new Set(next.map(x=>x.type+':'+x.sourceId+':'+x.createdAt));
       if(!firstLoad&&showNew){const fresh=next.find(x=>!lastKeys.has(x.type+':'+x.sourceId+':'+x.createdAt));if(fresh)toast(fresh)}
-      items=next;lastKeys=keys;firstLoad=false;render();
+      items=next;lastKeys=keys;firstLoad=false;render();const wrap=document.getElementById('adminNotifications');if(wrap)wrap.style.display='inline-flex';
     }catch{}
   }
   window.adminNotificationsRefresh=()=>refresh(false);
