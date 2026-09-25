@@ -23,7 +23,17 @@ function renderMarkets(filter='all'){const list=$('#market-list');list.innerHTML
 function selectMarket(m){if(!m)return;currentMarket=m;$('#trade-symbol').textContent=m.symbol;$('#trade-name').textContent=m.name;paintTradeIcon($('#trade-icon'),m);const valid=Number.isFinite(Number(m.price))&&Number(m.price)>0;$('#trade-price').textContent=valid?fmt(m.price,decimals(m.price)):'--';$('#trade-price').className=m.change>=0?'positive':'negative';$('#trade-change').textContent=valid?`${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%`:'--';$('#trade-change').className=m.change>=0?'positive':'negative';$('#trade-high').textContent=valid&&Number(m.high)>0?fmt(m.high,decimals(m.high)):'--';$('#trade-low').textContent=valid&&Number(m.low)>0?fmt(m.low,decimals(m.low)):'--';const chartBadge=$('#chart-price-badge');if(chartBadge)chartBadge.textContent=valid?fmt(m.price,decimals(m.price)):'--';window.dispatchEvent(new CustomEvent('dapps:market-selected',{detail:{market:m}}))}
 function navigate(name){if(!['home','markets','trade','pledge','assets'].includes(name))name='home';try{localStorage.setItem('dapps:lastPage',name)}catch{}const hash='#'+name;if(location.hash!==hash)history.replaceState(null,'',location.pathname+location.search+hash);$$('.page').forEach(p=>p.classList.remove('active'));const page=$(`#page-${name}`);if(page)page.classList.add('active');$$('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));window.scrollTo({top:0,behavior:'smooth'})}
 const isMobileEntry=window.matchMedia?.('(max-width:760px)').matches===true;
-const initialPage=isMobileEntry?'home':(location.hash.slice(1)||(()=>{try{return localStorage.getItem('dapps:lastPage')}catch{return null}})());
+let initialPage;
+if(isMobileEntry){
+  let enteredThisTab=false;
+  try{
+    enteredThisTab=sessionStorage.getItem('dapps:mobileEntrySeen')==='1';
+    sessionStorage.setItem('dapps:mobileEntrySeen','1');
+  }catch{}
+  initialPage=enteredThisTab?location.hash.slice(1):'home';
+}else{
+  initialPage=location.hash.slice(1)||(()=>{try{return localStorage.getItem('dapps:lastPage')}catch{return null}})();
+}
 navigate(['home','markets','trade','pledge','assets'].includes(initialPage)?initialPage:'home');
 $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='trade'){const btc=markets.find(m=>m.symbol==='BTC/USDT');if(btc)selectMarket(btc)}navigate(b.dataset.nav)}));$$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderMarkets(b.dataset.filter)});
 function currentProfitRate(){return profitRates[duration]??29}function currentMinimum(){return minimumTradeAmounts[duration]??1000}
