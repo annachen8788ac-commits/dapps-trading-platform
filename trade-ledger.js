@@ -13,6 +13,7 @@
   const placeBtn=document.querySelector('#place-trade');
   const amountInput=document.querySelector('#trade-amount');
   const list=document.querySelector('#positions-list');
+  window.__tradeLedgerOwnsPositions=true;
   const head=document.querySelector('.positions-table-head');
   const tabs=[...document.querySelectorAll('.positions-heading .tab-row button')];
   if(!placeBtn||!amountInput||!list||!head)return;
