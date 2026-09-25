@@ -22,7 +22,7 @@ function handleEscape(e){if(e.key!=='Escape')return;
   const notice=document.querySelector('.admin-notify-toast');if(notice){notice.remove();consumeEscape(e);return}
   if(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){document.activeElement.blur();consumeEscape(e);return}
   if(location.pathname==='/'||location.pathname.endsWith('/index.html')){const active=document.querySelector('.section.active');if(active&&active.id!=='dashboard'){document.querySelector('.nav [data-section="dashboard"]')?.click();consumeEscape(e);return}}
-  if(['/wallet','/kyc','/trades','/support-chat','/user'].includes(location.pathname)){consumeEscape(e);goAdminBack()}
+  if(['/wallet','/kyc','/trades','/support-chat'].includes(location.pathname)){consumeEscape(e);goAdminBack()}
 }
 document.addEventListener('keydown',handleEscape,true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready()})();
