@@ -54,7 +54,7 @@ async function load(){
     if(!kycApproved)show('Complete identity verification before depositing.',true);
   }catch(e){show(e.message,true)}
 }
-function renderHistory(rows){$('#history').innerHTML=rows.length?rows.map(x=>`<div class="row"><div class="row-top"><strong>${x.request_no}</strong><span class="status ${x.status}">${x.status}</span></div><div class="muted" style="margin-top:6px">${x.network} · ${fmt(x.amount,x.asset)} ${x.asset} · ${new Date(x.created_at).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'})}</div>${x.status==='rejected'&&x.review_note?`<div class="muted" style="margin-top:5px"><b>Rejection reason:</b> ${x.review_note}</div>`:''}</div>`).join(''):'<div class="empty">No deposit records yet.</div>';rows.filter(x=>x.reviewed_at&&['approved','rejected'].includes(x.status)).forEach(x=>window.userMarkNotification?.('deposit',x.request_no,x.reviewed_at))}
+function renderHistory(rows){$('#history').innerHTML=rows.length?rows.map(x=>`<div class="row"><div class="row-top"><strong>${x.request_no}</strong><span class="status ${x.status}">${x.status}</span></div><div class="muted" style="margin-top:6px">${x.network} · ${fmt(x.amount,x.asset)} ${x.asset} · ${new Date(x.created_at).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'})}</div></div>`).join(''):'<div class="empty">No deposit records yet.</div>';rows.filter(x=>x.reviewed_at&&['approved','rejected'].includes(x.status)).forEach(x=>window.userMarkNotification?.('deposit',x.request_no,x.reviewed_at))}
 $('#asset').onchange=()=>{renderNetworks();show('')};
 $('#network').onchange=renderChannel;
 $('#copyBtn').onclick=async()=>{const c=selected();if(!c)return;await navigator.clipboard.writeText(c.address);show('Deposit address copied.')};
