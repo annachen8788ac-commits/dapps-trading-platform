@@ -433,7 +433,7 @@
   max-width:94%!important;
   transform-style:preserve-3d!important;
   transform-origin:50% 50%!important;
-  animation:dpCutoutTurn 10s linear infinite!important;
+  animation:dpCutoutTurn 8s linear infinite!important;
   will-change:transform!important;
   z-index:3!important;
 }
@@ -492,22 +492,17 @@
   -webkit-backface-visibility:hidden!important;
 }
 @keyframes dpCutoutTurn{
-  0%{transform:rotateX(-5deg) rotateY(-18deg) translateY(0)}
-  22%{transform:rotateX(-2deg) rotateY(62deg) translateY(-5px)}
-  28%{transform:rotateX(0deg) rotateY(90deg) translateY(-7px)}
-  50%{transform:rotateX(5deg) rotateY(162deg) translateY(0)}
-  72%{transform:rotateX(0deg) rotateY(270deg) translateY(-7px)}
-  78%{transform:rotateX(-2deg) rotateY(298deg) translateY(-5px)}
-  100%{transform:rotateX(-5deg) rotateY(342deg) translateY(0)}
+  from{transform:rotateX(-5deg) rotateY(0deg)}
+  to{transform:rotateX(-5deg) rotateY(360deg)}
 }
 @media(max-width:720px){
   .dp-cutout-3d{
     width:285px!important;
     height:235px!important;
     max-width:94%!important;
-    animation-duration:11.5s!important;
+    animation-duration:9.5s!important;
   }
 }
 @media(prefers-reduced-motion:reduce){
-  .dp-cutout-3d{animation:dpCutoutTurn 10s linear infinite!important}
+  .dp-cutout-3d{animation:dpCutoutTurn 8s linear infinite!important}
 }
