@@ -11,7 +11,7 @@ window.fetch=async(input,init={})=>{const url=typeof input==='string'?input:Stri
 if(mutation){progress(true);if(lastClicked&&Date.now()-lastClickedAt<1000){btn=lastClicked;original=btn.textContent;btn.disabled=true;btn.classList.add('is-processing');btn.textContent='处理中…'}}
 try{const r=await rawFetch(input,init);if(mutation){ok=r.ok;if(!r.ok){let data={};try{data=await r.clone().json()}catch{}notify(data?.error||('请求失败（'+r.status+'）'),'error')}}return r}
 catch(err){if(mutation)notify(err?.message||'网络请求失败','error');throw err}
-finally{if(btn){btn.classList.remove('is-processing');if(ok){btn.classList.add('is-complete');btn.textContent='✓';setTimeout(()=>{btn.disabled=false;btn.classList.remove('is-complete');btn.textContent=original},520)}else{btn.disabled=false;btn.textContent=original}}if(mutation)progress(false)}};
+finally{if(btn){btn.classList.remove('is-processing','is-complete');btn.disabled=false;btn.textContent=original}if(mutation)progress(false)}};
 function consumeEscape(e){e.preventDefault();e.stopPropagation()}
 function goAdminBack(){try{const ref=document.referrer?new URL(document.referrer):null;if(ref&&ref.origin===location.origin&&ref.href!==location.href&&history.length>1){history.back();return}}catch{}location.href='/'}
 function handleEscape(e){if(e.key!=='Escape')return;
