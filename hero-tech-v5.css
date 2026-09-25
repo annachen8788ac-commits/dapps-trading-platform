@@ -539,3 +539,73 @@
 @media(prefers-reduced-motion:reduce){
   .tech-logo-stack.dp-correct-logo{animation:dpCorrectSpin 11s linear infinite!important}
 }
+
+
+/* Final DP logo: preserve the supplied geometry and rotate the whole mark.
+   Thickness is Z-only, so the two internal shapes never get rescaled or shifted. */
+.tech-logo-stage{perspective:1200px!important}
+.tech-logo-stack.dp-whole-logo{
+  position:relative!important;
+  transform-style:preserve-3d!important;
+  isolation:isolate!important;
+  animation:dpWholeSpin 11s linear infinite!important;
+  will-change:transform!important;
+}
+.dp-whole-logo>img{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  transform-origin:50% 50%!important;
+  backface-visibility:visible!important;
+  pointer-events:none!important;
+}
+.dp-whole-logo .dp-whole-depth{
+  filter:brightness(.34) contrast(1.12) saturate(1.42) hue-rotate(-4deg)!important;
+  opacity:1!important;
+}
+.dp-whole-logo .z16{transform:translateZ(-48px)!important}
+.dp-whole-logo .z15{transform:translateZ(-45px)!important}
+.dp-whole-logo .z14{transform:translateZ(-42px)!important}
+.dp-whole-logo .z13{transform:translateZ(-39px)!important}
+.dp-whole-logo .z12{transform:translateZ(-36px)!important}
+.dp-whole-logo .z11{transform:translateZ(-33px)!important}
+.dp-whole-logo .z10{transform:translateZ(-30px)!important}
+.dp-whole-logo .z9{transform:translateZ(-27px)!important}
+.dp-whole-logo .z8{transform:translateZ(-24px)!important}
+.dp-whole-logo .z7{transform:translateZ(-21px)!important}
+.dp-whole-logo .z6{transform:translateZ(-18px)!important}
+.dp-whole-logo .z5{transform:translateZ(-15px)!important}
+.dp-whole-logo .z4{transform:translateZ(-12px)!important}
+.dp-whole-logo .z3{transform:translateZ(-9px)!important}
+.dp-whole-logo .z2{transform:translateZ(-6px)!important}
+.dp-whole-logo .z1{transform:translateZ(-3px)!important}
+.dp-whole-logo .dp-whole-back{
+  transform:translateZ(-51px) rotateY(180deg)!important;
+  filter:brightness(.38) saturate(1.35)!important;
+  opacity:.98!important;
+}
+.dp-whole-logo .dp-whole-front{
+  transform:translateZ(1px)!important;
+  z-index:30!important;
+  filter:brightness(1.08) saturate(1.18)
+    drop-shadow(0 8px 5px rgba(0,3,24,.72))
+    drop-shadow(0 0 13px rgba(0,122,255,.40))!important;
+}
+@keyframes dpWholeSpin{
+  0%{transform:rotateX(-6deg) rotateY(-22deg) translateY(0)}
+  22%{transform:rotateX(-2deg) rotateY(58deg) translateY(-5px)}
+  27%{transform:rotateX(1deg) rotateY(90deg) translateY(-7px)}
+  50%{transform:rotateX(6deg) rotateY(158deg) translateY(0)}
+  73%{transform:rotateX(1deg) rotateY(270deg) translateY(-7px)}
+  78%{transform:rotateX(-2deg) rotateY(302deg) translateY(-5px)}
+  100%{transform:rotateX(-6deg) rotateY(338deg) translateY(0)}
+}
+@media(max-width:720px){
+  .tech-logo-stack.dp-whole-logo{animation:dpWholeSpin 12.5s linear infinite!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .tech-logo-stack.dp-whole-logo{animation:dpWholeSpin 11s linear infinite!important}
+}
