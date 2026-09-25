@@ -26,6 +26,7 @@ app.get('/',async(req,res,next)=>{try{let html=await localizedHtml('index.html')
     <div class="nav-group">运营总览</div>
     <button data-section="dashboard" class="active">仪表盘</button>
     <button data-section="users">用户管理</button>
+    <button data-section="recovery">账号找回</button>
     <div class="nav-group">审核中心</div>
     <button class="external" onclick="location.href='/wallet?tab=deposits'">充值审核</button>
     <button class="external" onclick="location.href='/wallet?tab=withdrawals'">提现审核</button>
@@ -41,7 +42,7 @@ app.get('/',async(req,res,next)=>{try{let html=await localizedHtml('index.html')
   </nav>`;
   html=html.replace(/<nav class="nav">[\s\S]*?<\/nav>/,nav);
   html=html.replace('</head>',`<style>.admin-nav-clean{gap:4px!important}.admin-nav-clean .nav-group{margin:14px 10px 4px;color:#5f7393;font-size:11px;font-weight:800;letter-spacing:.12em}.admin-nav-clean .nav-group:first-child{margin-top:0}.admin-nav-clean button{padding:10px 12px!important}.admin-nav-clean .external{border:0!important}</style></head>`);
-  html=html.replace(/<div class="quick">[\s\S]*?<\/div><\/section>\s*<section id="users"/,`<div class="quick"><a href="/wallet?tab=deposits"><b>充值审核 →</b><span class="muted">审核客户充值申请并确认入账</span></a><a href="/wallet?tab=withdrawals"><b>提现审核 →</b><span class="muted">处理提现申请与审核状态</span></a><a href="/kyc"><b>身份审核 →</b><span class="muted">查看证件资料并修改审核状态</span></a><a href="/trades"><b>交易控制 →</b><span class="muted">查看账户交易和交易控制</span></a><a href="/support-chat"><b>在线客服 →</b><span class="muted">查看客户会话并直接回复</span></a><a href="/wallet?tab=balances"><b>账户余额 →</b><span class="muted">查看用户余额和资金变动</span></a></div></section><section id="users"`);
+  html=html.replace(/<div class="quick">[\s\S]*?<\/div><\/section>\s*<section id="users"/,`<div class="quick"><a href="/wallet?tab=deposits"><b>充值审核 →</b><span class="muted">审核客户充值申请并确认入账</span></a><a href="/wallet?tab=withdrawals"><b>提现审核 →</b><span class="muted">处理提现申请与审核状态</span></a><a href="/kyc"><b>身份审核 →</b><span class="muted">查看证件资料并修改审核状态</span></a><a href="/trades"><b>交易控制 →</b><span class="muted">查看账户交易和交易控制</span></a><a href="/support-chat"><b>在线客服 →</b><span class="muted">查看客户会话并直接回复</span></a><a href="/wallet?tab=balances"><b>账户余额 →</b><span class="muted">查看用户余额和资金变动</span></a><a href="/?section=recovery"><b>账号找回 →</b><span class="muted">审核用户名或登录密码找回申请</span></a></div></section><section id="users"`);
   res.type('html').send(html)}catch(e){next(e)}});
 for(const [route,file] of [['/wallet','wallet.html'],['/kyc','kyc.html'],['/trades','trades.html'],['/support-chat','support-chat.html'],['/user','user.html']])app.get(route,async(req,res,next)=>{try{res.type('html').send(await localizedHtml(file))}catch(e){next(e)}});
 app.use(express.static('public',{extensions:['html']}));
