@@ -31,7 +31,7 @@
         float light = 0.83 + 0.17 * max(dot(n, lightDir), 0.0);
         gl_FragColor = vec4(color.rgb * light, color.a);
       } else {
-        float light = 0.40 + 0.55 * max(dot(n, lightDir), 0.0);
+        float light = 0.78;
         vec3 cobalt = vec3(0.025, 0.31, 0.94);
         vec3 cyan = vec3(0.045, 0.78, 0.93);
         vec3 color = mix(cobalt, cyan, clamp(texCoord.x * 0.9, 0.0, 1.0));
@@ -58,11 +58,11 @@
     // Rasterize the SVG once at high resolution. The alpha boundary supplies
     // the outside and the holes, so internal strokes never get extra walls.
     const textureCanvas = document.createElement('canvas');
-    textureCanvas.width = 1024; textureCanvas.height = 860;
+    textureCanvas.width = 1516; textureCanvas.height = 1240;
     const textureContext = textureCanvas.getContext('2d', { willReadFrequently: true });
-    textureContext.drawImage(source, 0, 0, 1024, 860);
+    textureContext.drawImage(source, 0, 0, 1516, 1240);
     const maskCanvas = document.createElement('canvas');
-    const width = 720, height = 604;
+    const width = 758, height = 620;
     maskCanvas.width = width; maskCanvas.height = height;
     const maskContext = maskCanvas.getContext('2d', { willReadFrequently: true });
     maskContext.drawImage(source, 0, 0, width, height);
@@ -96,11 +96,13 @@
     const vertices = [];
     const push = (x, y, z, nx, ny, nz, u, v) => vertices.push(x, y, z, nx, ny, nz, u, v);
     const quad = (a, b, c, d) => { vertices.push(...a, ...b, ...c, ...a, ...c, ...d); };
-    const depth = 12;
+    const depth = 8.5;
+    const halfHeight = 180 * 310 / 379 / 2;
+    const pixelsPerUnit = width / 180;
     for (const z of [-depth, depth]) {
       const n = z > 0 ? 1 : -1;
-      quad([-90, -75.5, z, 0, 0, n, 0, 0], [90, -75.5, z, 0, 0, n, 1, 0],
-           [90, 75.5, z, 0, 0, n, 1, 1], [-90, 75.5, z, 0, 0, n, 0, 1]);
+      quad([-90, -halfHeight, z, 0, 0, n, 0, 0], [90, -halfHeight, z, 0, 0, n, 1, 0],
+           [90, halfHeight, z, 0, 0, n, 1, 1], [-90, halfHeight, z, 0, 0, n, 0, 1]);
     }
     function simplify(points, tolerance) {
       if (points.length < 3) return points;
@@ -124,16 +126,16 @@
         if (distance > greatest) { greatest = distance; split = i; }
       }
       const corners = [
-        ...simplify(contour.slice(0, split + 1), 1.6).slice(0, -1),
-        ...simplify([...contour.slice(split), contour[0]], 1.6).slice(0, -1)
+        ...simplify(contour.slice(0, split + 1), 3.0).slice(0, -1),
+        ...simplify([...contour.slice(split), contour[0]], 3.0).slice(0, -1)
       ];
       for (let i = 0; i < corners.length; i++) {
         const p = corners[i], q = corners[(i + 1) % corners.length];
         const dx = q[0] - p[0], dy = q[1] - p[1], length = Math.hypot(dx, dy);
         if (!length) continue;
         const nx = dy / length, ny = dx / length;
-        const a = (v, z) => [(v[0] / 4) - 90, 75.5 - (v[1] / 4), z, nx, ny, 0, v[0] / width, 1 - v[1] / height];
-        quad(a(p, depth - 0.15), a(q, depth - 0.15), a(q, -depth + 0.15), a(p, -depth + 0.15));
+        const a = (v, z) => [(v[0] / pixelsPerUnit) - 90, halfHeight - (v[1] / pixelsPerUnit), z, nx, ny, 0, v[0] / width, 1 - v[1] / height];
+        quad(a(p, depth - 0.8), a(q, depth - 0.8), a(q, -depth + 0.8), a(p, -depth + 0.8));
       }
     }
     const buffer = gl.createBuffer();
@@ -171,13 +173,17 @@
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       if (start === undefined) start = time;
       gl.uniform2f(viewportUniform, w, h);
-      gl.uniform1f(angleUniform, reducedMotion ? -0.35 : -0.35 + (time - start) * Math.PI * 2 / 14000);
-      gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 8);
+      const angle = reducedMotion ? -0.35 : -0.35 + (time - start) * Math.PI * 2 / 14000;
+      gl.uniform1f(angleUniform, angle);
+      gl.drawArrays(gl.TRIANGLES, 12, vertices.length / 8 - 12);
+      // Draw only the face turned toward the camera. The rear face must never
+      // project through the two negative-space channels on the front.
+      gl.drawArrays(gl.TRIANGLES, Math.cos(angle) >= 0 ? 6 : 0, 6);
       if (!canvas.classList.contains('ready')) canvas.classList.add('ready');
       if (!reducedMotion) requestAnimationFrame(draw);
     }
     requestAnimationFrame(draw);
   };
   source.onerror = () => console.warn('Logo face unavailable');
-  source.src = 'dp-logo-3d-face.svg?v=20260925-1';
+  source.src = 'dp-logo-separated.svg?v=20260925-2';
 })();
