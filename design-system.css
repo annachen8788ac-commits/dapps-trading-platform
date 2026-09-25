@@ -77,7 +77,7 @@ body.admin-ui .login-card .brand{display:flex!important;align-items:center!impor
 body.platform-ui .shell>.top .brand{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;white-space:nowrap!important}
 @media(min-width:901px){body.platform-ui .mobile-nav{display:none!important}body.platform-ui .app-shell{padding-bottom:0!important}}
 
-@media(min-width:1101px){body.platform-ui{overflow-x:hidden}body.platform-ui .topbar{width:100vw!important;margin-left:calc(50% - 50vw)!important;padding:0 max(4.5vw,34px)!important}}
+@media(min-width:1101px){body.platform-ui{overflow-x:clip}body.platform-ui .topbar{width:100vw!important;margin-left:calc(50% - 50vw)!important;padding:0 max(4.5vw,34px)!important}}
 
 /* 2026-09-25: hard-unify compact page logos with homepage header artwork */
 body.platform-ui .shell>.top .brand.brand-real-logo::before{display:none!important;content:none!important}
