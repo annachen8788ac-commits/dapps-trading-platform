@@ -18,6 +18,15 @@
   const tabs=[...document.querySelectorAll('.positions-heading .tab-row button')];
   if(!placeBtn||!amountInput||!list||!head)return;
   if(!tabs.length){const panel=document.querySelector('.positions-panel'),heading=panel?.querySelector('.panel-heading');if(heading){heading.innerHTML='<div class="positions-heading"><h3>Orders</h3><div class="tab-row"><button class="active">Active Trades</button><button>History</button></div></div>';tabs.push(...heading.querySelectorAll('.tab-row button'))}}
+  const panel=document.querySelector('.positions-panel');
+  let scrollWrap=panel?.querySelector('.positions-scroll');
+  if(panel&&!scrollWrap){
+    scrollWrap=document.createElement('div');
+    scrollWrap.className='positions-scroll';
+    panel.insertBefore(scrollWrap,head);
+    scrollWrap.appendChild(head);
+    scrollWrap.appendChild(list);
+  }
 
   const style=document.createElement('style');
   style.textContent=`
@@ -28,7 +37,19 @@
   .trade-count-ring{width:142px;height:142px;margin:8px auto 18px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(#218cff var(--progress),#172a40 0);box-shadow:0 0 34px rgba(33,140,255,.16)}.trade-count-ring:after{content:"";position:absolute;inset:7px;border-radius:50%;background:#0a1727}.trade-count-ring>div{position:relative;z-index:1;text-align:center}.trade-count-ring b{display:block;font-size:42px;font-variant-numeric:tabular-nums}.trade-count-ring small{color:#8fa4bb}
   .live-pnl{margin:0 0 14px;padding:14px 15px;border:1px solid #29415d;border-radius:14px;background:#0d1e31}.live-pnl-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-end}.live-pnl span{font-size:10px;color:#8fa4bb}.live-pnl strong{font-size:20px}.live-pnl .live-price{text-align:right}.live-pnl .live-price b{display:block;font-size:14px}.live-pnl .live-move{font-size:11px;margin-top:3px;display:block}.live-pnl-note{margin-top:9px;font-size:10px;color:#7890aa;line-height:1.4}
   .trade-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.trade-dialog-cell{padding:11px 12px;border-radius:12px;background:#0f2034;border:1px solid #203750}.trade-dialog-cell span{display:block;font-size:10px;color:#8fa4bb;margin-bottom:5px}.trade-dialog-cell b{font-size:13px}.trade-dialog-note{text-align:center;color:#8fa4bb;font-size:11px;margin-top:16px}.trade-result-icon{width:68px;height:68px;border-radius:50%;margin:2px auto 14px;display:grid;place-items:center;font-size:30px;font-weight:900}.trade-result-icon.won{background:rgba(0,229,160,.12);color:#00e5a0;border:1px solid rgba(0,229,160,.35)}.trade-result-icon.lost{background:rgba(255,99,112,.12);color:#ff6370;border:1px solid rgba(255,99,112,.35)}.trade-result-title{text-align:center;font-size:25px;margin:0 0 4px}.trade-result-pnl{text-align:center;font-size:21px;font-weight:800;margin:0 0 20px}.trade-result-pnl.won{color:#00e5a0}.trade-result-pnl.lost{color:#ff6370}.trade-dialog-close{width:100%;margin-top:18px;border:0;border-radius:12px;padding:13px;background:linear-gradient(135deg,#1688ff,#4478ff);color:#fff;font-weight:800}
-  @media(max-width:720px){.positions-panel{overflow-x:auto}.positions-table-head,.position-row{display:grid!important;grid-template-columns:120px 90px 110px 110px 155px 90px 85px;min-width:760px;padding:12px 14px}.trade-dialog{padding:20px}.trade-count-ring{width:130px;height:130px}}
+  .positions-scroll{width:100%;min-width:0}
+  @media(max-width:720px){
+    .positions-panel{overflow:hidden!important}
+    .positions-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
+    .positions-table-head,.position-row{display:grid!important;grid-template-columns:120px 105px 150px 150px 150px 190px 190px;min-width:1055px;padding:12px 14px;gap:10px}
+    .positions-table-head>*,
+    .position-row>*{display:block!important;min-width:0}
+    .positions-table-head{position:relative}
+    .positions-list{min-width:1055px}
+    .positions-list.empty-state{min-width:100%;width:100%}
+    .position-row .status-pill{display:inline-flex!important}
+    .trade-dialog{padding:20px}.trade-count-ring{width:130px;height:130px}
+  }
   `;
   document.head.appendChild(style);
 
