@@ -469,21 +469,18 @@
   opacity:1!important;
   backface-visibility:visible!important;
   -webkit-backface-visibility:visible!important;
+  transform:translateZ(calc(var(--layer) * -0.375px))!important;
+  image-rendering:auto!important;
 }
 
-.dp-cutout-3d .z6{transform:translateZ(-12px)!important}
-.dp-cutout-3d .z5{transform:translateZ(-10px)!important}
-.dp-cutout-3d .z4{transform:translateZ(-8px)!important}
-.dp-cutout-3d .z3{transform:translateZ(-6px)!important}
-.dp-cutout-3d .z2{transform:translateZ(-4px)!important}
-.dp-cutout-3d .z1{transform:translateZ(-2px)!important}
 .dp-cutout-front{
-  transform:translateZ(2px)!important;
-  z-index:30!important;
+  transform:translateZ(.5px)!important;
+  z-index:40!important;
   filter:none!important;
   opacity:1!important;
   backface-visibility:hidden!important;
   -webkit-backface-visibility:hidden!important;
+  image-rendering:auto!important;
 }
 .dp-cutout-back{
   transform:translateZ(-18px) rotateY(180deg)!important;
@@ -613,4 +610,15 @@
 .dp-cutout-depth{
   box-shadow:none!important;
   text-shadow:none!important;
+}
+
+/* Smooth extrusion: many subpixel slices instead of visible stepped copies. */
+.dp-cutout-3d{
+  transform-style:preserve-3d!important;
+  -webkit-transform-style:preserve-3d!important;
+}
+.dp-cutout-3d>img{
+  image-rendering:auto!important;
+  transform-origin:50% 50%!important;
+  outline:0!important;
 }
