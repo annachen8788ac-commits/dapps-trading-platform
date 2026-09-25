@@ -24,10 +24,7 @@
 .terminal-indicators{display:flex;align-items:center;gap:12px;padding:7px 10px;border-top:1px solid #142231;background:#06101a;overflow-x:auto;white-space:nowrap}
 .terminal-indicators span{font-size:9px;color:#7f91a4}.terminal-indicators b{font-weight:600}.indicator-e7 b{color:#eebc46}.indicator-e25 b{color:#7e9cff}.indicator-e99 b{color:#bf7cff}.indicator-macd b,.indicator-rsi b{color:#55c7e9}
 #page-trade .short-trade-card{border-radius:10px;background:#07101a;border-color:#182737;box-shadow:none}
-.micro-panel{margin-top:8px;border:1px solid #182737;border-radius:10px;background:#060d16;overflow:hidden}
-.micro-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:#162433}
-.micro-grid div{background:#07101a;padding:10px 12px;min-height:56px}.micro-grid span{display:block;color:#61768c;font-size:8px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}.micro-grid strong{font-size:12px}
 #page-trade .positions-panel{border-radius:10px;background:#07101a;border-color:#182737;box-shadow:none}
 #page-trade .panel-heading{border-color:#162433}
-@media(max-width:1180px){#page-trade .trade-grid{grid-template-columns:minmax(0,1fr) 300px}.short-trade-card{grid-column:1/-1}.micro-grid{grid-template-columns:repeat(3,1fr)}#page-trade .chart-stage{height:560px!important}}
-@media(max-width:720px){#page-trade .trade-header{grid-template-columns:1fr 1fr;padding:10px}.terminal-stat,#page-trade .trade-stat{display:none}#page-trade .trade-grid{grid-template-columns:1fr}#page-trade .chart-stage{height:500px!important}.short-trade-card{grid-column:auto}.micro-grid{grid-template-columns:1fr 1fr}.terminal-indicators{padding-bottom:9px}}
+@media(max-width:1180px){#page-trade .trade-grid{grid-template-columns:minmax(0,1fr) 300px}.short-trade-card{grid-column:1/-1}#page-trade .chart-stage{height:560px!important}}
+@media(max-width:720px){#page-trade .trade-header{grid-template-columns:1fr 1fr;padding:10px}.terminal-stat,#page-trade .trade-stat{display:none}#page-trade .trade-grid{grid-template-columns:1fr}#page-trade .chart-stage{height:500px!important}.short-trade-card{grid-column:auto}.terminal-indicators{padding-bottom:9px}}

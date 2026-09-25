@@ -14,20 +14,6 @@
   // Desktop terminal: chart / market depth / execution in one compact workspace.
   grid.appendChild(orderCard);
 
-  const micro=document.createElement('section');
-  micro.className='micro-panel';
-  micro.innerHTML=`
-    <div class="terminal-panel-head"><div class="label"><small>LIQUIDITY SNAPSHOT</small><strong>Market Microstructure</strong></div><span class="terminal-live">CONNECTED</span></div>
-    <div class="micro-grid">
-      <div><span>Best Bid</span><strong id="micro-bid">--</strong></div>
-      <div><span>Best Ask</span><strong id="micro-ask">--</strong></div>
-      <div><span>Spread</span><strong id="micro-spread">--</strong></div>
-      <div><span>Bid Depth</span><strong id="micro-bid-depth">--</strong></div>
-      <div><span>Ask Depth</span><strong id="micro-ask-depth">--</strong></div>
-      <div><span>24H Volume</span><strong id="micro-volume">--</strong></div>
-    </div>`;
-  positions.parentNode.insertBefore(micro,positions);
-
   const volumeStat=document.createElement('div');
   volumeStat.className='terminal-stat';
   volumeStat.innerHTML='<span>24h Volume</span><strong id="trade-volume">--</strong>';
@@ -41,7 +27,7 @@
     const m=activeMarket();if(!m)return;
     const volume=Number(m.volume24h||m.volume||0);
     const text=volume?compact(volume)+' '+code():'--';
-    const a=document.getElementById('trade-volume'),b=document.getElementById('micro-volume');if(a)a.textContent=text;if(b)b.textContent=text;
+    const a=document.getElementById('trade-volume');if(a)a.textContent=text;
   }
   function refresh(){paintStats()}
   window.addEventListener('dapps:markets-updated',paintStats);
