@@ -1,9 +1,9 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Withdraw | DApps Platform</title><link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="wallet.css"><link rel="stylesheet" href="platform-v2.css?v=20260925-2"><link rel="stylesheet" href="design-system.css?v=20260925-9"></head><body class="platform-ui"><div class="shell"><header class="top"><a href="index.html#assets">← Assets</a><span class="brand brand-real-logo"><img class="brand-real-logo-img" src="dp-logo-header.png?v=20260925-4" alt="DApps Platform"><span>DApps Platform</span></span><a href="profile.html">Account</a></header><main class="content"><span class="eyebrow">WALLET</span><h1 class="title">Withdraw</h1><p class="lead">Enter the destination details and submit a withdrawal request for review.</p><div class="tabs"><a href="deposit.html">Deposit</a><a class="active" href="withdraw.html">Withdraw</a></div><div class="card balance"><div><span>Available Balance</span><strong id="balance">—</strong></div><span id="balanceAsset">USDT</span></div><section class="card"><div class="field"><label>Asset</label><select id="asset"><option value="">Loading…</option></select></div><div class="field"><label>Network</label><select id="network"><option value="">Loading…</option></select></div><div class="field"><label>Destination Address</label><input id="address" maxlength="240" placeholder="Enter wallet address"></div><div class="field"><label>Amount</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="Enter amount"><div class="hint" style="margin-top:6px">Submitted amount will be held until the request is reviewed.</div></div><button id="submit" class="submit">Submit Withdrawal</button><div id="msg" class="notice"></div></section><section class="card"><div class="row-top"><strong>Withdrawal History</strong><a href="#" id="refresh" class="muted">Refresh</a></div><div id="history" class="rows"><div class="empty">Loading…</div></div></section></main></div><script src="user-notifications.js?v=20260925-2"></script><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Withdraw | DApps Platform</title><link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="wallet.css"><link rel="stylesheet" href="platform-v2.css?v=20260925-2"><link rel="stylesheet" href="design-system.css?v=20260925-9"></head><body class="platform-ui"><div class="shell"><header class="top"><a href="index.html#assets">← Assets</a><span class="brand brand-real-logo"><img class="brand-real-logo-img" src="dp-logo-header.png?v=20260925-4" alt="DApps Platform"><span>DApps Platform</span></span><a href="profile.html">Account</a></header><main class="content"><span class="eyebrow">WALLET</span><h1 class="title">Withdraw</h1><p class="lead">Enter the destination details and submit a withdrawal request for review.</p><div class="tabs"><a href="deposit.html">Deposit</a><a class="active" href="withdraw.html">Withdraw</a></div><div class="card balance"><div><span>Available Balance</span><strong id="balance">—</strong></div><span id="balanceAsset">USDT</span></div><section class="card"><div class="field"><label>Asset</label><select id="asset"><option value="">Loading…</option></select></div><div class="field"><label>Network</label><select id="network"><option value="">Loading…</option></select></div><div class="field"><label>Destination Address</label><input id="address" maxlength="240" placeholder="Enter wallet address"></div><div class="field"><label>Amount</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="Enter amount"><div class="hint" style="margin-top:6px">Submitted amount will be held until the request is reviewed.</div></div><div class="field"><label>Fund Password</label><input id="fundPassword" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6-digit fund password"><div class="hint" id="fundHint" style="margin-top:6px">Required for every withdrawal.</div></div><button id="submit" class="submit">Submit Withdrawal</button><div id="msg" class="notice"></div></section><section class="card"><div class="row-top"><strong>Withdrawal History</strong><a href="#" id="refresh" class="muted">Refresh</a></div><div id="history" class="rows"><div class="empty">Loading…</div></div></section></main></div><script src="user-notifications.js?v=20260925-2"></script><script>
 const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
 const token=localStorage.getItem('dapps:token');if(!token)location.href='login.html';
 const $=s=>document.querySelector(s);
 const coreAssets=['BTC','ETH','USDC','USDT'];
-let kycApproved=false,networkMeta=[],assetRows=[];
+let kycApproved=false,fundPasswordEnabled=false,networkMeta=[],assetRows=[];
 const digits=a=>a==='BTC'?8:a==='ETH'?6:6;
 const fmt=(n,a='USDT')=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:digits(a)});
 function show(t,e=false){const m=$('#msg');m.textContent=t;m.className='notice '+(e?'err':'ok')}
@@ -28,13 +28,14 @@ function renderNetworks(){
 }
 async function load(){
   try{
-    const [w,a,k,n]=await Promise.all([api('/api/wallet'),api('/api/assets'),api('/api/kyc'),api('/api/wallet/networks')]);
+    const [w,a,k,n,s]=await Promise.all([api('/api/wallet'),api('/api/assets'),api('/api/kyc'),api('/api/wallet/networks'),api('/api/security/fund-password')]);
     assetRows=a.assets||[];networkMeta=n.networks||[];
     renderHistory(w.withdrawals||[]);
-    kycApproved=k.kyc?.status==='approved';
+    kycApproved=k.kyc?.status==='approved';fundPasswordEnabled=Boolean(s.enabled);
     renderAssets();renderNetworks();
-    $('#submit').disabled=!kycApproved;
-    if(!kycApproved)show('Complete identity verification before withdrawing.',true);
+    const hint=$('#fundHint');if(hint)hint.innerHTML=fundPasswordEnabled?'Required for every withdrawal.':'Fund password is not set. <a href="fund-password.html">Set Fund Password</a>';
+    $('#submit').disabled=!kycApproved||!fundPasswordEnabled;
+    if(!kycApproved)show('Complete identity verification before withdrawing.',true);else if(!fundPasswordEnabled)show('Set your fund password before withdrawing.',true);
   }catch(e){show(e.message,true)}
 }
 function renderHistory(rows){$('#history').innerHTML=rows.length?rows.map(x=>`<div class="row"><div class="row-top"><strong>${x.request_no}</strong><span class="status ${x.status}">${x.status}</span></div><div class="muted" style="margin-top:6px">${x.network} · ${fmt(x.amount,x.asset)} ${x.asset} · ${new Date(x.created_at).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'})}</div><div class="muted" style="margin-top:5px;word-break:break-all">${x.destination_address}</div>${x.review_note?`<div class="muted" style="margin-top:5px">${x.review_note}</div>`:''}</div>`).join(''):'<div class="empty">No withdrawal records yet.</div>';rows.filter(x=>x.reviewed_at&&['approved','rejected'].includes(x.status)).forEach(x=>window.userMarkNotification?.('withdrawal',x.request_no,x.reviewed_at))}
@@ -42,18 +43,20 @@ $('#asset').onchange=()=>{renderNetworks();show('')};
 $('#network').onchange=()=>show('');
 $('#submit').onclick=async()=>{
   if(!kycApproved)return show('Complete identity verification before withdrawing.',true);
-  const asset=currentAsset(),amount=Number($('#amount').value),address=$('#address').value.trim(),network=$('#network').value,available=assetBalance(asset);
+  if(!fundPasswordEnabled)return show('Set your fund password before withdrawing.',true);
+  const asset=currentAsset(),amount=Number($('#amount').value),address=$('#address').value.trim(),network=$('#network').value,fundPassword=$('#fundPassword').value.trim(),available=assetBalance(asset);
   if(!network)return show('Select a withdrawal network.',true);
   if(!address||!amount||amount<=0)return show('Enter a valid address and amount.',true);
   if(amount>available)return show(`Insufficient ${asset} balance.`,true);
+  if(!/^\d{6}$/.test(fundPassword))return show('Enter your 6-digit fund password.',true);
   if(!confirm(`Submit ${fmt(amount,asset)} ${asset} withdrawal on ${network}?`))return;
   $('#submit').disabled=true;$('#submit').textContent='Submitting…';
   try{
-    const d=await api('/api/withdrawals',{method:'POST',body:JSON.stringify({asset,network,address,amount})});
+    const d=await api('/api/withdrawals',{method:'POST',body:JSON.stringify({asset,network,address,amount,fundPassword})});
     show(`Withdrawal ${d.withdrawal.requestNo} submitted for review.`);
-    $('#amount').value='';$('#address').value='';await load();
+    $('#amount').value='';$('#address').value='';$('#fundPassword').value='';await load();
   }catch(e){show(e.message,true)}
-  finally{$('#submit').disabled=!kycApproved;$('#submit').textContent='Submit Withdrawal'}
+  finally{$('#submit').disabled=!kycApproved||!fundPasswordEnabled;$('#submit').textContent='Submit Withdrawal'}
 };
 $('#refresh').onclick=e=>{e.preventDefault();load()};
 load();
