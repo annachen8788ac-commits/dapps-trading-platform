@@ -419,3 +419,43 @@
   .tech-chart,.tech-market{overflow:hidden!important;background:#061a35!important}
   .tech-pedestal{z-index:2!important}
 }
+
+
+/* Preserve the supplied DP artwork as one solid mark.
+   Depth is built from full-logo layers so the two loops never self-intersect. */
+.tech-logo-stack{
+  animation:none!important;
+  transform:none!important;
+  perspective:none!important;
+  isolation:isolate!important;
+}
+.tech-logo-stack .tech-logo-layer{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  transform-origin:50% 50%!important;
+  pointer-events:none!important;
+}
+.tech-logo-stack .tech-logo-layer.depth{
+  filter:none!important;
+  opacity:1!important;
+  mix-blend-mode:normal!important;
+}
+.tech-logo-stack .depth-8{transform:translate(-18px,14px)!important;opacity:.46!important}
+.tech-logo-stack .depth-7{transform:translate(-16px,12px)!important;opacity:.52!important}
+.tech-logo-stack .depth-6{transform:translate(-14px,10px)!important;opacity:.58!important}
+.tech-logo-stack .depth-5{transform:translate(-12px,8px)!important;opacity:.64!important}
+.tech-logo-stack .depth-4{transform:translate(-10px,6px)!important;opacity:.70!important}
+.tech-logo-stack .depth-3{transform:translate(-8px,5px)!important;opacity:.76!important}
+.tech-logo-stack .depth-2{transform:translate(-6px,3px)!important;opacity:.82!important}
+.tech-logo-stack .depth-1{transform:translate(-3px,2px)!important;opacity:.90!important}
+.tech-logo-stack .tech-logo-layer.front{
+  transform:none!important;
+  z-index:20!important;
+  filter:brightness(1.08) saturate(1.18)
+    drop-shadow(0 8px 5px rgba(0,4,28,.72))
+    drop-shadow(0 0 13px rgba(0,112,255,.42))!important;
+}
+.tech-logo-canvas,.tech-logo-fallback{display:none!important}
