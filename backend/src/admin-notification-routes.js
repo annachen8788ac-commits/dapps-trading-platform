@@ -10,6 +10,20 @@ export async function initializeAdminNotificationSchema(pool){
     PRIMARY KEY(admin_id,source_type,source_id)
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_notification_reads_admin ON admin_notification_reads(admin_id,read_at DESC)`);
+  await pool.query(`DELETE FROM admin_notification_reads r
+    WHERE r.source_type='ticket'
+      AND NOT EXISTS (SELECT 1 FROM support_tickets t WHERE t.ticket_no=r.source_id)`);
+  const baseline=(await pool.query(`SELECT 1 FROM platform_settings WHERE setting_key='notification_ticket_baseline_v1'`)).rows[0];
+  if(!baseline){
+    await pool.query(`INSERT INTO admin_notification_reads(admin_id,source_type,source_id,read_at)
+      SELECT a.id,'ticket',t.ticket_no,NOW()
+      FROM admins a CROSS JOIN support_tickets t
+      ON CONFLICT(admin_id,source_type,source_id)
+      DO UPDATE SET read_at=NOW()`);
+    await pool.query(`INSERT INTO platform_settings(setting_key,setting_value)
+      VALUES('notification_ticket_baseline_v1',$1::jsonb)
+      ON CONFLICT(setting_key) DO NOTHING`,[JSON.stringify({appliedAt:new Date().toISOString()})]);
+  }
 }
 
 export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
