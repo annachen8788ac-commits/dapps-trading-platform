@@ -3,8 +3,9 @@
   const validPages = new Set(['home','markets','trade','pledge','assets']);
   const demoId=new URLSearchParams(location.search).get('demo');
   const demoMode=Boolean(demoId);
-  function safeGet(key,fallback=null){try{return localStorage.getItem(key)??fallback}catch{return fallback}}
-  function safeSet(key,value){try{localStorage.setItem(key,String(value))}catch{}}
+  function stateStore(){return demoMode?sessionStorage:localStorage}
+  function safeGet(key,fallback=null){try{return stateStore().getItem(key)??fallback}catch{return fallback}}
+  function safeSet(key,value){try{stateStore().setItem(key,String(value))}catch{}}
   function money(v){return Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
   function qty(v){const x=Number(v||0);return x.toLocaleString('en-US',{minimumFractionDigits:x&&Math.abs(x)<1?2:0,maximumFractionDigits:8})}
   function setPrivateTotal(el,value){if(el)el.textContent=value}
