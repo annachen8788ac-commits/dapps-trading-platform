@@ -17,6 +17,10 @@
       .admin-notify-btn:hover{background:#1b2a45}
       .admin-notify-badge{position:absolute;right:-7px;top:-7px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#ff4058;color:#fff;border:2px solid #0b111b;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
       .admin-notify-badge.hidden{display:none}
+      .admin-notify-target{position:relative!important}
+      .admin-section-badge{position:absolute;right:8px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff4058;color:#fff;border:2px solid #06101c;font-size:10px;font-weight:900;line-height:14px;text-align:center;box-shadow:0 0 0 1px rgba(255,64,88,.18)}
+      .tabs .admin-section-badge{right:-7px;top:-7px;transform:none}
+      .quick a.admin-notify-target .admin-section-badge{right:10px;top:10px;transform:none}
       .admin-notify-menu{position:absolute;right:0;top:calc(100% + 10px);width:min(390px,calc(100vw - 28px));max-height:520px;overflow:auto;background:#0e1624;border:1px solid #2a3955;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.5);display:none}
       .admin-notify-menu.open{display:block}
       .admin-notify-head{position:sticky;top:0;background:#0e1624;border-bottom:1px solid #202d43;padding:12px 14px;font-size:13px;font-weight:800;z-index:1}
@@ -48,6 +52,27 @@
     const n=document.createElement('div');n.className='admin-notify-toast';n.innerHTML='<b>'+esc(item.title)+'</b><span>'+esc(item.text)+'</span>';document.body.appendChild(n);
     setTimeout(()=>n.remove(),4500);
   }
+  function targetType(el){
+    const raw=[el.dataset?.section||'',el.dataset?.tab||'',el.getAttribute?.('href')||'',el.getAttribute?.('onclick')||'',el.textContent||''].join(' ').toLowerCase();
+    if(raw.includes('deposits')||raw.includes('充值审核'))return 'deposit';
+    if(raw.includes('withdrawals')||raw.includes('提现审核'))return 'withdrawal';
+    if(raw.includes('/kyc')||raw.includes('身份审核'))return 'kyc';
+    if(raw.includes('support-chat')||raw.includes('在线客服'))return 'support_chat';
+    if(raw.includes('tickets')||raw.includes('客服工单'))return 'ticket';
+    if(raw.includes('recovery')||raw.includes('账号找回'))return 'recovery';
+    return '';
+  }
+  function renderCategoryBadges(){
+    const counts={};for(const item of items)counts[item.type]=(counts[item.type]||0)+1;
+    document.querySelectorAll('.admin-section-badge').forEach(x=>x.remove());
+    document.querySelectorAll('.nav button,.quick a,.tabs button').forEach(el=>{
+      const type=targetType(el),count=counts[type]||0;if(!count)return;
+      el.classList.add('admin-notify-target');
+      const badge=document.createElement('span');badge.className='admin-section-badge';badge.textContent=count>99?'99+':String(count);badge.setAttribute('aria-label',count+' 条未读');el.appendChild(badge);
+    });
+    const card=[...document.querySelectorAll('.card')].find(x=>/待处理工单|Open Tickets/i.test(x.textContent||''));
+    if(card&&(counts.ticket||0)){card.classList.add('admin-notify-target');const badge=document.createElement('span');badge.className='admin-section-badge';badge.textContent=String(counts.ticket);card.appendChild(badge)}
+  }
   function render(){
     mount();
     const wrap=document.getElementById('adminNotifications');if(!wrap)return;
@@ -55,6 +80,7 @@
     badge.textContent=items.length>99?'99+':String(items.length);badge.classList.toggle('hidden',items.length===0);
     list.innerHTML=items.length?items.map((x,i)=>`<button type="button" class="admin-notify-item" data-i="${i}"><div class="admin-notify-title">${esc(x.title)}</div><div class="admin-notify-text">${esc(x.text)}</div><div class="admin-notify-time">${esc(dt(x.createdAt))}</div></button>`).join(''):'<div class="admin-notify-empty">暂无未读通知</div>';
     list.querySelectorAll('[data-i]').forEach(btn=>btn.onclick=()=>openItem(items[Number(btn.dataset.i)]));
+    renderCategoryBadges();
   }
   async function openItem(item){
     try{await api('/notifications/read',{method:'POST',body:JSON.stringify({sourceType:item.type,sourceId:item.sourceId,seenAt:item.createdAt})})}catch{}
