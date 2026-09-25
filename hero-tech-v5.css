@@ -501,3 +501,20 @@
 @media(prefers-reduced-motion:reduce){
   .dp-hero-logo-exact{animation:dpHeroExactTurn 6.8s ease-in-out infinite!important}
 }
+
+/* The logo is one WebGL solid above the globe; its static face is the fallback. */
+.tech-logo-stage{transform:none!important;transform-style:flat!important;isolation:isolate!important;z-index:20!important}
+.tech-logo-stage .tech-logo-glow{display:none!important}
+.dp-logo-solid,.dp-hero-logo-exact{
+  position:absolute!important;left:50%!important;top:50%!important;
+  width:min(420px,84%)!important;height:350px!important;max-height:90%!important;
+  transform:translate(-50%,-50%)!important;filter:none!important;
+}
+.dp-logo-solid{z-index:3!important;display:block!important;pointer-events:none;opacity:0}
+.dp-logo-solid.ready{opacity:1}
+.dp-hero-logo-exact{z-index:2!important;animation:none!important;will-change:auto!important}
+.dp-logo-solid.ready+.dp-hero-logo-exact{visibility:hidden!important}
+@media(max-width:720px){
+  .tech-logo-stage{transform:translateX(-50%)!important}
+  .dp-logo-solid,.dp-hero-logo-exact{width:min(290px,95%)!important;height:230px!important;max-height:none!important}
+}
