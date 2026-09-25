@@ -33,3 +33,8 @@
   .asset-main strong{font-size:23px!important}.asset-side strong{font-size:12px!important}.six-actions button{height:74px!important}.six-actions b{font-size:9px!important}
   .home-market-row{grid-template-columns:28px 1.18fr .9fr .72fr 12px!important}.promo-card h3{font-size:17px!important}
 }
+@media (max-width:720px){
+  .market-strip-v3>div{min-width:0!important;gap:8px!important}
+  .market-strip-v3 span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .market-strip-v3 b{min-width:0!important;max-width:55%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:right!important;font-size:clamp(9px,2.7vw,12px)!important;font-variant-numeric:tabular-nums}
+}

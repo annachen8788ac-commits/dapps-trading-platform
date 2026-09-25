@@ -17,7 +17,19 @@
     .pair-search:focus{border-color:#4d7cff}.pair-list{max-height:370px;overflow:auto;padding:6px}
     .pair-item{width:100%;border:0;background:transparent;color:#dce4f3;border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;cursor:pointer;text-align:left}
     .pair-item:hover,.pair-item.active{background:#1b2232}.pair-item .left{display:flex;align-items:center;gap:9px}.pair-item .mini-icon{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:8px;font-weight:800}.pair-item strong{font-size:12px}.pair-item small{display:block;color:#7f8a9f;margin-top:2px}.pair-item .price{text-align:right}.pair-item .price b{display:block;font-size:12px}.pair-item .price span{font-size:10px}
-    @media(max-width:720px){#page-markets .market-table-head,#page-markets .market-row{grid-template-columns:1.45fr 1fr .85fr}#page-markets .market-table-head span:nth-child(4),#page-markets .market-row>*:nth-child(4){display:none}.trade-pair-selector{margin-left:0}.pair-select-btn{padding:6px 8px}.pair-menu{position:fixed;left:12px;right:12px;bottom:78px;top:auto;width:auto;max-height:66vh;border-radius:16px}.pair-list{max-height:56vh}}
+    @media(max-width:720px){
+      #page-markets .market-table-head,#page-markets .market-row{grid-template-columns:minmax(0,1.45fr) minmax(0,.95fr) minmax(0,.72fr);gap:6px;padding:11px 8px}
+      #page-markets .market-table-head span:nth-child(4),#page-markets .market-row>*:nth-child(4){display:none}
+      #page-markets .market-row>*{min-width:0}
+      #page-markets .market-name{min-width:0;gap:7px;overflow:hidden}
+      #page-markets .market-name>div{min-width:0;overflow:hidden}
+      #page-markets .market-name strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+      #page-markets .market-name small{display:none!important}
+      #page-markets .market-row>strong{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:clamp(8px,2.55vw,10px);font-variant-numeric:tabular-nums}
+      #page-markets .market-table-head span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:8px}
+      #page-markets .market-table-head span:nth-child(n+2){text-align:right}
+      .trade-pair-selector{margin-left:0;min-width:0}.pair-select-btn{padding:6px 8px;max-width:100%}.pair-menu{position:fixed;left:12px;right:12px;bottom:78px;top:auto;width:auto;max-height:66vh;border-radius:16px}.pair-list{max-height:56vh}
+    }
   `;
   document.head.appendChild(style);
 
