@@ -512,9 +512,16 @@
 }
 .dp-logo-solid{z-index:3!important;display:block!important;pointer-events:none;opacity:0}
 .dp-logo-solid.ready{opacity:1}
-.dp-hero-logo-exact{z-index:2!important;animation:dpCleanTurn 14s linear infinite!important;will-change:transform!important}
+/* Keep the fallback still while the real extruded canvas warms up.
+   Starting the flat SVG rotation here caused the first-load "paper logo" flash. */
+.dp-hero-logo-exact{
+  z-index:2!important;
+  animation:none!important;
+  transform:translate(-50%,-50%) rotateX(-4deg) rotateY(-24deg)!important;
+  will-change:auto!important;
+}
+.dp-logo-solid{transition:opacity .12s ease-out}
 .dp-logo-solid.ready+.dp-hero-logo-exact{visibility:hidden!important}
-@keyframes dpCleanTurn{from{transform:translate(-50%,-50%) rotateY(0)}to{transform:translate(-50%,-50%) rotateY(360deg)}}
 @media(max-width:720px){
   .tech-logo-stage{transform:translateX(-50%)!important}
   .dp-logo-solid,.dp-hero-logo-exact{width:min(310px,97%)!important;height:245px!important;max-height:none!important}

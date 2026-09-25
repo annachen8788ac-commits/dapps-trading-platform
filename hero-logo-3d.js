@@ -6,11 +6,15 @@
   const ctx = canvas.getContext('2d', { alpha: true });
   if (!ctx) return;
   const sourceUrl = 'dp-logo-separated.svg?v=20260925-7';
+  const svgTextPromise = fetch(sourceUrl, { cache: 'force-cache' }).then(r => {
+    if (!r.ok) throw new Error('Logo SVG request failed');
+    return r.text();
+  });
   const image = new Image();
   image.onload = async () => {
     let contours;
     try {
-      const documentSVG = new DOMParser().parseFromString(await (await fetch(sourceUrl)).text(), 'image/svg+xml');
+      const documentSVG = new DOMParser().parseFromString(await svgTextPromise, 'image/svg+xml');
       contours = [...documentSVG.querySelectorAll('path')].map(path => {
         const points = [];
         const length = path.getTotalLength();
