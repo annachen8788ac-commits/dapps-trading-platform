@@ -5,11 +5,13 @@ DApps Platform USA trading-platform repository.
 ## Structure
 
 - `index.html` — main responsive trading client
-- `app.css` — consolidated main-client styles
-- `utility-ui.css` — shared styles for account/utility pages
-- `account.css` — account/auth page-specific styles
-- `wallet.css` — deposit/withdraw page-specific styles
-- `hero-ui.js` — consolidated hero/brand visual runtime
+- `assets/css/app.css` — consolidated main-client styles
+- `assets/css/utility-ui.css` — shared styles for account/utility pages
+- `assets/css/account.css` — account/auth page-specific styles
+- `assets/css/wallet.css` — deposit/withdraw page-specific styles
+- `assets/js/platform-core.js` — consolidated main runtime modules
+- `assets/js/platform-ui.js` — consolidated UI runtime modules
+- `assets/js/hero-ui.js` — consolidated hero/brand visual runtime
 - `backend/` — Express API service with PostgreSQL persistence
 - `admin-panel/` — separate Express-served administration interface
 - `.github/workflows/pages.yml` — static frontend deployment workflow
