@@ -36,3 +36,6 @@ input:focus,select:focus,textarea:focus,.search:focus{border-color:rgba(55,160,2
 /* Strong current-location states */
 .nav button.active{box-shadow:inset 3px 0 0 var(--cyan)!important;background:linear-gradient(135deg,rgba(11,116,255,.22),rgba(24,217,243,.11))!important;color:#fff!important}.tabs button.active{box-shadow:inset 0 -2px 0 var(--cyan),0 0 0 1px rgba(24,217,243,.12)!important;color:#fff!important}
 
+
+/* Layout containment: keep dense admin content inside the viewport. */
+.main,.panel,.card{min-width:0}.table-wrap,.table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table,.table table{min-width:max-content}img,svg,canvas{max-width:100%}
