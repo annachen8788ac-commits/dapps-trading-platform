@@ -63,12 +63,18 @@ export function registerSupportChatRoutes(app,{pool,auth,adminAuth,audit}){
     }catch(e){console.error(e);res.status(500).json({error:'Unable to clear chat messages'});}
   });
   app.delete('/api/admin/support/chats/:id',adminAuth,async(req,res)=>{
+    const client=await pool.connect();
     try{
-      const q=await pool.query(`DELETE FROM support_conversations WHERE id=$1 RETURNING id`,[req.params.id]);
-      if(!q.rows[0])return res.status(404).json({error:'Chat not found'});
+      await client.query('BEGIN');
+      const q=await client.query(`DELETE FROM support_conversations WHERE id=$1 RETURNING id`,[req.params.id]);
+      if(!q.rows[0]){await client.query('ROLLBACK');return res.status(404).json({error:'Chat not found'})}
+      await client.query(`DELETE FROM admin_notification_reads WHERE source_type='support_chat' AND source_id=$1`,[String(req.params.id)]);
+      await client.query(`DELETE FROM user_notification_reads WHERE source_type='support_chat' AND source_id=$1`,[String(req.params.id)]);
+      await client.query('COMMIT');
       await audit(req,'support.conversation.delete','support_chat',req.params.id,{});
       res.json({ok:true});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to delete chat'});}
+    }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Unable to delete chat'});}
+    finally{client.release()}
   });
 
   app.post('/api/admin/support/chats/:id/messages',adminAuth,async(req,res)=>{const message=clean(req.body?.message);if(!message)return res.status(400).json({error:'Message is required'});try{const q=await pool.query(`INSERT INTO support_messages(conversation_id,sender_type,sender_id,message) SELECT id,'admin',$2,$3 FROM support_conversations WHERE id=$1 RETURNING id,created_at`,[req.params.id,req.admin.id,message]);if(!q.rows[0])return res.status(404).json({error:'Chat not found'});await pool.query(`UPDATE support_conversations SET assigned_admin=$2,status='open',updated_at=NOW() WHERE id=$1`,[req.params.id,req.admin.id]);await audit(req,'support.reply','support_chat',req.params.id,{});res.status(201).json({ok:true})}catch(e){console.error(e);res.status(500).json({error:'Unable to send reply'})}});
