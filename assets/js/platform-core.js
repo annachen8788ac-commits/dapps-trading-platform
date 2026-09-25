@@ -632,7 +632,6 @@ if(window.__marketConfigReady?.then){
   const api=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
   const activeMarket=()=>typeof currentMarket!=='undefined'?currentMarket:null;
   const code=()=>String(activeMarket()?.symbol||'BTC/USDT').split('/')[0].toUpperCase();
-  const money=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:decimals(Number(v)||0),maximumFractionDigits:decimals(Number(v)||0)});
   const compact=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:4});
 
   // Desktop terminal: chart / market depth / execution in one compact workspace.
@@ -642,11 +641,6 @@ if(window.__marketConfigReady?.then){
   volumeStat.className='terminal-stat';
   volumeStat.innerHTML='<span>24h Volume</span><strong id="trade-volume">--</strong>';
   page.querySelector('.trade-header')?.appendChild(volumeStat);
-  function prepCanvas(id){
-    const canvas=document.getElementById(id);if(!canvas)return null;const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
-    if(rect.width<10||rect.height<10)return null;canvas.width=Math.floor(rect.width*dpr);canvas.height=Math.floor(rect.height*dpr);const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,rect.width,rect.height);return {canvas,ctx,w:rect.width,h:rect.height};
-  }
-  async function get(url,controller){const r=await fetch(url,{cache:'no-store',signal:controller.signal});if(!r.ok)throw Error(String(r.status));return r.json()}
   function paintStats(){
     const m=activeMarket();if(!m)return;
     const volume=Number(m.volume24h||m.volume||0);
