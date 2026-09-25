@@ -516,3 +516,90 @@
 @media(prefers-reduced-motion:reduce){
   .dp-cutout-3d{animation:dpCutoutTurn 8s linear infinite!important}
 }
+
+
+/* Institutional trading visual pass: restrained, data-first, premium. */
+@media(min-width:1101px){
+  .tech-logo-stage{
+    right:-18px!important;
+    top:118px!important;
+    width:520px!important;
+    height:390px!important;
+  }
+  .dp-cutout-3d{
+    width:385px!important;
+    height:312px!important;
+    max-width:90%!important;
+    animation-duration:11s!important;
+  }
+  .tech-globe{
+    width:440px!important;
+    height:440px!important;
+    right:70px!important;
+    top:-28px!important;
+    opacity:.42!important;
+    filter:drop-shadow(0 0 8px rgba(0,112,255,.12))!important;
+  }
+  .tech-visual::before{
+    opacity:.34!important;
+    filter:none!important;
+  }
+  .tech-orbit{
+    opacity:.22!important;
+    border-width:1px!important;
+    box-shadow:none!important;
+  }
+  .tech-orbit.o1{opacity:.28!important}
+  .tech-orbit.o2{opacity:.18!important}
+  .tech-orbit.o3{opacity:.12!important}
+
+  .tech-chart{
+    left:-8px!important;
+    top:20px!important;
+    width:178px!important;
+  }
+  .tech-market{
+    right:-2px!important;
+    top:-58px!important;
+    width:214px!important;
+  }
+  .tech-map{
+    right:-4px!important;
+    bottom:-8px!important;
+    width:190px!important;
+  }
+}
+.tech-hud{
+  background:#06162b!important;
+  border:1px solid rgba(74,131,190,.34)!important;
+  box-shadow:0 14px 34px rgba(0,4,18,.38)!important;
+  backdrop-filter:none!important;
+}
+.tech-chart b{
+  color:#dff7ff!important;
+  font-weight:700!important;
+}
+.tech-market-row span,
+.tech-market-row b{
+  color:#e7f0f8!important;
+}
+.tech-market-row em{
+  color:#42d6a4!important;
+  text-shadow:none!important;
+}
+.tech-logo-glow{
+  opacity:.30!important;
+  filter:blur(10px)!important;
+}
+.tech-pedestal{
+  opacity:.42!important;
+  box-shadow:0 0 12px rgba(17,170,255,.22)!important;
+}
+.tech-bars{
+  opacity:.48!important;
+  filter:none!important;
+}
+.tech-scan,
+.tech-particle{
+  opacity:.22!important;
+}
