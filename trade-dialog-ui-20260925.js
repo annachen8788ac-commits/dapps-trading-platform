@@ -39,7 +39,7 @@
   .trade-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.trade-dialog-cell{padding:11px 12px;border-radius:12px;background:#0f2034;border:1px solid #203750}.trade-dialog-cell span{display:block;font-size:10px;color:#8fa4bb;margin-bottom:5px}.trade-dialog-cell b{font-size:13px}.trade-dialog-note{text-align:center;color:#8fa4bb;font-size:11px;margin-top:16px}.trade-result-icon{width:68px;height:68px;border-radius:50%;margin:2px auto 14px;display:grid;place-items:center;font-size:30px;font-weight:900}.trade-result-icon.won{background:rgba(0,229,160,.12);color:#00e5a0;border:1px solid rgba(0,229,160,.35)}.trade-result-icon.lost{background:rgba(255,99,112,.12);color:#ff6370;border:1px solid rgba(255,99,112,.35)}.trade-result-title{text-align:center;font-size:25px;margin:0 0 4px}.trade-result-pnl{text-align:center;font-size:21px;font-weight:800;margin:0 0 20px}.trade-result-pnl.won{color:#00e5a0}.trade-result-pnl.lost{color:#ff6370}.trade-dialog-close{width:100%;margin-top:18px;border:0;border-radius:12px;padding:13px;background:linear-gradient(135deg,#1688ff,#4478ff);color:#fff;font-weight:800}
   .positions-scroll{width:100%;min-width:0}
   @media(max-width:720px){
-    .positions-panel{overflow:hidden!important}
+    .positions-panel{overflow:clip!important}
     .positions-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
     .positions-table-head,.position-row{display:grid!important;grid-template-columns:120px 105px 150px 150px 150px 190px 190px;min-width:1055px;padding:12px 14px;gap:10px}
     .positions-table-head>*,
