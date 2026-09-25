@@ -465,29 +465,19 @@
   transform-origin:50% 50%!important;
 }
 .dp-cutout-depth{
-  filter:brightness(.42) saturate(1.12)!important;
+  filter:none!important;
   opacity:1!important;
   backface-visibility:visible!important;
   -webkit-backface-visibility:visible!important;
 }
-.dp-cutout-3d .z18{transform:translateZ(-54px)!important}
-.dp-cutout-3d .z17{transform:translateZ(-51px)!important}
-.dp-cutout-3d .z16{transform:translateZ(-48px)!important}
-.dp-cutout-3d .z15{transform:translateZ(-45px)!important}
-.dp-cutout-3d .z14{transform:translateZ(-42px)!important}
-.dp-cutout-3d .z13{transform:translateZ(-39px)!important}
-.dp-cutout-3d .z12{transform:translateZ(-36px)!important}
-.dp-cutout-3d .z11{transform:translateZ(-33px)!important}
-.dp-cutout-3d .z10{transform:translateZ(-30px)!important}
-.dp-cutout-3d .z9{transform:translateZ(-27px)!important}
-.dp-cutout-3d .z8{transform:translateZ(-24px)!important}
-.dp-cutout-3d .z7{transform:translateZ(-21px)!important}
-.dp-cutout-3d .z6{transform:translateZ(-18px)!important}
-.dp-cutout-3d .z5{transform:translateZ(-15px)!important}
-.dp-cutout-3d .z4{transform:translateZ(-12px)!important}
-.dp-cutout-3d .z3{transform:translateZ(-9px)!important}
-.dp-cutout-3d .z2{transform:translateZ(-6px)!important}
-.dp-cutout-3d .z1{transform:translateZ(-3px)!important}
+.dp-cutout-3d .z8{transform:translateZ(-16px)!important}
+.dp-cutout-3d .z7{transform:translateZ(-14px)!important}
+.dp-cutout-3d .z6{transform:translateZ(-12px)!important}
+.dp-cutout-3d .z5{transform:translateZ(-10px)!important}
+.dp-cutout-3d .z4{transform:translateZ(-8px)!important}
+.dp-cutout-3d .z3{transform:translateZ(-6px)!important}
+.dp-cutout-3d .z2{transform:translateZ(-4px)!important}
+.dp-cutout-3d .z1{transform:translateZ(-2px)!important}
 .dp-cutout-front{
   transform:translateZ(2px)!important;
   z-index:30!important;
@@ -497,9 +487,9 @@
   -webkit-backface-visibility:hidden!important;
 }
 .dp-cutout-back{
-  transform:translateZ(-57px) rotateY(180deg)!important;
+  transform:translateZ(-18px) rotateY(180deg)!important;
   z-index:1!important;
-  filter:brightness(.62) saturate(1.08)!important;
+  filter:none!important;
   opacity:1!important;
   backface-visibility:hidden!important;
   -webkit-backface-visibility:hidden!important;
