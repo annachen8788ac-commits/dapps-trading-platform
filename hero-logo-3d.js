@@ -68,11 +68,11 @@
       bevelCtx.drawImage(side, -w / 2, -h / 2, w, h);
       bevelCtx.globalCompositeOperation = 'destination-out';
       bevelCtx.setTransform(c, 0, 0, 1,
-        w / 2 + faceZ + (s >= 0 ? 1 : -1) * (5 + 9 * Math.abs(s)) * dpr, h / 2);
+        w / 2 + faceZ + (s >= 0 ? 1 : -1) * (10 + 12 * Math.abs(s)) * dpr, h / 2);
       bevelCtx.drawImage(image, -w / 2, -h / 2, w, h);
       bevelCtx.globalCompositeOperation = 'source-over';
       bevelCtx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = .42 * (1 - sideOpacity);
+      ctx.globalAlpha = .57 * (1 - sideOpacity);
       ctx.drawImage(bevelLayer, 0, 0);
       ctx.globalAlpha = 1;
 
