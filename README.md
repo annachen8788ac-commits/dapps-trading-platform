@@ -1,29 +1,47 @@
 # DApps Trading Platform
 
-First runnable frontend prototype for DApps Platform USA.
+DApps Platform USA trading-platform repository.
 
-## Included
+## Structure
 
-- Responsive desktop and mobile UI
-- Markets: BTC, ETH, XAU, XAG, XRP, LTC, BNB, SOL, DOGE, TRX
-- Short-term demo trading interface with Up / Down direction and duration selection
-- Simulated market-price movement and demo trade settlement
-- Pledge products and demo portfolio interactions
-- Assets page
-- No build step and no framework dependency
+- `index.html` — main responsive trading client
+- `app.css` — consolidated main-client styles
+- `utility-ui.css` — shared styles for account/utility pages
+- `account.css` — account/auth page-specific styles
+- `wallet.css` — deposit/withdraw page-specific styles
+- `hero-ui.js` — consolidated hero/brand visual runtime
+- `backend/` — Express API service with PostgreSQL persistence
+- `admin-panel/` — separate Express-served administration interface
+- `.github/workflows/pages.yml` — static frontend deployment workflow
 
-## Run locally
+## Frontend
 
-Open `index.html` directly in a browser, or serve the folder with any static HTTP server.
+The client is intentionally framework-free and has no frontend build step. GitHub Pages publishes the root static frontend while excluding the backend and admin-panel directories.
 
-Example:
+The main trading page loads consolidated style and visual bundles to reduce legacy CSS/JS layering while preserving the existing responsive behavior.
+
+## Backend
+
+The backend is a Node.js/Express service using PostgreSQL. Its dependencies and runtime configuration live under `backend/`.
+
+## Admin
+
+The administration interface is isolated under `admin-panel/` and is deployed separately from the static client.
+
+## Local development
+
+For the static frontend:
 
 ```bash
 python -m http.server 8080
 ```
 
-Then open `http://localhost:8080`.
+For backend/admin development, install dependencies inside the relevant directory and use the scripts defined in that directory's `package.json`.
+
+## Configuration
+
+Environment secrets must not be committed. Use the checked-in `.env.example` files as configuration references.
 
 ## Important
 
-This repository currently contains a UI/product prototype using simulated balances and simulated execution. It does not include real-money trading, custody, deposits, withdrawals, KYC, matching, settlement, or production financial infrastructure.
+This repository contains application code for client, backend, and administrative workflows. Deployment, security, financial controls, custody, compliance, and production-readiness requirements must be independently reviewed and validated before relying on the system for regulated or real-money activity.
