@@ -51,6 +51,8 @@ async function initializeDatabase(){
     subject VARCHAR(120) NOT NULL,message TEXT NOT NULL,status VARCHAR(24) NOT NULL DEFAULT 'open',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_tickets_user_created ON support_tickets(user_id,created_at DESC)`);
+  const oneTimeTicketCleanup=await pool.query(`DELETE FROM support_tickets RETURNING ticket_no`);
+  console.log('[one-time-support-ticket-cleanup]',JSON.stringify({deleted:oneTimeTicketCleanup.rowCount,tickets:oneTimeTicketCleanup.rows.map(r=>r.ticket_no)}));
   await pool.query(`CREATE TABLE IF NOT EXISTS admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),email VARCHAR(190) UNIQUE NOT NULL,display_name VARCHAR(80) NOT NULL,
     password_hash TEXT NOT NULL,role VARCHAR(32) NOT NULL DEFAULT 'super_admin',status VARCHAR(20) NOT NULL DEFAULT 'active',
