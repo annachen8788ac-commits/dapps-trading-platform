@@ -1,29 +1,33 @@
-/* Rotate the two original logo pieces with a clean, contained bevel. */
+/* Extrude the two vector outlines as one rotating DP mark. */
 (() => {
   const canvas = document.querySelector('.dp-logo-solid');
   const fallback = document.querySelector('.dp-hero-logo-exact');
   if (!canvas || !fallback) return;
   const ctx = canvas.getContext('2d', { alpha: true });
   if (!ctx) return;
-
+  const sourceUrl = 'dp-logo-separated.svg?v=20260925-7';
   const image = new Image();
-  image.onload = () => {
-    const side = document.createElement('canvas');
-    side.width = 758; side.height = 620;
-    const sideCtx = side.getContext('2d');
-    sideCtx.drawImage(image, 0, 0, side.width, side.height);
-    sideCtx.globalCompositeOperation = 'source-in';
-    const gradient = sideCtx.createLinearGradient(0, 0, side.width, side.height * .24);
-    gradient.addColorStop(0, '#053e9b');
-    gradient.addColorStop(.48, '#087cc8');
-    gradient.addColorStop(1, '#079dca');
-    sideCtx.fillStyle = gradient;
-    sideCtx.fillRect(0, 0, side.width, side.height);
+  image.onload = async () => {
+    let contours;
+    try {
+      const documentSVG = new DOMParser().parseFromString(await (await fetch(sourceUrl)).text(), 'image/svg+xml');
+      contours = [...documentSVG.querySelectorAll('path')].map(path => {
+        const points = [];
+        const length = path.getTotalLength();
+        const count = Math.ceil(length / 1.5);
+        for (let i = 0; i < count; i++) {
+          const p = path.getPointAtLength(i * length / count);
+          points.push([p.x, p.y]);
+        }
+        const area = points.reduce((sum, p, i) => {
+          const q = points[(i + 1) % points.length];
+          return sum + p[0] * q[1] - q[0] * p[1];
+        }, 0);
+        return { points, orientation: Math.sign(area) || 1 };
+      });
+      if (contours.length !== 2 || contours.some(c => c.points.length < 3)) return;
+    } catch (error) { console.warn('Logo contour unavailable', error); return; }
 
-    const sideLayer = document.createElement('canvas');
-    const sideCtx2 = sideLayer.getContext('2d');
-    const bevelLayer = document.createElement('canvas');
-    const bevelCtx = bevelLayer.getContext('2d');
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let start;
     function draw(time) {
@@ -32,55 +36,52 @@
       const h = Math.round(canvas.clientHeight * dpr);
       if (!w || !h) { requestAnimationFrame(draw); return; }
       if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = sideLayer.width = bevelLayer.width = w;
-        canvas.height = sideLayer.height = bevelLayer.height = h;
+        canvas.width = w; canvas.height = h;
       }
       if (start === undefined) start = time;
       const angle = reducedMotion ? -.4 : -.4 + (time - start) * Math.PI * 2 / 14000;
       const c = Math.cos(angle), s = Math.sin(angle);
-      const halfDepth = 20 * dpr;
-      const faceZ = (c >= 0 ? halfDepth : -halfDepth) * s;
+      const depth = 20 * dpr;
       ctx.clearRect(0, 0, w, h);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // The full 40px side is exposed as the logo turns edge-on.
-      const sideOpacity = Math.max(0, Math.min(1, (.38 - Math.abs(c)) / .23));
-      if (sideOpacity) {
-        sideCtx2.clearRect(0, 0, w, h);
-        for (let i = 0; i <= 64; i++) {
-          const z = (c >= 0 ? -1 : 1) * halfDepth * (1 - i / 32);
-          sideCtx2.setTransform(c, 0, 0, 1, w / 2 + z * s, h / 2);
-          sideCtx2.drawImage(side, -w / 2, -h / 2, w, h);
+      // Only side facets facing the viewer are drawn. The face masks the rest.
+      if (Math.abs(s) > .003) {
+        ctx.beginPath();
+        for (const contour of contours) {
+          const pts = contour.points;
+          for (let i = 0; i < pts.length; i++) {
+            const p = pts[i], q = pts[(i + 1) % pts.length];
+            const dx = q[0] - p[0], dy = q[1] - p[1];
+            if (-contour.orientation * dy * s <= 0 || dx * dx + dy * dy < .001) continue;
+            const px = w / 2 + (p[0] / 379 - .5) * w * c;
+            const qx = w / 2 + (q[0] / 379 - .5) * w * c;
+            const py = p[1] / 310 * h, qy = q[1] / 310 * h;
+            ctx.moveTo(px - depth * s, py);
+            ctx.lineTo(qx - depth * s, qy);
+            ctx.lineTo(qx + depth * s, qy);
+            ctx.lineTo(px + depth * s, py);
+            ctx.closePath();
+          }
         }
-        sideCtx2.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = sideOpacity;
-        ctx.drawImage(sideLayer, 0, 0);
-        ctx.globalAlpha = 1;
+        const sideColor = ctx.createLinearGradient(w * .18, 0, w * .92, h);
+        sideColor.addColorStop(0, '#064293');
+        sideColor.addColorStop(.55, '#075fb0');
+        sideColor.addColorStop(1, '#087fae');
+        ctx.fillStyle = sideColor;
+        ctx.fill();
       }
 
-      // A shaded bevel stays within the face. Nothing sticks into its gaps.
+      const faceZ = (c >= 0 ? depth : -depth) * s;
       ctx.setTransform(c, 0, 0, 1, w / 2 + faceZ, h / 2);
       ctx.drawImage(image, -w / 2, -h / 2, w, h);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      bevelCtx.clearRect(0, 0, w, h);
-      bevelCtx.setTransform(c, 0, 0, 1, w / 2 + faceZ, h / 2);
-      bevelCtx.drawImage(side, -w / 2, -h / 2, w, h);
-      bevelCtx.globalCompositeOperation = 'destination-out';
-      bevelCtx.setTransform(c, 0, 0, 1,
-        w / 2 + faceZ + (s >= 0 ? 1 : -1) * (10 + 12 * Math.abs(s)) * dpr, h / 2);
-      bevelCtx.drawImage(image, -w / 2, -h / 2, w, h);
-      bevelCtx.globalCompositeOperation = 'source-over';
-      bevelCtx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = .57 * (1 - sideOpacity);
-      ctx.drawImage(bevelLayer, 0, 0);
-      ctx.globalAlpha = 1;
-
       if (!canvas.classList.contains('ready')) canvas.classList.add('ready');
       if (!reducedMotion) requestAnimationFrame(draw);
     }
     requestAnimationFrame(draw);
   };
   image.onerror = () => console.warn('Logo source unavailable');
-  image.src = 'dp-logo-separated.svg?v=20260925-5';
+  image.src = sourceUrl;
 })();
