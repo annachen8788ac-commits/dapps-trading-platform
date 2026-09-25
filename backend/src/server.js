@@ -9,6 +9,7 @@ import { initializeWalletSchema, registerWalletRoutes } from './wallet-routes.js
 import { initializeKycSchema, registerKycRoutes } from './kyc-routes.js';
 import { initializeAdminNotificationSchema, registerAdminNotificationRoutes } from './admin-notification-routes.js';
 import { initializeUserNotificationSchema, registerUserNotificationRoutes } from './user-notification-routes.js';
+import { initializeSupportChatSchema, registerSupportChatRoutes } from './support-chat-routes.js';
 
 const { Pool } = pg;
 const app = express();
@@ -83,6 +84,7 @@ async function initializeDatabase(){
   await initializeAdminNotificationSchema(pool);
   await initializeWalletSchema(pool);
   await initializeKycSchema(pool);
+  await initializeSupportChatSchema(pool);
   await initializeUserNotificationSchema(pool);
 }
 
@@ -292,6 +294,7 @@ app.get('/api/admin/audit-logs',adminAuth,requireRole('super_admin','compliance'
 
 registerWalletRoutes(app,{pool,auth,adminAuth,requireRole,audit});
 registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit});
+registerSupportChatRoutes(app,{pool,auth,adminAuth,audit});
 registerAdminNotificationRoutes(app,{pool,adminAuth});
 registerUserNotificationRoutes(app,{pool,auth});
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error'});});
