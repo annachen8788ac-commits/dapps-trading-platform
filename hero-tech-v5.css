@@ -508,7 +508,7 @@
 .dp-logo-solid,.dp-hero-logo-exact{
   position:absolute!important;left:50%!important;top:50%!important;
   width:min(462px,92%)!important;height:380px!important;max-height:96%!important;
-  transform:translate(-50%,-50%)!important;filter:none!important;
+  transform:translate(-50%,-50%);filter:none!important;
 }
 .dp-logo-solid{z-index:3!important;display:block!important;pointer-events:none;opacity:0}
 .dp-logo-solid.ready{opacity:1}
