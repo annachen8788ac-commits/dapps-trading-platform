@@ -470,8 +470,7 @@
   backface-visibility:visible!important;
   -webkit-backface-visibility:visible!important;
 }
-.dp-cutout-3d .z8{transform:translateZ(-16px)!important}
-.dp-cutout-3d .z7{transform:translateZ(-14px)!important}
+
 .dp-cutout-3d .z6{transform:translateZ(-12px)!important}
 .dp-cutout-3d .z5{transform:translateZ(-10px)!important}
 .dp-cutout-3d .z4{transform:translateZ(-8px)!important}
@@ -602,4 +601,16 @@
 .tech-scan,
 .tech-particle{
   opacity:.22!important;
+}
+
+/* 3D logo uses physical extrusion only; remove flat shadow/glow treatment. */
+.tech-logo-glow{
+  display:none!important;
+}
+.dp-cutout-3d,
+.dp-cutout-3d>img,
+.dp-cutout-front,
+.dp-cutout-depth{
+  box-shadow:none!important;
+  text-shadow:none!important;
 }
