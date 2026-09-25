@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import pg from 'pg';
 import { initializeWalletSchema, registerWalletRoutes } from './wallet-routes.js';
 import { initializeKycSchema, registerKycRoutes } from './kyc-routes.js';
+import { initializeAdminNotificationSchema, registerAdminNotificationRoutes } from './admin-notification-routes.js';
 
 const { Pool } = pg;
 const app = express();
@@ -78,6 +79,7 @@ async function initializeDatabase(){
   for(let i=0;i<marketSymbols.length;i++)await pool.query(`INSERT INTO market_settings(symbol,display_name,sort_order) VALUES($1,$1,$2) ON CONFLICT(symbol) DO NOTHING`,[marketSymbols[i],i+1]);
   await pool.query(`INSERT INTO platform_settings(setting_key,setting_value) VALUES('general',$1::jsonb) ON CONFLICT(setting_key) DO NOTHING`,[JSON.stringify({platformName:'DApps Platform',announcement:'',maintenanceMode:false})]);
   await bootstrapAdmin();
+  await initializeAdminNotificationSchema(pool);
   await initializeWalletSchema(pool);
   await initializeKycSchema(pool);
 }
@@ -288,6 +290,7 @@ app.get('/api/admin/audit-logs',adminAuth,requireRole('super_admin','compliance'
 
 registerWalletRoutes(app,{pool,auth,adminAuth,requireRole,audit});
 registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit});
+registerAdminNotificationRoutes(app,{pool,adminAuth});
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error'});});
 
 async function start(){try{await initializeDatabase();app.listen(PORT,'0.0.0.0',()=>console.log(`DApps backend listening on ${PORT}; database schema ready`));}catch(error){console.error('Backend startup failed:',error);process.exit(1);}}
