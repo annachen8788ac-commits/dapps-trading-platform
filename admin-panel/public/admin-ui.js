@@ -12,14 +12,17 @@ if(mutation){progress(true);if(lastClicked&&Date.now()-lastClickedAt<1000){btn=l
 try{const r=await rawFetch(input,init);if(mutation){ok=r.ok;if(!r.ok){let data={};try{data=await r.clone().json()}catch{}notify(data?.error||('请求失败（'+r.status+'）'),'error')}}return r}
 catch(err){if(mutation)notify(err?.message||'网络请求失败','error');throw err}
 finally{if(btn){btn.classList.remove('is-processing');if(ok){btn.classList.add('is-complete');btn.textContent='✓';setTimeout(()=>{btn.disabled=false;btn.classList.remove('is-complete');btn.textContent=original},520)}else{btn.disabled=false;btn.textContent=original}}if(mutation)progress(false)}};
-function handleEscape(e){if(e.key!=='Escape')return;let handled=false;
-  if(window.adminCloseNotifications?.()){handled=true}
-  const modal=[...document.querySelectorAll('.modal.open,[aria-modal="true"].open')].pop();if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');handled=true}
-  const detail=[...document.querySelectorAll('.detail.open')].pop();if(detail){detail.classList.remove('open');handled=true}
-  const mobileChat=document.querySelector('#layout.layout:not(.pick)');if(mobileChat&&matchMedia('(max-width:760px)').matches){mobileChat.classList.add('pick');handled=true}
-  const notice=document.querySelector('.admin-notify-toast');if(notice){notice.remove();handled=true}
-  if(!handled&&document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){document.activeElement.blur();handled=true}
-  if(handled){e.preventDefault();e.stopPropagation()}
+function consumeEscape(e){e.preventDefault();e.stopPropagation()}
+function goAdminBack(){try{const ref=document.referrer?new URL(document.referrer):null;if(ref&&ref.origin===location.origin&&ref.href!==location.href&&history.length>1){history.back();return}}catch{}location.href='/'}
+function handleEscape(e){if(e.key!=='Escape')return;
+  if(window.adminCloseNotifications?.()){consumeEscape(e);return}
+  if(window.adminEscapeBack?.()){consumeEscape(e);return}
+  const modal=[...document.querySelectorAll('.modal.open,[aria-modal="true"].open')].pop();if(modal){const close=modal.querySelector('[data-close],.modal-close,#closeProof,.close');if(close instanceof HTMLElement)close.click();else{modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}consumeEscape(e);return}
+  const detail=[...document.querySelectorAll('.detail.open')].pop();if(detail){detail.classList.remove('open');consumeEscape(e);return}
+  const notice=document.querySelector('.admin-notify-toast');if(notice){notice.remove();consumeEscape(e);return}
+  if(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){document.activeElement.blur();consumeEscape(e);return}
+  if(location.pathname==='/'||location.pathname.endsWith('/index.html')){const active=document.querySelector('.section.active');if(active&&active.id!=='dashboard'){document.querySelector('.nav [data-section="dashboard"]')?.click();consumeEscape(e);return}}
+  if(['/wallet','/kyc','/trades','/support-chat','/user'].includes(location.pathname)){consumeEscape(e);goAdminBack()}
 }
 document.addEventListener('keydown',handleEscape,true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready()})();
