@@ -81,7 +81,10 @@ body.platform-ui .shell>.top .brand{display:inline-flex!important;flex-direction
 
 /* 2026-09-25: hard-unify compact page logos with homepage header artwork */
 body.platform-ui .shell>.top .brand.brand-real-logo::before{display:none!important;content:none!important}
-body.platform-ui .shell>.top .brand.brand-real-logo{display:inline-flex!important;align-items:center!important;gap:8px!important;white-space:nowrap!important}
-body.platform-ui .shell>.top .brand-real-logo-img{display:block!important;width:38px!important;height:32px!important;object-fit:contain!important;object-position:center!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;filter:drop-shadow(0 3px 10px rgba(0,122,255,.32))!important;flex:0 0 auto!important}
+body.platform-ui .shell>.top .brand.brand-real-logo{display:inline-flex!important;align-items:center!important;gap:14px!important;white-space:nowrap!important}
+body.platform-ui .shell>.top .brand-real-logo-img{display:block!important;width:62px!important;height:52px!important;object-fit:contain!important;object-position:center!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;filter:drop-shadow(0 6px 14px rgba(0,119,255,.28))!important;flex:0 0 auto!important}
 body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!important}
-@media(max-width:420px){body.platform-ui .shell>.top .brand-real-logo-img{width:34px!important;height:29px!important}}
+@media(max-width:620px){
+ body.platform-ui .shell>.top .brand.brand-real-logo{gap:9px!important}
+ body.platform-ui .shell>.top .brand-real-logo-img{width:54px!important;height:44px!important}
+}
