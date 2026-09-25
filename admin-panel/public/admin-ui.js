@@ -7,9 +7,19 @@ window.adminToast=notify;
 window.alert=m=>{lastAlertAt=Date.now();const s=String(m??'');if(/RECOVERY CODE|一次性恢复码|恢复码：/i.test(s))return nativeAlert(s);notify(s)};
 document.addEventListener('click',e=>{const b=e.target.closest('button,.btn');if(b&&!b.disabled){lastClicked=b;lastClickedAt=Date.now()}});
 const rawFetch=window.fetch.bind(window);
-window.fetch=async(input,init={})=>{const url=typeof input==='string'?input:String(input?.url||''),method=String(init?.method||input?.method||'GET').toUpperCase(),adminReq=url.includes('/admin-api'),mutation=adminReq&&!['GET','HEAD'].includes(method),started=Date.now();let btn=null,original='';
-if(adminReq){progress(true);if(mutation&&lastClicked&&Date.now()-lastClickedAt<1000){btn=lastClicked;original=btn.textContent;btn.disabled=true;btn.classList.add('is-processing');btn.textContent='处理中…'}}
-try{const r=await rawFetch(input,init);if(mutation){let data={};try{data=await r.clone().json()}catch{}clearTimeout(genericTimer);genericTimer=setTimeout(()=>{if(lastAlertAt<started){if(r.ok)notify(data?.message||'操作已生效','success');else notify(data?.error||('请求失败（'+r.status+'）'),'error')}},180)}return r}
-catch(err){if(adminReq)notify(err?.message||'网络请求失败','error');throw err}
-finally{if(btn){btn.disabled=false;btn.classList.remove('is-processing');btn.textContent=original}if(adminReq)progress(false)}};
+window.fetch=async(input,init={})=>{const url=typeof input==='string'?input:String(input?.url||''),method=String(init?.method||input?.method||'GET').toUpperCase(),adminReq=url.includes('/admin-api'),mutation=adminReq&&!['GET','HEAD'].includes(method);let btn=null,original='',ok=false;
+if(mutation){progress(true);if(lastClicked&&Date.now()-lastClickedAt<1000){btn=lastClicked;original=btn.textContent;btn.disabled=true;btn.classList.add('is-processing');btn.textContent='处理中…'}}
+try{const r=await rawFetch(input,init);if(mutation){ok=r.ok;if(!r.ok){let data={};try{data=await r.clone().json()}catch{}notify(data?.error||('请求失败（'+r.status+'）'),'error')}}return r}
+catch(err){if(mutation)notify(err?.message||'网络请求失败','error');throw err}
+finally{if(btn){btn.classList.remove('is-processing');if(ok){btn.classList.add('is-complete');btn.textContent='✓';setTimeout(()=>{btn.disabled=false;btn.classList.remove('is-complete');btn.textContent=original},520)}else{btn.disabled=false;btn.textContent=original}}if(mutation)progress(false)}};
+function handleEscape(e){if(e.key!=='Escape')return;let handled=false;
+  if(window.adminCloseNotifications?.()){handled=true}
+  const modal=[...document.querySelectorAll('.modal.open,[aria-modal="true"].open')].pop();if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');handled=true}
+  const detail=[...document.querySelectorAll('.detail.open')].pop();if(detail){detail.classList.remove('open');handled=true}
+  const mobileChat=document.querySelector('#layout.layout:not(.pick)');if(mobileChat&&matchMedia('(max-width:760px)').matches){mobileChat.classList.add('pick');handled=true}
+  const notice=document.querySelector('.admin-notify-toast');if(notice){notice.remove();handled=true}
+  if(!handled&&document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){document.activeElement.blur();handled=true}
+  if(handled){e.preventDefault();e.stopPropagation()}
+}
+document.addEventListener('keydown',handleEscape,true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready()})();

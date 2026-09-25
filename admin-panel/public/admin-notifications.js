@@ -36,6 +36,7 @@
       @media(max-width:720px){.admin-notify-menu{position:fixed;right:14px;top:64px}.admin-notify-toast{left:14px;right:14px;width:auto}}
     `;document.head.appendChild(s);
   }
+  window.adminCloseNotifications=()=>{const menu=document.querySelector('.admin-notify-menu');const was=Boolean(open||menu?.classList.contains('open'));open=false;menu?.classList.remove('open');return was};
   function mount(){
     if(document.getElementById('adminNotifications'))return;
     style();
