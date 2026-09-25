@@ -104,12 +104,59 @@ canvas.addEventListener('mousedown',e=>{state.drag=true;state.lastX=e.clientX;ca
 window.addEventListener('mouseup',()=>{state.drag=false;canvas.classList.remove('dragging')});
 canvas.addEventListener('dblclick',()=>{const info=periodInfo();state.offset=0;state.visible=Math.min(state.rows.length,Number(info?.count)||120);draw()});
 
-let touchStartDistance=0,touchStartVisible=0,touchLastX=null,touchMode='',touchStartX=0,touchStartY=0,touchStartedAt=0,touchMoved=false,tapHideTimer=null;
-function hideTapCrosshair(){clearTimeout(tapHideTimer);tapHideTimer=null;if(state.hover){state.hover=null;draw()}}
-function showTapCrosshair(clientX,clientY){const r=canvas.getBoundingClientRect();state.hover={x:clientX-r.left,y:clientY-r.top};draw();clearTimeout(tapHideTimer);tapHideTimer=setTimeout(()=>{tapHideTimer=null;state.hover=null;draw()},2000)}
-canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){clearTimeout(tapHideTimer);tapHideTimer=null;state.hover=null;touchMode='pinch';touchMoved=true;touchStartDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchStartVisible=state.visible;draw()}else if(e.touches.length===1){const t=e.touches[0];touchMode='pan';touchLastX=t.clientX;touchStartX=t.clientX;touchStartY=t.clientY;touchStartedAt=Date.now();touchMoved=false}},{passive:true});
-canvas.addEventListener('touchmove',e=>{if(touchMode==='pinch'&&e.touches.length===2){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(touchStartDistance>0){state.visible=Math.max(20,Math.min(state.rows.length,Math.round(touchStartVisible*(touchStartDistance/d))));state.offset=Math.min(state.offset,Math.max(0,state.rows.length-state.visible));draw()}}else if(touchMode==='pan'&&e.touches.length===1&&touchLastX!==null){const t=e.touches[0],total=Math.hypot(t.clientX-touchStartX,t.clientY-touchStartY);if(total>8){touchMoved=true;if(state.hover){clearTimeout(tapHideTimer);tapHideTimer=null;state.hover=null}}const dx=t.clientX-touchLastX;if(Math.abs(dx)>6){e.preventDefault();const step=Math.round(dx/(canvas.getBoundingClientRect().width/Math.max(20,state.visible)));if(step){state.offset=Math.max(0,Math.min(Math.max(0,state.rows.length-state.visible),state.offset+step));touchLastX=t.clientX;draw()}}}},{passive:false});
-canvas.addEventListener('touchend',e=>{const ended=e.changedTouches?.[0],wasTap=touchMode==='pan'&&!touchMoved&&ended&&Date.now()-touchStartedAt<500;if(wasTap)showTapCrosshair(ended.clientX,ended.clientY);touchMode='';touchLastX=null;touchStartDistance=0;touchMoved=false},{passive:true});
+let touchStartDistance=0,touchStartVisible=0,touchLastX=null,touchMode='',touchStartX=0,touchStartY=0,touchStartedAt=0,touchMoved=false,tapHideTimer=null,edgePanTimer=null,edgePanDir=0,crosshairClientX=0,crosshairClientY=0;
+function clearTapHide(){clearTimeout(tapHideTimer);tapHideTimer=null}
+function scheduleTapHide(){clearTapHide();tapHideTimer=setTimeout(()=>{tapHideTimer=null;stopEdgePan();state.hover=null;draw()},2000)}
+function stopEdgePan(){if(edgePanTimer){clearInterval(edgePanTimer);edgePanTimer=null}edgePanDir=0}
+function setCrosshairFromClient(clientX,clientY){const r=canvas.getBoundingClientRect();crosshairClientX=clientX;crosshairClientY=clientY;state.hover={x:clientX-r.left,y:clientY-r.top};draw()}
+function updateEdgePan(clientX){
+  const r=canvas.getBoundingClientRect(),plotLeft=12,plotRight=Math.max(plotLeft+1,r.width-84),localX=clientX-r.left,zone=Math.min(42,Math.max(24,(plotRight-plotLeft)*.1));
+  const dir=localX<=plotLeft+zone?1:localX>=plotRight-zone?-1:0;
+  if(dir===edgePanDir)return;
+  stopEdgePan();
+  if(!dir)return;
+  edgePanDir=dir;
+  edgePanTimer=setInterval(()=>{
+    if(touchMode!=='crosshair'){stopEdgePan();return}
+    const maxOffset=Math.max(0,state.rows.length-Math.min(state.visible,state.rows.length)),next=Math.max(0,Math.min(maxOffset,state.offset+edgePanDir));
+    if(next===state.offset){stopEdgePan();return}
+    state.offset=next;
+    const rr=canvas.getBoundingClientRect();
+    state.hover={x:crosshairClientX-rr.left,y:crosshairClientY-rr.top};
+    draw();
+  },75);
+}
+function hideTapCrosshair(){clearTapHide();stopEdgePan();if(state.hover){state.hover=null;draw()}}
+function showTapCrosshair(clientX,clientY){setCrosshairFromClient(clientX,clientY);scheduleTapHide()}
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===2){
+    clearTapHide();stopEdgePan();state.hover=null;touchMode='pinch';touchMoved=true;
+    touchStartDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchStartVisible=state.visible;draw();
+  }else if(e.touches.length===1){
+    const t=e.touches[0];touchLastX=t.clientX;touchStartX=t.clientX;touchStartY=t.clientY;touchStartedAt=Date.now();touchMoved=false;
+    if(state.hover){clearTapHide();touchMode='crosshair';setCrosshairFromClient(t.clientX,t.clientY);updateEdgePan(t.clientX)}
+    else touchMode='pan';
+  }
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  if(touchMode==='pinch'&&e.touches.length===2){
+    e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(touchStartDistance>0){state.visible=Math.max(20,Math.min(state.rows.length,Math.round(touchStartVisible*(touchStartDistance/d))));state.offset=Math.min(state.offset,Math.max(0,state.rows.length-state.visible));draw()}
+  }else if(touchMode==='crosshair'&&e.touches.length===1){
+    e.preventDefault();const t=e.touches[0];touchMoved=true;setCrosshairFromClient(t.clientX,t.clientY);updateEdgePan(t.clientX);
+  }else if(touchMode==='pan'&&e.touches.length===1&&touchLastX!==null){
+    const t=e.touches[0],total=Math.hypot(t.clientX-touchStartX,t.clientY-touchStartY);
+    if(total>8){touchMoved=true;if(state.hover){clearTapHide();state.hover=null}}
+    const dx=t.clientX-touchLastX;
+    if(Math.abs(dx)>6){e.preventDefault();const step=Math.round(dx/(canvas.getBoundingClientRect().width/Math.max(20,state.visible)));if(step){state.offset=Math.max(0,Math.min(Math.max(0,state.rows.length-state.visible),state.offset+step));touchLastX=t.clientX;draw()}}
+  }
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  const ended=e.changedTouches?.[0],wasTap=touchMode==='pan'&&!touchMoved&&ended&&Date.now()-touchStartedAt<500;
+  if(touchMode==='crosshair'){stopEdgePan();scheduleTapHide()}
+  else if(wasTap)showTapCrosshair(ended.clientX,ended.clientY);
+  touchMode='';touchLastX=null;touchStartDistance=0;touchMoved=false;
+},{passive:true});
 canvas.addEventListener('touchcancel',()=>{touchMode='';touchLastX=null;touchStartDistance=0;touchMoved=false;hideTapCrosshair()},{passive:true});
 
 function installPeriods(){
