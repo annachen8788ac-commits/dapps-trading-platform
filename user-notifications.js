@@ -71,7 +71,9 @@
     try{const d=await api('/api/notifications');items=Array.isArray(d.items)?d.items:[];render()}catch{}
   }
   function start(){
-    mount();refresh();
+    const ui=mount();
+    if(!ui)return;
+    refresh();
     clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)refresh()},5000);
     window.addEventListener('focus',refresh);
   }
