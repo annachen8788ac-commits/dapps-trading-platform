@@ -1,4 +1,5 @@
 const TYPES=new Set(['support_chat','deposit','withdrawal','kyc','ticket']);
+const NOTIFICATION_LAUNCH_AT='2026-09-25T00:09:39.000Z';
 
 export async function initializeAdminNotificationSchema(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS admin_notification_reads (
@@ -51,8 +52,8 @@ export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
           FROM support_tickets t JOIN users u ON u.id=t.user_id
           LEFT JOIN admin_notification_reads r
             ON r.admin_id=$1 AND r.source_type='ticket' AND r.source_id=t.ticket_no
-          WHERE t.status='open' AND (r.read_at IS NULL OR t.created_at>r.read_at)
-          ORDER BY t.created_at DESC LIMIT 50`,[adminId])
+          WHERE t.status='open' AND t.created_at>=$2::timestamptz AND (r.read_at IS NULL OR t.created_at>r.read_at)
+          ORDER BY t.created_at DESC LIMIT 50`,[adminId,NOTIFICATION_LAUNCH_AT])
       ]);
       const items=[
         ...support.rows.map(x=>({type:'support_chat',sourceId:x.source_id,title:'客服新消息',text:`${x.display_name||x.public_id}: ${String(x.message||'').slice(0,120)}`,createdAt:x.created_at,href:`/support-chat?chat=${encodeURIComponent(x.source_id)}`})),
