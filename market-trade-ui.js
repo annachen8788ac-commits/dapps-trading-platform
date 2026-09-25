@@ -30,7 +30,7 @@
       #page-markets .market-table-head span:nth-child(n+2){text-align:right}
       #page-trade .asset-title-wrap{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;row-gap:4px;align-items:center;min-width:0}
       #page-trade .asset-title-wrap>.coin-icon{grid-column:1;grid-row:1/3;align-self:center}
-      #page-trade .asset-title-wrap>div:not(.trade-pair-selector){grid-column:2;grid-row:1;min-width:0}
+      #page-trade .asset-title-wrap>div:not(.trade-pair-selector):not(.coin-icon){grid-column:2;grid-row:1;min-width:0}
       #page-trade .trade-pair-selector{grid-column:2;grid-row:2;margin-left:0;min-width:0;justify-self:start}
       #page-trade .pair-select-btn{height:32px;min-width:0;max-width:100%;padding:0 10px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;line-height:1;font-size:10px}
       #page-trade .pair-select-btn>span:first-child{white-space:nowrap}
