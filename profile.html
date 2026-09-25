@@ -1,11 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Assets & Profile | DApps Platform</title><link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="stylesheet" href="account.css"><style>.sim-banner{display:none;margin-bottom:14px;padding:12px 14px;border:1px solid #27568a;border-radius:12px;background:linear-gradient(135deg,#0d2641,#102139);color:#cfe6ff;font-size:12px}.sim-banner b{color:#fff}.sim-mode .sim-banner{display:block}.sim-mode .real-only{display:none!important}.sim-only{display:none}.sim-mode .sim-only{display:block}.sim-only-note{display:none}.sim-mode .sim-funds-action{opacity:.5;cursor:not-allowed;pointer-events:none;filter:saturate(.45)}.sim-mode .sim-funds-action .sim-only-note{display:block;font-size:10px;font-weight:600;color:#8296ad;margin-top:2px}.asset-total{display:flex;align-items:baseline;gap:6px}.asset-total-value{display:inline-block;min-width:13ch;font-variant-numeric:tabular-nums}.mini-balance strong{display:flex;align-items:baseline;gap:5px;white-space:nowrap}.balance-number{display:inline-block;min-width:11ch;font-variant-numeric:tabular-nums}.balance-unit{flex:0 0 auto}</style><link rel="stylesheet" href="platform-v2.css?v=20260925-2"><link rel="stylesheet" href="design-system.css?v=20260925-9"><style id="profile-mobile-layout-fix">
-html,body{width:100%;max-width:100%;overflow-x:hidden}
-body.platform-ui .shell{width:100%;max-width:460px;min-width:0;overflow:hidden}
+html,body{width:100%;max-width:100%;overflow-x:clip}
+body.platform-ui .shell{width:100%;max-width:460px;min-width:0;overflow:visible}
 body.platform-ui .shell>.top{display:grid!important;grid-template-columns:minmax(64px,1fr) auto minmax(64px,1fr)!important;gap:8px!important;padding-left:12px!important;padding-right:12px!important}
 body.platform-ui .shell>.top .back{justify-self:start;white-space:nowrap;min-width:0}
 body.platform-ui .shell>.top .brand{justify-self:center;min-width:0}
 body.platform-ui .shell>.top .link{justify-self:end;white-space:nowrap;min-width:0}
-body.platform-ui .wrap{width:100%;max-width:100%;min-width:0}
+body.platform-ui .wrap{width:100%;max-width:100%;min-width:0;overflow:visible}
 body.platform-ui .wrap>.card,
 body.platform-ui .wrap>.sim-banner{width:100%;max-width:100%;min-width:0}
 body.platform-ui .asset-hero{overflow:hidden}
@@ -18,7 +18,7 @@ body.platform-ui .balance-number{display:block!important;min-width:0!important;w
 body.platform-ui .balance-unit{flex:none!important;white-space:nowrap;font-size:clamp(10px,2.8vw,12px)!important}
 body.platform-ui .action-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 body.platform-ui.sim-mode .action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-body.platform-ui .action-tile{min-width:0!important;overflow:hidden;text-align:center;padding-left:6px!important;padding-right:6px!important}
+body.platform-ui .action-tile{min-width:0!important;overflow:clip;text-align:center;padding-left:6px!important;padding-right:6px!important}
 body.platform-ui .sim-only-note{max-width:100%;line-height:1.3!important;overflow-wrap:break-word}
 body.platform-ui .row{min-width:0;align-items:flex-start}
 body.platform-ui .row>span:first-child{flex:0 0 auto}
