@@ -3,6 +3,10 @@ name: Deploy static site to GitHub Pages
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "backend/**"
+      - "admin-panel/**"
+      - "README.md"
   workflow_dispatch:
 
 permissions:
@@ -20,15 +24,42 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - name: Prepare public frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          rsync -a ./ _site/ \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude "backend/" \
+            --exclude "admin-panel/" \
+            --exclude "_site/" \
+            --exclude "README.md"
+
+          test -f _site/index.html
+          test ! -e _site/backend
+          test ! -e _site/admin-panel
+
+          if find _site -name ".env*" -print -quit | grep -q .; then
+            echo "Refusing to deploy environment files."
+            exit 1
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'
+          path: "_site"
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
