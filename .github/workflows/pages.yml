@@ -3,10 +3,13 @@ name: Deploy static site to GitHub Pages
 on:
   push:
     branches: ["main"]
-    paths-ignore:
-      - "backend/**"
-      - "admin-panel/**"
-      - "README.md"
+    paths:
+      - "*.html"
+      - "assets/**"
+      - "domain/**"
+      - "favicon.png"
+      - ".nojekyll"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
