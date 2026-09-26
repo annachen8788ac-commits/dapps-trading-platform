@@ -126,7 +126,7 @@ renderMarkets();selectMarket(markets[0]);updatePotential();updateBalances();
       const row=document.createElement('div');
       row.className='market-row';row.style.cursor='pointer';
       row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name||m.symbol}</small></div></div><strong>${priceText(m)}</strong><strong class="${Number(m.change||0)>=0?'positive':'negative'}">${changeText(m)}</strong><span>${hasPrice(m)&&Number(m.high)>0?fmt(m.high,decimals(m.high)):'--'}</span>`;
-      row.onclick=()=>{selectMarket(m);navigate('trade')};
+      row.onclick=()=>{if(typeof window.openMarketDetail==='function')window.openMarketDetail(m,row);else{selectMarket(m);navigate('trade')}};
       list.appendChild(row);
     });
     const count=document.querySelector('.market-count');if(count)count.textContent=`${rows.length.toLocaleString()} markets`;
@@ -437,7 +437,7 @@ if(window.__marketConfigReady?.then){
       const row=document.createElement('div');
       row.className='market-row';
       row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span>`;
-      row.addEventListener('click',()=>{selectMarket(m);navigate('trade')});
+      row.addEventListener('click',()=>{if(typeof window.openMarketDetail==='function')window.openMarketDetail(m,row);else{selectMarket(m);navigate('trade')}});
       marketList.appendChild(row);
     });
   };
