@@ -55,7 +55,7 @@ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fm
 function decimals(v){return v<1?6:v<100?4:2}
 function renderMarkets(filter='all'){const list=$('#market-list');list.innerHTML='';markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{const row=document.createElement('div');row.className='market-row';row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span><button>Trade</button>`;row.querySelector('button').onclick=()=>{selectMarket(m);navigate('trade')};list.appendChild(row)})}
 function selectMarket(m){if(!m)return;currentMarket=m;$('#trade-symbol').textContent=m.symbol;$('#trade-name').textContent=m.name;paintTradeIcon($('#trade-icon'),m);const valid=Number.isFinite(Number(m.price))&&Number(m.price)>0;$('#trade-price').textContent=valid?fmt(m.price,decimals(m.price)):'--';$('#trade-price').className=m.change>=0?'positive':'negative';$('#trade-change').textContent=valid?`${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%`:'--';$('#trade-change').className=m.change>=0?'positive':'negative';$('#trade-high').textContent=valid&&Number(m.high)>0?fmt(m.high,decimals(m.high)):'--';$('#trade-low').textContent=valid&&Number(m.low)>0?fmt(m.low,decimals(m.low)):'--';const chartBadge=$('#chart-price-badge');if(chartBadge)chartBadge.textContent=valid?fmt(m.price,decimals(m.price)):'--';window.dispatchEvent(new CustomEvent('dapps:market-selected',{detail:{market:m}}))}
-function navigate(name){if(!['home','markets','trade','pledge','assets'].includes(name))name='home';if(!isDemoSession){try{localStorage.setItem('dapps:lastPage',name)}catch{}}const hash='#'+name;if(location.hash!==hash)history.replaceState(null,'',location.pathname+location.search+hash);$$('.page').forEach(p=>p.classList.remove('active'));const page=$(`#page-${name}`);if(page)page.classList.add('active');$$('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));window.scrollTo({top:0,behavior:'smooth'})}
+function navigate(name){if(!['home','markets','trade','pledge','assets'].includes(name))name='home';if(!isDemoSession){try{localStorage.setItem('dapps:lastPage',name)}catch{}}const hash='#'+name;if(location.hash!==hash)history.replaceState(null,'',location.pathname+location.search+hash);$('.page').forEach(p=>p.classList.remove('active'));const page=$(`#page-${name}`);if(page)page.classList.add('active');$('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));window.scrollTo({top:0,behavior:'smooth'});requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('dapps:page-visible',{detail:{page:name}})))}
 const initialPage=window.__dappsInitialPage||location.hash.slice(1)||'home';
 navigate(['home','markets','trade','pledge','assets'].includes(initialPage)?initialPage:'home');
 delete document.documentElement.dataset.initialPage;
@@ -245,7 +245,7 @@ function periodInfo(id=state.period){return periodList().find(p=>p.id===id)||nul
 let historyTimer=null;
 function queueHistory(delay=40){clearTimeout(historyTimer);historyTimer=setTimeout(history,delay)}
 let installedPeriodKey='';
-function size(){const dpr=Math.min(devicePixelRatio||1,2),r=el.getBoundingClientRect(),w=Math.max(320,Math.floor(r.width)),h=Math.max(420,Math.floor(r.height));if(canvas.width!==w*dpr||canvas.height!==h*dpr){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px'}ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h}}
+function size(){const r=el.getBoundingClientRect();if(r.width<2||r.height<2)return null;const dpr=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.floor(r.width)),h=Math.max(1,Math.floor(r.height));if(canvas.width!==w*dpr||canvas.height!==h*dpr){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px'}ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h}}
 function fmt(n){if(!Number.isFinite(+n))return'—';n=+n;return n.toLocaleString('en-US',{minimumFractionDigits:n>=1000?2:4,maximumFractionDigits:n>=1?4:8})}
 function compact(n){n=+n;if(!Number.isFinite(n))return'—';return Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n)}
 function windowBounds(){const n=state.rows.length;if(!n)return{start:0,end:0};const count=Math.min(state.visible,n),end=Math.max(count,Math.min(n,n-state.offset));return{start:end-count,end}}
@@ -256,7 +256,7 @@ function macdValues(rows){const e12=emaValues(rows,12),e26=emaValues(rows,26),ma
 function drawSeries(values,start,count,x,y,color,width=1.2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();let begun=false;for(let i=0;i<count;i++){const v=values[start+i];if(!Number.isFinite(v)){begun=false;continue}const xx=x(i),yy=y(v);if(!begun){ctx.moveTo(xx,yy);begun=true}else ctx.lineTo(xx,yy)}if(begun)ctx.stroke()}
 
 function draw(){
-  const{w,h}=size(),L=12,R=84,T=28,B=30,W=Math.max(1,w-L-R);ctx.clearRect(0,0,w,h);ctx.fillStyle='#061425';ctx.fillRect(0,0,w,h);
+  const dimensions=size();if(!dimensions){tip.classList.remove('show');return}const{w,h}=dimensions,L=12,R=84,T=28,B=30,W=Math.max(1,w-L-R);ctx.clearRect(0,0,w,h);ctx.fillStyle='#061425';ctx.fillRect(0,0,w,h);
   const{start}=windowBounds(),rows=windowRows();
   if(!rows.length){ctx.fillStyle='#7894ad';ctx.font='12px Inter,Arial';ctx.fillText('Loading K-line history…',18,30);tip.classList.remove('show');return}
   const gap=8,mainH=Math.max(190,Math.floor((h-T-B-gap*3)*.58)),volH=Math.max(54,Math.floor((h-T-B-gap*3)*.12)),macdH=Math.max(72,Math.floor((h-T-B-gap*3)*.16)),rsiH=Math.max(68,h-T-B-gap*3-mainH-volH-macdH);
@@ -403,7 +403,14 @@ window.addEventListener('dapps:market-quote',e=>{
   const d=e.detail||{};
   if(d.symbol===state.symbol)live(Number(d.price),d.time);
 });
-new ResizeObserver(draw).observe(el);
+function redrawWhenVisible(){
+  if(!$('#page-trade')?.classList.contains('active'))return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{draw();if(!state.liveReady&&!state.rows.length)queueHistory(0)}));
+}
+window.addEventListener('dapps:page-visible',e=>{if(e.detail?.page==='trade')redrawWhenVisible()});
+window.addEventListener('resize',redrawWhenVisible,{passive:true});
+window.addEventListener('orientationchange',()=>setTimeout(redrawWhenVisible,120),{passive:true});
+if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(el.getBoundingClientRect().width>1)draw()}).observe(el);
 window.drawChart=draw;
 draw();
 installPeriods();
