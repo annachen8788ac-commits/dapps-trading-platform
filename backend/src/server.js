@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import pg from 'pg';
 import { initializeWalletSchema, registerWalletRoutes } from './wallet-routes.js';
 import { initializeKycSchema, registerKycRoutes } from './kyc-routes.js';
+import { initializeBusinessSchemas, registerBusinessRoutes } from './business-routes.js';
 import { initializeAdminNotificationSchema, registerAdminNotificationRoutes } from './admin-notification-routes.js';
 import { initializeUserNotificationSchema, registerUserNotificationRoutes } from './user-notification-routes.js';
 
@@ -108,6 +109,7 @@ async function initializeDatabase(){
   await initializeAdminNotificationSchema(pool);
   await initializeWalletSchema(pool);
   await initializeKycSchema(pool);
+  await initializeBusinessSchemas(pool);
   await initializeUserNotificationSchema(pool);
 }
 
@@ -370,6 +372,7 @@ app.patch('/api/admin/demo-sessions/:sessionId/sequence',adminAuth,requireRole('
 
 registerWalletRoutes(app,{pool,auth,adminAuth,requireRole,audit});
 registerKycRoutes(app,{pool,auth,adminAuth,requireRole,audit});
+registerBusinessRoutes(app,{pool,auth,adminAuth,requireRole,audit});
 registerAdminNotificationRoutes(app,{pool,adminAuth});
 registerUserNotificationRoutes(app,{pool,auth});
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error'});});
