@@ -192,7 +192,10 @@ window.DAPPS_LAND=[[[-59.57,-80.04],[-59.87,-80.55],[-60.16,-81],[-62.26,-80.86]
     ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()}
   function render(time){
     if(!reduced&&time-last<36){raf=requestAnimationFrame(render);return}last=time;
-    const s=host.clientWidth;if(s!==size){size=s;ratio=Math.min(devicePixelRatio||1,2);canvas.width=s*ratio;canvas.height=s*ratio;ctx.setTransform(ratio,0,0,ratio,0,0)}
+    const s=host.clientWidth;
+    // Page navigation hides the host. Wait for layout before drawing circles.
+    if(s<=6){raf=requestAnimationFrame(render);return}
+    if(s!==size){size=s;ratio=Math.min(devicePixelRatio||1,2);canvas.width=s*ratio;canvas.height=s*ratio;ctx.setTransform(ratio,0,0,ratio,0,0)}
     const R=s/2,center=reduced?-89:-89+time*.002;
     ctx.clearRect(0,0,s,s);
     ctx.save();ctx.beginPath();ctx.arc(R,R,R-2,0,Math.PI*2);ctx.clip();
