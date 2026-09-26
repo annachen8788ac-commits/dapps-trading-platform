@@ -34,18 +34,7 @@
     estimate.insertAdjacentElement('beforebegin', eligibility);
   }
 
-  const style = document.createElement('style');
-  style.textContent = `
-    .trade-rule-line{margin:-2px 18px 12px;display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#8e96aa}
-    .trade-rule-line strong{color:#dfe6f5;font-weight:600}
-    .trade-eligibility{margin:0 18px 12px;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,91,103,.28);background:rgba(255,91,103,.07);color:#ff8b94;font-size:12px;line-height:1.45}
-    .trade-eligibility.ready{border-color:rgba(40,199,124,.28);background:rgba(40,199,124,.07);color:#65d99c}
-    .input-wrap.trade-invalid{border-color:rgba(255,91,103,.65);box-shadow:0 0 0 2px rgba(255,91,103,.08)}
-    .submit-trade:disabled{cursor:not-allowed;opacity:.48;filter:saturate(.45);box-shadow:none}
-    .duration-grid button small{display:block;margin-top:4px;font-size:9px;color:inherit;opacity:.78}
-    @media(max-width:720px){.trade-rule-line,.trade-eligibility{margin-left:18px;margin-right:18px}.trade-eligibility{font-size:11px}}
-  `;
-  document.head.appendChild(style);
+  
 
   function minForDuration(){ return minimums[Number(duration)] ?? 200; }
   function rateForDuration(){ return rates[Number(duration)] ?? 29; }
