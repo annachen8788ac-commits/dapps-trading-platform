@@ -195,6 +195,8 @@ renderMarkets();selectMarket(markets[0]);updatePotential();updateBalances();
     markets.splice(0,markets.length,...next);
     window.markets=markets;
     window.__marketConfig=data;
+    window.DAppsTradeSpec?.applyProducts?.(data.tradeProducts);
+    if(typeof updatePotential==='function')updatePotential();
     if(resolveConfigReady){resolveConfigReady(data);resolveConfigReady=null}
     const wanted=currentMarket?.symbol;
     const chosen=markets.find(m=>m.symbol===wanted)||markets[0];
