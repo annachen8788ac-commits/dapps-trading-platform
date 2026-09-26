@@ -53,14 +53,14 @@ const profitRates=window.DAppsTradeSpec.rates;
 const minimumTradeAmounts=window.DAppsTradeSpec.minimums;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 function decimals(v){return v<1?6:v<100?4:2}
-function renderMarkets(filter='all'){const list=$('#market-list');list.innerHTML='';markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{const row=document.createElement('div');row.className='market-row';row.style.cursor='pointer';row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span>`;row.onclick=e=>{e.preventDefault();window.dispatchEvent(new CustomEvent('dapps:open-market-detail',{detail:{market:m,row}}))};list.appendChild(row)})}
+function renderMarkets(filter='all'){const list=$('#market-list');list.innerHTML='';markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{const row=document.createElement('div');row.className='market-row';row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span><button>Trade</button>`;row.querySelector('button').onclick=()=>{selectMarket(m);navigate('trade')};list.appendChild(row)})}
 function selectMarket(m){if(!m)return;currentMarket=m;$('#trade-symbol').textContent=m.symbol;$('#trade-name').textContent=m.name;paintTradeIcon($('#trade-icon'),m);const valid=Number.isFinite(Number(m.price))&&Number(m.price)>0;$('#trade-price').textContent=valid?fmt(m.price,decimals(m.price)):'--';$('#trade-price').className=m.change>=0?'positive':'negative';$('#trade-change').textContent=valid?`${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%`:'--';$('#trade-change').className=m.change>=0?'positive':'negative';$('#trade-high').textContent=valid&&Number(m.high)>0?fmt(m.high,decimals(m.high)):'--';$('#trade-low').textContent=valid&&Number(m.low)>0?fmt(m.low,decimals(m.low)):'--';const chartBadge=$('#chart-price-badge');if(chartBadge)chartBadge.textContent=valid?fmt(m.price,decimals(m.price)):'--';window.dispatchEvent(new CustomEvent('dapps:market-selected',{detail:{market:m}}))}
 function navigate(name){if(!['home','markets','trade','pledge','assets'].includes(name))name='home';if(!isDemoSession){try{localStorage.setItem('dapps:lastPage',name)}catch{}}const hash='#'+name;if(location.hash!==hash)history.replaceState(null,'',location.pathname+location.search+hash);$$('.page').forEach(p=>p.classList.remove('active'));const page=$(`#page-${name}`);if(page)page.classList.add('active');$$('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));window.scrollTo({top:0,behavior:'smooth'});requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('dapps:page-visible',{detail:{page:name}})))}
 const initialPage=window.__dappsInitialPage||location.hash.slice(1)||'home';
 navigate(['home','markets','trade','pledge','assets'].includes(initialPage)?initialPage:'home');
 delete document.documentElement.dataset.initialPage;
 try{delete window.__dappsInitialPage}catch{}
-$$('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='trade'){const btc=markets.find(m=>m.symbol==='BTC/USDT');if(btc)selectMarket(btc)}navigate(b.dataset.nav)}));$('.filter').forEach(b=>b.onclick=()=>{$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');(window.renderMarkets||renderMarkets)(b.dataset.filter)});
+$$('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='trade'){const btc=markets.find(m=>m.symbol==='BTC/USDT');if(btc)selectMarket(btc)}navigate(b.dataset.nav)}));$$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderMarkets(b.dataset.filter)});
 function currentProfitRate(){return profitRates[duration]??29}function currentMinimum(){return minimumTradeAmounts[duration]??1000}
 function updatePotential(){const input=$('#trade-amount'),min=currentMinimum();input.min=min;input.placeholder=`Minimum ${fmt(min,0)} USDT`;const amount=Number(input.value)||0,rate=currentProfitRate(),profit=amount*rate/100,total=amount+profit;const r=$('#profit-rate'),p=$('#potential-profit');if(r)r.textContent=`+${rate}%`;if(p)p.textContent=`${fmt(profit)} USDT`;$('#potential-return').textContent=`${fmt(total)} USDT`}
 $('#trade-amount').addEventListener('input',updatePotential);
@@ -431,6 +431,17 @@ if(window.__marketConfigReady?.then){
 
   marketHead.innerHTML = '<span>Market</span><span>Last Price</span><span>24h Change</span><span>24h High</span>';
 
+  window.renderMarkets = function(filter='all'){
+    marketList.innerHTML='';
+    markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{
+      const row=document.createElement('div');
+      row.className='market-row';
+      row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span>`;
+      row.addEventListener('click',e=>{e.preventDefault();window.dispatchEvent(new CustomEvent('dapps:open-market-detail',{detail:{market:m,row}}))});
+      marketList.appendChild(row);
+    });
+  };
+
   const selector = document.createElement('div');
   selector.className = 'trade-pair-selector';
   selector.innerHTML = `
@@ -469,7 +480,7 @@ if(window.__marketConfigReady?.then){
   const baseSelectMarket = window.selectMarket;
   window.selectMarket = function(m){const result = baseSelectMarket(m);renderPairList(search.value);return result;};
 
-  (window.renderMarkets||renderMarkets)(document.querySelector('.filter.active')?.dataset.filter||'all');
+  renderMarkets(document.querySelector('.filter.active')?.dataset.filter||'all');
   renderPairList();
 })();
 
@@ -586,4 +597,33 @@ if(window.__marketConfigReady?.then){
   const base=window.selectMarket;
   if(typeof base==='function')window.selectMarket=function(m){const out=base(m);setTimeout(refresh,20);return out};
   refresh();setInterval(()=>{if(page.classList.contains('active')){paintStats()}},1800);
+})();
+
+
+/* ===== direct-trade-navigation-fallback ===== */
+(()=>{
+  document.addEventListener('click',e=>{
+    const nav=e.target.closest?.('[data-nav="trade"]');
+    if(nav){
+      e.preventDefault();
+      const btc=Array.isArray(window.markets)?window.markets.find(m=>m.symbol==='BTC/USDT'):null;
+      if(btc&&typeof selectMarket==='function')selectMarket(btc);
+      if(typeof navigate==='function')navigate('trade');
+      return;
+    }
+    const assetBtn=e.target.closest?.('.portfolio-asset-row button');
+    if(assetBtn){
+      e.preventDefault();
+      const asset=assetBtn.closest('.portfolio-asset-row')?.querySelector('.asset-name strong')?.textContent?.trim();
+      const m=Array.isArray(window.markets)?window.markets.find(x=>x.symbol===asset+'/USDT'):null;
+      if(m&&typeof selectMarket==='function')selectMarket(m);
+      if(typeof navigate==='function')navigate('trade');
+      return;
+    }
+    const detailBtn=e.target.closest?.('.market-detail-trade');
+    if(detailBtn){
+      e.preventDefault();
+      if(typeof navigate==='function')navigate('trade');
+    }
+  },true);
 })();
