@@ -646,4 +646,3 @@ if(window.__marketConfigReady?.then){
   if(typeof base==='function')window.selectMarket=function(m){const out=base(m);setTimeout(refresh,20);return out};
   refresh();setInterval(()=>{if(page.classList.contains('active')){paintStats()}},1800);
 })();
-;
