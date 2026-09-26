@@ -10,6 +10,7 @@ DApps Platform USA trading-platform repository.
 - `assets/css/utility-ui.css` — shared styles for account/utility pages
 - `assets/css/account.css` — account/auth page-specific styles
 - `assets/css/wallet.css` — deposit/withdraw page-specific styles
+- `assets/js/platform-config.js` — shared frontend API environment and trade specification mirror
 - `assets/js/platform-core.js` — consolidated main runtime modules
 - `assets/js/platform-ui.js` — consolidated UI runtime modules
 - `assets/js/hero-ui.js` — consolidated hero/brand visual runtime
@@ -18,7 +19,7 @@ DApps Platform USA trading-platform repository.
 - `assets/js/escape-back.js` — shared utility-page back-navigation helper
 - `assets/img/` — shared frontend brand and visual assets
 - `domain/` — canonical browser-side trading rule source
-- `backend/` — Express API service with PostgreSQL persistence
+- `backend/` — Express API service with PostgreSQL persistence; `src/business-routes.js` composes Trade, User Admin, Support, Pledge, and Convert modules while KYC stays isolated
 - `admin-panel/` — separate Express-served administration interface with its own public asset root
 - `.github/workflows/pages.yml` — static frontend deployment workflow
 
