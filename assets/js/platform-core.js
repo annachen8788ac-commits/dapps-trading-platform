@@ -227,7 +227,7 @@ renderMarkets();selectMarket(markets[0]);updatePotential();updateBalances();
   setInterval(loadConfig,60000);
 
   if(!document.querySelector('script[data-pledge-ui]')){
-    const script=document.createElement('script');script.src='assets/js/pledge-ui.js?v=20260904-1';script.dataset.pledgeUi='1';document.body.appendChild(script);
+    const script=document.createElement('script');script.src='assets/js/pledge-ui.js?v=20260925-1';script.dataset.pledgeUi='1';document.body.appendChild(script);
   }
 })();
 
