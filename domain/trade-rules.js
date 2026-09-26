@@ -44,16 +44,17 @@
   function validateTrade(){
     const raw=amountInput.value.trim();
     const amount = raw==='' ? 0 : Number(raw)||0;
-    const min = minForDuration();
-    const nextMin = nextMinForDuration();
-    const rate = rateForDuration();
+    const hasDuration=[30,60,90,180,360].includes(Number(duration));
+    const min = hasDuration?minForDuration():0;
+    const nextMin = hasDuration?nextMinForDuration():null;
+    const rate = hasDuration?rateForDuration():0;
     const available = Number(balance) || 0;
-    amountInput.min = min;
-    if(nextMin!=null)amountInput.max=Math.max(min,nextMin-0.01);else amountInput.removeAttribute('max');
-    amountInput.placeholder = nextMin==null?`Minimum ${fmt(min,0)} USDT`:`${fmt(min,0)} – under ${fmt(nextMin,0)} USDT`;
-    ruleLine.innerHTML = nextMin==null
+    amountInput.min = hasDuration?min:0;
+    if(hasDuration&&nextMin!=null)amountInput.max=Math.max(min,nextMin-0.01);else amountInput.removeAttribute('max');
+    amountInput.placeholder = hasDuration?(nextMin==null?`Minimum ${fmt(min,0)} USDT`:`${fmt(min,0)} – under ${fmt(nextMin,0)} USDT`):'Choose duration first';
+    ruleLine.innerHTML = hasDuration?(nextMin==null
       ? `<span>Minimum order</span><strong>${fmt(min,0)} USDT</strong>`
-      : `<span>Order range</span><strong>${fmt(min,0)} – &lt;${fmt(nextMin,0)} USDT</strong>`;
+      : `<span>Order range</span><strong>${fmt(min,0)} – &lt;${fmt(nextMin,0)} USDT</strong>`):'<span>Duration</span><strong>Choose 30s / 60s / 90s / 180s / 360s</strong>';
 
     const empty = raw==='';
     const underMinimum = !empty && amount < min;
@@ -63,7 +64,11 @@
     amountInput.closest('.input-wrap')?.classList.toggle('trade-invalid', !empty && invalid);
     placeBtn.disabled = empty;
 
-    if(empty){
+    if(!hasDuration){
+      eligibility.className = 'trade-eligibility';
+      eligibility.textContent = 'Choose a trade duration before opening a trade.';
+      placeBtn.textContent = 'Choose Duration';
+    }else if(empty){
       eligibility.className = 'trade-eligibility';
       eligibility.textContent = `Enter an order amount. Minimum for ${duration}s is ${fmt(min,0)} USDT.`;
       placeBtn.textContent = 'Enter Amount';
