@@ -53,7 +53,7 @@
     if(!visible.length){const empty=document.createElement('div');empty.className='portfolio-asset-row';empty.innerHTML='<span class="muted">No assets held.</span>';page.appendChild(empty)}
   }
   async function syncWalletBalance(){
-    if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
+    if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=window.DAppsPlatformConfig.apiBase;
     try{
       const [wr,ar]=await Promise.all([fetch(API+'/api/wallet',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}}),fetch(API+'/api/assets',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}})]);const wd=wr.ok?await wr.json():null,ad=ar.ok?await ar.json():{assets:[]};const assets=ad.assets||[];
       if(typeof balance!=='undefined'){balance=Number(wd?.balance?.available)||0;updateBalances()}
@@ -68,7 +68,7 @@
 
 /* ===== trade-dialog-ui-20260925.js ===== */
 (() => {
-  const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
+  const API=window.DAppsPlatformConfig.apiBase;
   const token=localStorage.getItem('dapps:token');
   const demoId=new URLSearchParams(location.search).get('demo');
   const demoMode=Boolean(demoId);
