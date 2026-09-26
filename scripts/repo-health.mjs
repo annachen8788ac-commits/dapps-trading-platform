@@ -38,6 +38,8 @@ check(config.includes('const rates={30:21,60:29,90:37,180:45,360:53};'),'protect
 check(config.includes('function nextMinimum(duration)'),'next-tier amount boundary remains enabled');
 
 const server=read('backend/src/server.js');
+check(!server.includes('dev-only-change-me'),'backend has no default JWT secret');
+check(server.includes("if(!JWT_SECRET||!ADMIN_JWT_SECRET)throw new Error('JWT_SECRET and ADMIN_JWT_SECRET are required')"),'backend requires both JWT secrets');
 check(server.includes('[[30,200,21],[60,1000,29],[90,10000,37],[180,50000,45],[360,250000,53]]'),'backend default trade product seed unchanged');
 check(server.includes('await initializeKycSchema(pool);\n  await initializeBusinessSchemas(pool);'),'backend composition order keeps KYC before business modules');
 
