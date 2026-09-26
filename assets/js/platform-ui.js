@@ -208,7 +208,7 @@
   list.addEventListener('click',e=>{const row=e.target.closest('.market-row');if(!row)return;const symbol=row.querySelector('.market-name strong')?.textContent?.trim(),m=(window.markets||[]).find(x=>x.symbol===symbol);if(!m)return;e.preventDefault();e.stopImmediatePropagation();open(m,row)},true);
   detail.querySelector('.market-detail-close').addEventListener('click',()=>{detail.hidden=true;active=null;rows=[];token++});
   detail.querySelector('.market-detail-trade').addEventListener('click',()=>{if(active){selectMarket(active);navigate('trade')}});
-  window.addEventListener('dapps:markets-updated',()=>{if(active&&!detail.hidden)requestAnimationFrame(placeDetail)});
+  window.addEventListener('dapps:markets-updated',()=>{if(active&&!detail.hidden)placeDetail()});
   periodWrap.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{const p=btn.dataset.detailPeriod;if(p===period)return;period=p;periodWrap.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===btn));load()}));
   window.addEventListener('dapps:market-quote',e=>{if(!active||e.detail?.symbol!==active.symbol)return;const d=e.detail;active.price=Number(d.price)||active.price;active.change=Number(d.change)||0;active.high=Number(d.high)||active.high;active.low=Number(d.low)||active.low;paint()});
   window.addEventListener('resize',()=>{if(!detail.hidden)draw()},{passive:true});
