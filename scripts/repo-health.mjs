@@ -19,7 +19,8 @@ const required=[
   'backend/src/business-routes.js',
   'backend/src/trade-routes.js',
   'admin-panel/package.json',
-  'admin-panel/package-lock.json'
+  'admin-panel/package-lock.json',
+  'admin-panel/Dockerfile'
 ];
 for(const p of required)check(exists(p),`required file exists: ${p}`);
 
@@ -153,6 +154,10 @@ const backendPkg=JSON.parse(read('backend/package.json'));
 const adminPkg=JSON.parse(read('admin-panel/package.json'));
 check(backendPkg.engines?.node==='22.x','backend Node engine is pinned to 22.x');
 check(adminPkg.engines?.node==='22.x','admin Node engine is pinned to 22.x');
+check(read('backend/Dockerfile').includes('npm ci --omit=dev'),'backend Docker build uses npm ci');
+check(read('admin-panel/Dockerfile').includes('FROM node:22-bookworm-slim'),'admin Docker build pins Node 22');
+check(read('admin-panel/Dockerfile').includes('npm ci --omit=dev'),'admin Docker build uses npm ci');
+check(read('admin-panel/server.js').includes("app.get('/health'"),'admin health endpoint remains present');
 
 if(failures.length){
   console.error('\nRepository health check FAILED:');
