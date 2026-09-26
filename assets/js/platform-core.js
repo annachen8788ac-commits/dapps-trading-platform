@@ -598,3 +598,32 @@ if(window.__marketConfigReady?.then){
   if(typeof base==='function')window.selectMarket=function(m){const out=base(m);setTimeout(refresh,20);return out};
   refresh();setInterval(()=>{if(page.classList.contains('active')){paintStats()}},1800);
 })();
+
+
+/* ===== direct-trade-navigation-fallback ===== */
+(()=>{
+  document.addEventListener('click',e=>{
+    const nav=e.target.closest?.('[data-nav="trade"]');
+    if(nav){
+      e.preventDefault();
+      const btc=Array.isArray(window.markets)?window.markets.find(m=>m.symbol==='BTC/USDT'):null;
+      if(btc&&typeof selectMarket==='function')selectMarket(btc);
+      if(typeof navigate==='function')navigate('trade');
+      return;
+    }
+    const assetBtn=e.target.closest?.('.portfolio-asset-row button');
+    if(assetBtn){
+      e.preventDefault();
+      const asset=assetBtn.closest('.portfolio-asset-row')?.querySelector('.asset-name strong')?.textContent?.trim();
+      const m=Array.isArray(window.markets)?window.markets.find(x=>x.symbol===asset+'/USDT'):null;
+      if(m&&typeof selectMarket==='function')selectMarket(m);
+      if(typeof navigate==='function')navigate('trade');
+      return;
+    }
+    const detailBtn=e.target.closest?.('.market-detail-trade');
+    if(detailBtn){
+      e.preventDefault();
+      if(typeof navigate==='function')navigate('trade');
+    }
+  },true);
+})();
