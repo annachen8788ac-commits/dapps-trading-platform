@@ -51,8 +51,8 @@ window.markets=markets;
 const demoSessionId=new URLSearchParams(location.search).get('demo');
 const isDemoSession=Boolean(demoSessionId);
 let currentMarket=markets[0],direction='up',duration=60,balance=isDemoSession?50000:0,totalPledged=0,activeTrades=[],selectedPledge={product:'Flexible',min:100};
-const profitRates={30:21,60:29,90:37,180:45,360:53};
-const minimumTradeAmounts={30:200,60:1000,90:10000,180:50000,360:250000};
+const profitRates=window.DAppsTradeSpec.rates;
+const minimumTradeAmounts=window.DAppsTradeSpec.minimums;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 function decimals(v){return v<1?6:v<100?4:2}
 function renderMarkets(filter='all'){const list=$('#market-list');list.innerHTML='';markets.filter(m=>filter==='all'||m.type===filter).forEach(m=>{const row=document.createElement('div');row.className='market-row';row.innerHTML=`<div class="market-name"><span class="coin-icon small">${tradeIconHTML(m)}</span><div><strong>${m.symbol}</strong><small class="muted" style="display:block;margin-top:3px">${m.name}</small></div></div><strong>${fmt(m.price,decimals(m.price))}</strong><strong class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${m.change.toFixed(2)}%</strong><span>${fmt(m.high,decimals(m.high))}</span><button>Trade</button>`;row.querySelector('button').onclick=()=>{selectMarket(m);navigate('trade')};list.appendChild(row)})}
