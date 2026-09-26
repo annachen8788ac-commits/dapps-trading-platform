@@ -205,7 +205,7 @@
   function placeDetail(){if(!active||detail.hidden)return;const target=[...list.querySelectorAll('.market-row')].find(r=>r.querySelector('.market-name strong')?.textContent?.trim()===active.symbol);if(target&&detail.previousElementSibling!==target)target.insertAdjacentElement('afterend',detail)}
   function open(m,row){if(!m)return;if(active?.symbol===m.symbol&&!detail.hidden){detail.hidden=true;active=null;rows=[];token++;return}active=m;period='24H';if(row)row.insertAdjacentElement('afterend',detail);detail.hidden=false;periodWrap.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.detailPeriod==='24H'));paint();load()}
   window.openMarketDetail=open;
-  list.addEventListener('click',e=>{const row=e.target.closest('.market-row');if(!row)return;const symbol=row.querySelector('.market-name strong')?.textContent?.trim(),m=(window.markets||[]).find(x=>x.symbol===symbol);if(!m)return;e.preventDefault();e.stopImmediatePropagation();open(m,row)},true);
+  window.addEventListener('dapps:open-market-detail',e=>{const m=e.detail?.market,row=e.detail?.row;if(m)open(m,row)});
   detail.querySelector('.market-detail-close').addEventListener('click',()=>{detail.hidden=true;active=null;rows=[];token++});
   detail.querySelector('.market-detail-trade').addEventListener('click',()=>{if(active){selectMarket(active);navigate('trade')}});
   window.addEventListener('dapps:markets-updated',()=>{if(active&&!detail.hidden)placeDetail()});
