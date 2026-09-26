@@ -92,3 +92,10 @@ body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!importan
  body.platform-ui .shell>.top .brand.brand-real-logo{gap:9px!important}
  body.platform-ui .shell>.top .brand-real-logo-img{width:54px!important;height:44px!important}
 }
+/* ===== mobile native-form behavior ===== */
+@media(max-width:720px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+    font-size:16px!important;
+    line-height:1.25;
+  }
+}
