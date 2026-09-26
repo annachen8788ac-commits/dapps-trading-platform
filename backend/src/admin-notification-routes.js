@@ -1,4 +1,4 @@
-const TYPES=new Set(['support_chat','deposit','withdrawal','kyc','ticket','recovery']);
+const TYPES=new Set(['support_chat','deposit','withdrawal','kyc','ticket','recovery','demo_session']);
 const NOTIFICATION_LAUNCH_AT='2026-09-25T00:09:39.000Z';
 
 export async function initializeAdminNotificationSchema(pool){
@@ -10,6 +10,11 @@ export async function initializeAdminNotificationSchema(pool){
     PRIMARY KEY(admin_id,source_type,source_id)
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_notification_reads_admin ON admin_notification_reads(admin_id,read_at DESC)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS demo_session_notifications (
+    session_id VARCHAR(80) PRIMARY KEY,
+    label VARCHAR(32) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
   await pool.query(`DELETE FROM admin_notification_reads r
     WHERE r.source_type='ticket'
       AND NOT EXISTS (SELECT 1 FROM support_tickets t WHERE t.ticket_no=r.source_id)`);
@@ -31,7 +36,7 @@ export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
     try{
       res.set('Cache-Control','no-store');
       const adminId=req.admin.id;
-      const [support,deposits,withdrawals,kyc,tickets,recovery]=await Promise.all([
+      const [support,deposits,withdrawals,kyc,tickets,recovery,demos]=await Promise.all([
         pool.query(`SELECT c.id::text source_id,u.public_id,u.display_name,m.message,m.created_at
           FROM support_conversations c
           JOIN users u ON u.id=c.user_id
@@ -73,7 +78,13 @@ export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
           LEFT JOIN admin_notification_reads r
             ON r.admin_id=$1 AND r.source_type='recovery' AND r.source_id=a.request_no
           WHERE a.status='pending' AND (r.read_at IS NULL OR a.created_at>r.read_at)
-          ORDER BY a.created_at DESC LIMIT 50`,[adminId])
+          ORDER BY a.created_at DESC LIMIT 50`,[adminId]),
+        pool.query(`SELECT d.session_id source_id,d.label,d.created_at
+          FROM demo_session_notifications d
+          LEFT JOIN admin_notification_reads r
+            ON r.admin_id=$1 AND r.source_type='demo_session' AND r.source_id=d.session_id
+          WHERE r.read_at IS NULL OR d.created_at>r.read_at
+          ORDER BY d.created_at DESC LIMIT 50`,[adminId])
       ]);
       const items=[
         ...support.rows.map(x=>({type:'support_chat',sourceId:x.source_id,title:'客服新消息',text:`${x.display_name||x.public_id}: ${String(x.message||'').slice(0,120)}`,createdAt:x.created_at,href:`/support-chat?chat=${encodeURIComponent(x.source_id)}`})),
@@ -81,7 +92,8 @@ export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
         ...withdrawals.rows.map(x=>({type:'withdrawal',sourceId:x.source_id,title:'新的提现申请',text:`${x.display_name||x.public_id} · ${Number(x.amount)} ${x.asset}`,createdAt:x.created_at,href:`/wallet?tab=withdrawals`})),
         ...kyc.rows.map(x=>({type:'kyc',sourceId:x.source_id,title:'新的身份认证',text:`${x.display_name||x.public_id} · ${x.full_name||''}`,createdAt:x.created_at,href:`/kyc?id=${encodeURIComponent(x.source_id)}`})),
         ...tickets.rows.map(x=>({type:'ticket',sourceId:x.source_id,title:'新的 Support 工单',text:`${x.display_name||x.public_id} · ${x.subject||x.category||''}`,createdAt:x.created_at,href:`/?section=tickets`})),
-        ...recovery.rows.map(x=>({type:'recovery',sourceId:x.source_id,title:'新的账号找回申请',text:`${x.recovery_type==='username'?'忘记用户名':'忘记登录密码'} · ${String(x.lookup_value||'').slice(0,80)}`,createdAt:x.created_at,href:`/?section=recovery`}))
+        ...recovery.rows.map(x=>({type:'recovery',sourceId:x.source_id,title:'新的账号找回申请',text:`${x.recovery_type==='username'?'忘记用户名':'忘记登录密码'} · ${String(x.lookup_value||'').slice(0,80)}`,createdAt:x.created_at,href:`/?section=recovery`})),
+        ...demos.rows.map(x=>({type:'demo_session',sourceId:x.source_id,title:'新的模拟账户上线',text:x.label,createdAt:x.created_at,href:'/trades'}))
       ].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,100);
       res.json({unreadCount:items.length,items});
     }catch(e){console.error(e);res.status(500).json({error:'Unable to load admin notifications'});}
