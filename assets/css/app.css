@@ -978,3 +978,11 @@ body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!importan
   }
   .page>*{max-width:100%;min-width:0}
 }
+
+/* ===== mobile native-form behavior ===== */
+@media(max-width:720px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+    font-size:16px!important;
+    line-height:1.25;
+  }
+}
