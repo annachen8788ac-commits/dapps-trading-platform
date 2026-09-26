@@ -34,7 +34,18 @@
     estimate.insertAdjacentElement('beforebegin', eligibility);
   }
 
-  
+  const style = document.createElement('style');
+  style.textContent = `
+    .trade-rule-line{margin:-2px 18px 12px;display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#8e96aa}
+    .trade-rule-line strong{color:#dfe6f5;font-weight:600}
+    .trade-eligibility{margin:0 18px 12px;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,91,103,.28);background:rgba(255,91,103,.07);color:#ff8b94;font-size:12px;line-height:1.45}
+    .trade-eligibility.ready{border-color:rgba(40,199,124,.28);background:rgba(40,199,124,.07);color:#65d99c}
+    .input-wrap.trade-invalid{border-color:rgba(255,91,103,.65);box-shadow:0 0 0 2px rgba(255,91,103,.08)}
+    .submit-trade:disabled{cursor:not-allowed;opacity:.48;filter:saturate(.45);box-shadow:none}
+    .duration-grid button small{display:block;margin-top:4px;font-size:9px;color:inherit;opacity:.78}
+    @media(max-width:720px){.trade-rule-line,.trade-eligibility{margin-left:18px;margin-right:18px}.trade-eligibility{font-size:11px}}
+  `;
+  document.head.appendChild(style);
 
   function minForDuration(){ return minimums[Number(duration)] ?? 200; }
   function rateForDuration(){ return rates[Number(duration)] ?? 29; }
@@ -100,7 +111,23 @@
     };
   });
 
-  // Trade execution is owned by platform-ui.js; this module only validates and presents eligibility.
+  placeBtn.onclick = () => {
+    const amount = Number(amountInput.value) || 0;
+    const min = minForDuration();
+    const nextMin = nextMinForDuration();
+    if(amount < min){ validateTrade(); showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`); return; }
+    if(nextMin!=null && amount>=nextMin){ validateTrade(); showToast(`Order blocked: ${fmt(nextMin,0)} USDT starts the next duration tier.`); return; }
+    if(amount > balance){ validateTrade(); showToast('Order blocked: insufficient available balance.'); return; }
+    const rate = rateForDuration();
+    balance -= amount;
+    activeTrades.push({id:Date.now(),market:currentMarket,dir:direction,entry:currentMarket.price,amount,duration,profitRate:rate,end:Date.now()+duration*1000});
+    updateBalances(); renderPositions();
+    amountInput.value='';
+    if(typeof updatePotential==='function')updatePotential();
+    validateTrade();
+    showToast(`${direction==='up'?'Up':'Down'} ${duration}s ${isSimulation()?'simulation ':''}trade opened · +${rate}% potential profit.`);
+  };
+
   const originalUpdateBalances = window.updateBalances;
   if(typeof originalUpdateBalances === 'function'){
     window.updateBalances = function(){ const result = originalUpdateBalances(); validateTrade(); return result; };
