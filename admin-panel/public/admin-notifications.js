@@ -61,6 +61,7 @@
     if(raw.includes('support-chat')||raw.includes('在线客服'))return 'support_chat';
     if(raw.includes('tickets')||raw.includes('客服工单'))return 'ticket';
     if(raw.includes('recovery')||raw.includes('账号找回'))return 'recovery';
+    if(raw.includes('/trades')||raw.includes('交易控制'))return 'demo_session';
     return '';
   }
   function renderCategoryBadges(){
