@@ -12,17 +12,6 @@ export async function initializeUserAdminSchema(pool){
 }
 
 export function registerUserAdminRoutes(app,{pool,adminAuth,requireRole,audit}){
-  app.patch('/api/admin/users/:publicId/status',adminAuth,requireRole('super_admin','operations'),async(req,res)=>{
-    const status=String(req.body?.status||'').trim().toLowerCase();
-    if(!['active','frozen'].includes(status))return res.status(400).json({error:'Status must be active or frozen'});
-    try{
-      const q=await pool.query(`UPDATE users SET status=$1,updated_at=NOW() WHERE public_id=$2 RETURNING public_id,status`,[status,req.params.publicId]);
-      if(!q.rows[0])return res.status(404).json({error:'User not found'});
-      await audit(req,'user.status.update','user',req.params.publicId,{status});
-      res.json({ok:true,publicId:q.rows[0].public_id,status:q.rows[0].status});
-    }catch(e){console.error(e);res.status(500).json({error:'Unable to update account status'});}
-  });
-
   app.delete('/api/admin/users/:publicId',adminAuth,requireRole('super_admin'),async(req,res)=>{
     const publicId=String(req.params.publicId||'').trim();
     const confirmPublicId=String(req.body?.confirmPublicId||'').trim();
