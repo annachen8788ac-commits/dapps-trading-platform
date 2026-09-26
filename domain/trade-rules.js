@@ -61,7 +61,7 @@
     const insufficient = !empty && amount > available;
     const invalid = empty || underMinimum || reachesNextTier || insufficient;
     amountInput.closest('.input-wrap')?.classList.toggle('trade-invalid', !empty && invalid);
-    placeBtn.disabled = invalid;
+    placeBtn.disabled = empty;
 
     if(empty){
       eligibility.className = 'trade-eligibility';
