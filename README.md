@@ -58,3 +58,13 @@ Environment secrets must not be committed. Use the checked-in `.env.example` fil
 ## Important
 
 This repository contains application code for client, backend, and administrative workflows. Deployment, security, financial controls, custody, compliance, and production-readiness requirements must be independently reviewed and validated before relying on the system for regulated or real-money activity.
+
+
+## Build and health
+
+- Backend and admin runtime target Node.js 22.x.
+- `backend/package-lock.json` and `admin-panel/package-lock.json` lock production dependency trees.
+- The backend Docker image installs dependencies with `npm ci --omit=dev` for reproducible builds.
+- `.github/workflows/health.yml` runs on pushes and pull requests to validate repository invariants, JavaScript syntax, locked dependency installs, unique backend routes, CSS structure, and protected trading-rule defaults.
+- `scripts/repo-health.mjs` guards the current trade durations, default minimums, profit rates, KYC gate, tier boundaries, locked-principal behavior, Auto/Win/Loss controls, sequence control endpoints, and route uniqueness without executing or changing trading logic.
+- Production backend startup requires both `JWT_SECRET` and `ADMIN_JWT_SECRET`; there is no built-in default secret.
