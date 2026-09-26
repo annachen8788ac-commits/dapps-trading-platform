@@ -19,7 +19,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET;
 if(!JWT_SECRET||!ADMIN_JWT_SECRET)throw new Error('JWT_SECRET and ADMIN_JWT_SECRET are required');
 const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(x=>x.trim()).filter(Boolean);
-const trustedFrontendOrigins = new Set(['https://futures.dappsplatformusa.com','https://annachen8788ac-commits.github.io']);
+const trustedFrontendOrigins = new Set(['https://futures.dappsplatformusa.com']);
 const demoSessions=new Map();
 const DEMO_SESSION_TTL_MS=90000;
 function validDemoSessionId(value){const id=String(value||'').trim();return /^[A-Za-z0-9-]{12,80}$/.test(id)?id:null}
