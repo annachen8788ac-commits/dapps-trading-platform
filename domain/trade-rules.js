@@ -49,22 +49,28 @@
 
   function minForDuration(){ return minimums[Number(duration)] ?? 200; }
   function rateForDuration(){ return rates[Number(duration)] ?? 29; }
+  function nextMinForDuration(){ return window.DAppsTradeSpec.nextMinimum(Number(duration)); }
   function isSimulation(){ return Boolean(new URLSearchParams(location.search).get('demo')); }
 
   function validateTrade(){
     const raw=amountInput.value.trim();
     const amount = raw==='' ? 0 : Number(raw)||0;
     const min = minForDuration();
+    const nextMin = nextMinForDuration();
     const rate = rateForDuration();
     const available = Number(balance) || 0;
     amountInput.min = min;
-    amountInput.placeholder = `Minimum ${fmt(min,0)} USDT`;
-    ruleLine.innerHTML = `<span>Minimum order</span><strong>${fmt(min,0)} USDT</strong>`;
+    if(nextMin!=null)amountInput.max=Math.max(min,nextMin-0.01);else amountInput.removeAttribute('max');
+    amountInput.placeholder = nextMin==null?`Minimum ${fmt(min,0)} USDT`:`${fmt(min,0)} – under ${fmt(nextMin,0)} USDT`;
+    ruleLine.innerHTML = nextMin==null
+      ? `<span>Minimum order</span><strong>${fmt(min,0)} USDT</strong>`
+      : `<span>Order range</span><strong>${fmt(min,0)} – &lt;${fmt(nextMin,0)} USDT</strong>`;
 
     const empty = raw==='';
     const underMinimum = !empty && amount < min;
+    const reachesNextTier = !empty && nextMin!=null && amount >= nextMin;
     const insufficient = !empty && amount > available;
-    const invalid = empty || underMinimum || insufficient;
+    const invalid = empty || underMinimum || reachesNextTier || insufficient;
     amountInput.closest('.input-wrap')?.classList.toggle('trade-invalid', !empty && invalid);
     placeBtn.disabled = invalid;
 
@@ -76,6 +82,10 @@
       eligibility.className = 'trade-eligibility';
       eligibility.textContent = `Order not eligible — ${duration}s requires at least ${fmt(min,0)} USDT.`;
       placeBtn.textContent = `Minimum ${fmt(min,0)} USDT Required`;
+    }else if(reachesNextTier){
+      eligibility.className = 'trade-eligibility';
+      eligibility.textContent = `Order not eligible — ${fmt(nextMin,0)} USDT starts the next duration tier.`;
+      placeBtn.textContent = 'Choose Next Duration';
     }else if(insufficient){
       eligibility.className = 'trade-eligibility';
       eligibility.textContent = `Insufficient available balance. Required ${fmt(amount)} USDT, available ${fmt(available)} USDT.`;
@@ -104,7 +114,9 @@
   placeBtn.onclick = () => {
     const amount = Number(amountInput.value) || 0;
     const min = minForDuration();
+    const nextMin = nextMinForDuration();
     if(amount < min){ validateTrade(); showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`); return; }
+    if(nextMin!=null && amount>=nextMin){ validateTrade(); showToast(`Order blocked: ${fmt(nextMin,0)} USDT starts the next duration tier.`); return; }
     if(amount > balance){ validateTrade(); showToast('Order blocked: insufficient available balance.'); return; }
     const rate = rateForDuration();
     balance -= amount;
@@ -121,5 +133,6 @@
     window.updateBalances = function(){ const result = originalUpdateBalances(); validateTrade(); return result; };
   }
 
+  window.addEventListener('dapps:market-config',validateTrade);
   validateTrade();
 })();
