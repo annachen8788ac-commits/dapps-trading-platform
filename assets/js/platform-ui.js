@@ -76,8 +76,8 @@
   const ACTIVE_KEY='dapps:activeTrades:v3'+suffix;
   const HISTORY_KEY='dapps:tradeHistory:v3'+suffix;
   const BALANCE_KEY='dapps:demoBalance:v3'+suffix;
-  const minimums={30:200,60:1000,90:10000,180:50000,360:250000};
-  const rates={30:21,60:29,90:37,180:45,360:53};
+  const minimums=window.DAppsTradeSpec.minimums;
+  const rates=window.DAppsTradeSpec.rates;
   const selectedDuration=()=>{const btn=document.querySelector('.duration-grid [data-duration].active');const v=Number(btn?.dataset.duration);return [30,60,90,180,360].includes(v)?v:Number(duration)||60};
   const placeBtn=document.querySelector('#place-trade');
   const amountInput=document.querySelector('#trade-amount');
