@@ -64,7 +64,8 @@ This repository contains application code for client, backend, and administrativ
 
 - Backend and admin runtime target Node.js 22.x.
 - `backend/package-lock.json` and `admin-panel/package-lock.json` lock production dependency trees.
-- The backend Docker image installs dependencies with `npm ci --omit=dev` for reproducible builds.
+- Backend and admin both use Node.js 22 Docker images and install dependencies with `npm ci --omit=dev` for reproducible builds.
 - `.github/workflows/health.yml` runs on pushes and pull requests to validate repository invariants, JavaScript syntax, locked dependency installs, unique backend routes, CSS structure, and protected trading-rule defaults.
 - `scripts/repo-health.mjs` guards the current trade durations, default minimums, profit rates, KYC gate, tier boundaries, locked-principal behavior, Auto/Win/Loss controls, sequence control endpoints, and route uniqueness without executing or changing trading logic.
 - Production backend startup requires both `JWT_SECRET` and `ADMIN_JWT_SECRET`; there is no built-in default secret.
+- Railway health checks use `/api/health` for the backend and `/health` for the admin service.
