@@ -48,7 +48,7 @@ const markets = [
 window.markets=markets;
 const demoSessionId=new URLSearchParams(location.search).get('demo');
 const isDemoSession=Boolean(demoSessionId);
-let currentMarket=markets[0],direction=null,duration=60,balance=isDemoSession?50000:0,totalPledged=0,selectedPledge={product:'Flexible',min:100};
+let currentMarket=markets[0],direction=null,duration=null,balance=isDemoSession?50000:0,totalPledged=0,selectedPledge={product:'Flexible',min:100};
 const profitRates=window.DAppsTradeSpec.rates;
 const minimumTradeAmounts=window.DAppsTradeSpec.minimums;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -61,8 +61,8 @@ navigate(['home','markets','trade','pledge','assets'].includes(initialPage)?init
 delete document.documentElement.dataset.initialPage;
 try{delete window.__dappsInitialPage}catch{}
 $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='trade'){const btc=markets.find(m=>m.symbol==='BTC/USDT');if(btc)selectMarket(btc)}navigate(b.dataset.nav)}));$$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderMarkets(b.dataset.filter)});
-function currentProfitRate(){return profitRates[duration]??29}function currentMinimum(){return minimumTradeAmounts[duration]??1000}
-function updatePotential(){const input=$('#trade-amount'),min=currentMinimum();input.min=min;input.placeholder=`Minimum ${fmt(min,0)} USDT`;const amount=Number(input.value)||0,rate=currentProfitRate(),profit=amount*rate/100,total=amount+profit;const r=$('#profit-rate'),p=$('#potential-profit');if(r)r.textContent=`+${rate}%`;if(p)p.textContent=`${fmt(profit)} USDT`;$('#potential-return').textContent=`${fmt(total)} USDT`}
+function currentProfitRate(){return duration==null?0:(profitRates[duration]??0)}function currentMinimum(){return duration==null?0:(minimumTradeAmounts[duration]??0)}
+function updatePotential(){const input=$('#trade-amount'),min=currentMinimum(),hasDuration=[30,60,90,180,360].includes(Number(duration));input.min=hasDuration?min:0;input.placeholder=hasDuration?`Minimum ${fmt(min,0)} USDT`:'Choose duration first';const amount=Number(input.value)||0,rate=currentProfitRate(),profit=hasDuration?amount*rate/100:0,total=hasDuration?amount+profit:0;const r=$('#profit-rate'),p=$('#potential-profit');if(r)r.textContent=hasDuration?`+${rate}%`:'--';if(p)p.textContent=`${fmt(profit)} USDT`;$('#potential-return').textContent=`${fmt(total)} USDT`}
 $('#trade-amount').addEventListener('input',updatePotential);
 $('#up-btn').onclick=()=>{direction='up';$('#up-btn').classList.add('active');$('#down-btn').classList.remove('active')};$('#down-btn').onclick=()=>{direction='down';$('#down-btn').classList.add('active');$('#up-btn').classList.remove('active')};
 function showToast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove('show'),2600)}
