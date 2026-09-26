@@ -17,7 +17,7 @@ DApps Platform USA trading-platform repository.
 - `assets/js/user-notifications.js` — shared user notification client
 - `assets/js/escape-back.js` — shared utility-page back-navigation helper
 - `assets/img/` — shared frontend brand and visual assets
-- `domain/` — canonical browser-side trading rule and ledger sources
+- `domain/` — canonical browser-side trading rule source
 - `backend/` — Express API service with PostgreSQL persistence
 - `admin-panel/` — separate Express-served administration interface with its own public asset root
 - `.github/workflows/pages.yml` — static frontend deployment workflow
@@ -30,7 +30,7 @@ The main trading page loads consolidated style and runtime bundles to reduce leg
 
 ## Trading domain sources
 
-Canonical browser-side trading sources live under `domain/`. Root-level duplicate copies have been removed so these files have a single maintained location.
+Canonical browser-side trading rules live under `domain/`. Historical duplicate trading and account-mode files that are not part of the runtime path have been removed.
 
 ## Backend
 
