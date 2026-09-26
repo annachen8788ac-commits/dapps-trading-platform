@@ -48,3 +48,9 @@ jobs:
         run: |
           npm ci --omit=dev --ignore-scripts --no-audit --no-fund
           npm ls --omit=dev
+
+      - name: Build backend image
+        run: docker build --pull=false -t dapps-backend-ci backend
+
+      - name: Build admin image
+        run: docker build --pull=false -t dapps-admin-ci admin-panel
