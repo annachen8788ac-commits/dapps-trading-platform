@@ -20,7 +20,9 @@ const required=[
   'backend/src/trade-routes.js',
   'admin-panel/package.json',
   'admin-panel/package-lock.json',
-  'admin-panel/Dockerfile'
+  'admin-panel/Dockerfile',
+  'backend/.dockerignore',
+  'admin-panel/.dockerignore'
 ];
 for(const p of required)check(exists(p),`required file exists: ${p}`);
 
@@ -158,6 +160,10 @@ check(read('backend/Dockerfile').includes('npm ci --omit=dev'),'backend Docker b
 check(read('admin-panel/Dockerfile').includes('FROM node:22-bookworm-slim'),'admin Docker build pins Node 22');
 check(read('admin-panel/Dockerfile').includes('npm ci --omit=dev'),'admin Docker build uses npm ci');
 check(read('admin-panel/server.js').includes("app.get('/health'"),'admin health endpoint remains present');
+check(read('backend/Dockerfile').includes('USER node'),'backend container runs as non-root node user');
+check(read('admin-panel/Dockerfile').includes('USER node'),'admin container runs as non-root node user');
+check(read('backend/.dockerignore').includes('.env'),'backend Docker context excludes environment files');
+check(read('admin-panel/.dockerignore').includes('.env'),'admin Docker context excludes environment files');
 
 if(failures.length){
   console.error('\nRepository health check FAILED:');
