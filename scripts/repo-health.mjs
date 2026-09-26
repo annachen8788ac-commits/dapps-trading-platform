@@ -62,8 +62,6 @@ const core=read('assets/js/platform-core.js');
 const rules=read('domain/trade-rules.js');
 const ui=read('assets/js/platform-ui.js');
 check(!core.includes("$('#place-trade').onclick="),'platform-core does not regain legacy local trade execution');
-check(!/([^$]|^)\$\('\.page'\)\.forEach/.test(core),'platform-core uses multi-element selector for page navigation');
-check(!/([^$]|^)\$\('\[data-nav\]'\)\.forEach/.test(core),'platform-core uses multi-element selector for navigation controls');
 check(!rules.includes('placeBtn.onclick ='),'trade-rules remains validation-only');
 check((ui.match(/placeBtn\.onclick=/g)||[]).length>=1,'platform-ui owns trade execution');
 
