@@ -15,6 +15,13 @@ export async function initializeAdminNotificationSchema(pool){
     label VARCHAR(32) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS demo_session_notification_events (
+    id BIGSERIAL PRIMARY KEY,
+    session_id VARCHAR(80) NOT NULL,
+    label VARCHAR(32) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_demo_session_notification_events_created ON demo_session_notification_events(created_at DESC)`);
   await pool.query(`DELETE FROM admin_notification_reads r
     WHERE r.source_type='ticket'
       AND NOT EXISTS (SELECT 1 FROM support_tickets t WHERE t.ticket_no=r.source_id)`);
@@ -79,10 +86,10 @@ export function registerAdminNotificationRoutes(app,{pool,adminAuth}){
             ON r.admin_id=$1 AND r.source_type='recovery' AND r.source_id=a.request_no
           WHERE a.status='pending' AND (r.read_at IS NULL OR a.created_at>r.read_at)
           ORDER BY a.created_at DESC LIMIT 50`,[adminId]),
-        pool.query(`SELECT d.session_id source_id,d.label,d.created_at
-          FROM demo_session_notifications d
+        pool.query(`SELECT d.id::text source_id,d.session_id,d.label,d.created_at
+          FROM demo_session_notification_events d
           LEFT JOIN admin_notification_reads r
-            ON r.admin_id=$1 AND r.source_type='demo_session' AND r.source_id=d.session_id
+            ON r.admin_id=$1 AND r.source_type='demo_session' AND r.source_id=d.id::text
           WHERE r.read_at IS NULL OR d.created_at>r.read_at
           ORDER BY d.created_at DESC LIMIT 50`,[adminId])
       ]);
