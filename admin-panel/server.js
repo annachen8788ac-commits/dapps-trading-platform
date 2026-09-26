@@ -8,6 +8,7 @@ const COOKIE_NAME = 'dapps_admin_session';
 
 app.disable('x-powered-by');
 app.use(express.json({ limit:'100kb' }));
+app.get('/health',(req,res)=>{res.set('Cache-Control','no-store');res.json({ok:true})});
 
 const COOKIE_MAX_AGE = 34560000; // 400 days; renewed on every successful authenticated request
 function cookieMap(req){const raw=req.headers.cookie||'';return Object.fromEntries(raw.split(';').map(v=>v.trim()).filter(Boolean).map(v=>{const i=v.indexOf('=');return[decodeURIComponent(v.slice(0,i)),decodeURIComponent(v.slice(i+1))]}))}
