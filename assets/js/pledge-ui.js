@@ -1,5 +1,5 @@
 (()=>{
-  const API=window.DAppsPlatformConfig.apiBase;
+  const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
   const token=localStorage.getItem('dapps:token');
   const demoMode=Boolean(new URLSearchParams(location.search).get('demo'));
   const configs=[
