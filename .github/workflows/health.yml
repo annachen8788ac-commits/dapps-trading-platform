@@ -1,0 +1,50 @@
+name: Repository health
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-health-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Repository invariants
+        run: node scripts/repo-health.mjs
+
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find assets/js domain backend/src admin-panel -type f -name "*.js" -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Verify backend locked install
+        working-directory: backend
+        run: |
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          npm ls --omit=dev
+
+      - name: Verify admin locked install
+        working-directory: admin-panel
+        run: |
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          npm ls --omit=dev
