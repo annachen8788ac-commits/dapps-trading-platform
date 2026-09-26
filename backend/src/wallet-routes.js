@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const money=v=>Number(Number(v).toFixed(2));
 const assetAmount=v=>Number(Number(v).toFixed(12));
 const makeRef=prefix=>`${prefix}-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomInt(100000,999999)}`;
-// Public wallet networks are intentionally limited to BTC, TRC20 and ERC20.
+// Public wallet networks are intentionally limited to BTC plus TRC20/ERC20.
 const walletNetworkMatrix={
   BTC:['BTC'],
   ETH:['TRC20','ERC20'],
