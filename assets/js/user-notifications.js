@@ -1,5 +1,5 @@
 (()=>{
-  const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
+  const API=window.DAppsPlatformConfig.apiBase;
   const token=localStorage.getItem('dapps:token');
   let items=[],open=false,timer=null;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
