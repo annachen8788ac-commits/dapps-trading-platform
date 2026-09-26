@@ -269,7 +269,7 @@ async function marketControlCandles(code,period){
 
 app.get('/api/market/config',async(req,res)=>{
   try{
-    const [settings,directory]=await Promise.all([pool.query(`SELECT symbol,enabled,sort_order FROM market_settings`),loadMarketDirectory()]);
+    const [settings,directory,tradeProducts]=await Promise.all([pool.query(`SELECT symbol,enabled,sort_order FROM market_settings`),loadMarketDirectory(),pool.query(`SELECT duration_seconds,minimum_amount,profit_rate,enabled FROM trade_products ORDER BY duration_seconds`)]);
     const overrides=new Map(settings.rows.map(r=>[String(r.symbol).split('/')[0].toUpperCase(),r]));
     const markets=[];
     for(let i=0;i<marketControlCodes.length;i++){
@@ -283,7 +283,7 @@ app.get('/api/market/config',async(req,res)=>{
       markets.push({symbol:code+'/USDT',code,name:marketControlNames[code]||row?.name||code,type:'crypto',bg:marketControlColors[code]||'#24344d',price,change,high,low,sortOrder:Number.isFinite(Number(override?.sort_order))?Number(override.sort_order):100+i});
     }
     markets.sort((a,b)=>a.sortOrder-b.sortOrder||a.symbol.localeCompare(b.symbol));
-    res.json({quoteIntervalMs:1200,periods:Object.entries(marketControlPeriods).map(([id,v])=>({id,seconds:v.seconds,count:v.count})),markets});
+    res.json({quoteIntervalMs:1200,periods:Object.entries(marketControlPeriods).map(([id,v])=>({id,seconds:v.seconds,count:v.count})),tradeProducts:tradeProducts.rows.map(x=>({duration:Number(x.duration_seconds),minimumAmount:Number(x.minimum_amount),profitRate:Number(x.profit_rate),enabled:Boolean(x.enabled)})),markets});
   }catch(e){console.error(e);res.status(503).json({error:'Market configuration unavailable'})}
 });
 app.get('/api/market/quote',async(req,res)=>{
