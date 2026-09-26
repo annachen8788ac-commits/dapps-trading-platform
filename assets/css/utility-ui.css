@@ -36,7 +36,7 @@ body.platform-ui :is(.negative,.loss),body.admin-ui .negative{color:var(--dp-neg
 body.platform-ui .shell{background:linear-gradient(180deg,#071526,#06111f)!important;border-color:var(--dp-border)!important}
 body.platform-ui .shell>.top{background:rgba(5,17,32,.96)!important;border-bottom:1px solid var(--dp-border)!important;backdrop-filter:blur(16px)!important}
 body.platform-ui .shell>.top .brand{font-weight:800!important;letter-spacing:-.035em!important;color:#f4faff!important}
-body.platform-ui .shell>.top .brand::before{background-image:url("../img/dp-logo-header.png?v=20260925-2")!important;filter:drop-shadow(0 3px 10px rgba(0,122,255,.32))}
+body.platform-ui .shell>.top .brand::before{background-image:url("../img/dp-logo-header.png?v=20260925-2")!important;}
 body.platform-ui :is(.back,.link,.foot a){color:#71d6f8!important;text-decoration:none}
 body.platform-ui :is(.back,.link,.foot a):hover{color:#b2f4ff!important}
 body.platform-ui :is(.field input,.field select,.field textarea,.row input,.row select,.composer textarea),
