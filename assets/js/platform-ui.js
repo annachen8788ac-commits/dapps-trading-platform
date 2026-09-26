@@ -19,7 +19,9 @@
   function installBrand(){
     const mark=document.querySelector('.brand-mark');
     if(mark){mark.textContent='';mark.setAttribute('aria-label','DApps Platform');mark.innerHTML='<span class="dp-logo-shape"><i></i><i></i></span>'}
-    
+    const style=document.createElement('style');
+    style.textContent=`.brand-mark{position:relative;overflow:hidden;background:linear-gradient(145deg,#081b33,#0d315a)!important;border:1px solid rgba(95,179,255,.5)!important;box-shadow:0 8px 26px rgba(31,129,255,.25)!important}.dp-logo-shape{position:relative;display:block;width:25px;height:25px;transform:rotate(45deg)}.dp-logo-shape:before,.dp-logo-shape:after,.dp-logo-shape i{content:"";position:absolute;border:3px solid #72c7ff;border-radius:4px}.dp-logo-shape:before{inset:1px 10px 10px 1px}.dp-logo-shape:after{inset:10px 1px 1px 10px;border-color:#3188ff}.dp-logo-shape i:first-child{width:7px;height:7px;right:1px;top:1px;border-color:#fff}.dp-logo-shape i:last-child{width:7px;height:7px;left:1px;bottom:1px;border-color:#48e0d0}.brand-copy strong{font-weight:800!important;letter-spacing:-.035em}.brand-copy span{letter-spacing:.04em}.asset-table-head,.portfolio-asset-row{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1fr auto;gap:14px;align-items:center;padding:13px 14px}.asset-table-head{margin-top:12px;color:#7890a9;font-size:11px;border-bottom:1px solid rgba(255,255,255,.08)}.portfolio-asset-row{border-bottom:1px solid rgba(255,255,255,.06)}.portfolio-asset-row .asset-name{display:flex;gap:10px;align-items:center}.portfolio-asset-row .asset-symbol{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#13283d;color:#fff;font-size:10px;font-weight:800}.portfolio-asset-row small{display:block;color:#7890a9;margin-top:3px}.portfolio-asset-row button{border:1px solid #2c4865;background:#10243a;color:#d9e9fa;border-radius:8px;padding:7px 12px;cursor:pointer}@media(max-width:760px){.asset-table-head{display:none}.portfolio-asset-row{grid-template-columns:1fr 1fr;gap:8px}.portfolio-asset-row>span:nth-child(n+2){text-align:right}.portfolio-asset-row button{grid-column:1/-1}.portfolio-asset-row small{font-size:10px}}`;
+    document.head.appendChild(style);
   }
 
   function demoBalanceKey(){return 'dapps:demoBalance:v3:'+demoId}
@@ -51,7 +53,7 @@
     if(!visible.length){const empty=document.createElement('div');empty.className='portfolio-asset-row';empty.innerHTML='<span class="muted">No assets held.</span>';page.appendChild(empty)}
   }
   async function syncWalletBalance(){
-    if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=window.DAppsPlatformConfig.apiBase;
+    if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
     try{
       const [wr,ar]=await Promise.all([fetch(API+'/api/wallet',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}}),fetch(API+'/api/assets',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}})]);const wd=wr.ok?await wr.json():null,ad=ar.ok?await ar.json():{assets:[]};const assets=ad.assets||[];
       if(typeof balance!=='undefined'){balance=Number(wd?.balance?.available)||0;updateBalances()}
@@ -66,7 +68,7 @@
 
 /* ===== trade-dialog-ui-20260925.js ===== */
 (() => {
-  const API=window.DAppsPlatformConfig.apiBase;
+  const API=localStorage.getItem('dapps:apiBase')||'https://dapps-trading-platform-production.up.railway.app';
   const token=localStorage.getItem('dapps:token');
   const demoId=new URLSearchParams(location.search).get('demo');
   const demoMode=Boolean(demoId);
@@ -80,6 +82,7 @@
   const placeBtn=document.querySelector('#place-trade');
   const amountInput=document.querySelector('#trade-amount');
   const list=document.querySelector('#positions-list');
+  window.__tradeLedgerOwnsPositions=true;
   const head=document.querySelector('.positions-table-head');
   const tabs=[...document.querySelectorAll('.positions-heading .tab-row button')];
   if(!placeBtn||!amountInput||!list||!head)return;
@@ -94,7 +97,30 @@
     scrollWrap.appendChild(list);
   }
 
-  
+  const style=document.createElement('style');
+  style.textContent=`
+  .positions-table-head,.position-row{grid-template-columns:1.05fr .75fr 1fr 1fr 1.15fr .8fr .85fr;align-items:center}
+  .position-row.history-clickable{cursor:pointer;transition:background .18s ease}.position-row.history-clickable:hover,.position-row.history-clickable:focus{background:rgba(31,112,255,.08);outline:none}
+  .status-pill{display:inline-flex;padding:5px 8px;border-radius:999px;font-weight:700;font-size:10px}.status-pill.active{background:rgba(77,124,255,.12);color:#8facff}.status-pill.won{background:rgba(40,199,124,.12);color:#62dca0}.status-pill.lost{background:rgba(255,91,103,.12);color:#ff8b94}.trade-time{color:#a8b2c7;white-space:nowrap}.countdown{font-variant-numeric:tabular-nums;font-weight:700}
+  .trade-dialog-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(2,8,16,.68);backdrop-filter:blur(7px);display:grid;place-items:center;padding:20px}.trade-dialog{width:min(92vw,410px);border:1px solid #29415d;border-radius:22px;background:linear-gradient(180deg,#0d1c2f,#081421);box-shadow:0 28px 80px rgba(0,0,0,.55);padding:24px;color:#f5f8fc}.trade-dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.trade-dialog-head strong{font-size:17px}.trade-dialog-head span{font-size:11px;color:#8fa4bb}
+  .trade-count-ring{width:142px;height:142px;margin:8px auto 18px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(#218cff var(--progress),#172a40 0);box-shadow:0 0 34px rgba(33,140,255,.16)}.trade-count-ring:after{content:"";position:absolute;inset:7px;border-radius:50%;background:#0a1727}.trade-count-ring>div{position:relative;z-index:1;text-align:center}.trade-count-ring b{display:block;font-size:42px;font-variant-numeric:tabular-nums}.trade-count-ring small{color:#8fa4bb}
+  .live-pnl{margin:0 0 14px;padding:14px 15px;border:1px solid #29415d;border-radius:14px;background:#0d1e31}.live-pnl-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-end}.live-pnl span{font-size:10px;color:#8fa4bb}.live-pnl strong{font-size:20px}.live-pnl .live-price{text-align:right}.live-pnl .live-price b{display:block;font-size:14px}.live-pnl .live-move{font-size:11px;margin-top:3px;display:block}.live-pnl-note{margin-top:9px;font-size:10px;color:#7890aa;line-height:1.4}
+  .trade-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.trade-dialog-cell{padding:11px 12px;border-radius:12px;background:#0f2034;border:1px solid #203750}.trade-dialog-cell span{display:block;font-size:10px;color:#8fa4bb;margin-bottom:5px}.trade-dialog-cell b{font-size:13px}.trade-dialog-note{text-align:center;color:#8fa4bb;font-size:11px;margin-top:16px}.trade-result-icon{width:68px;height:68px;border-radius:50%;margin:2px auto 14px;display:grid;place-items:center;font-size:30px;font-weight:900}.trade-result-icon.won{background:rgba(0,229,160,.12);color:#00e5a0;border:1px solid rgba(0,229,160,.35)}.trade-result-icon.lost{background:rgba(255,99,112,.12);color:#ff6370;border:1px solid rgba(255,99,112,.35)}.trade-result-title{text-align:center;font-size:25px;margin:0 0 4px}.trade-result-pnl{text-align:center;font-size:21px;font-weight:800;margin:0 0 20px}.trade-result-pnl.won{color:#00e5a0}.trade-result-pnl.lost{color:#ff6370}.trade-dialog-close{width:100%;margin-top:18px;border:0;border-radius:12px;padding:13px;background:linear-gradient(135deg,#1688ff,#4478ff);color:#fff;font-weight:800}
+  .positions-scroll{width:100%;min-width:0}
+  @media(max-width:720px){
+    .positions-panel{overflow:clip!important}
+    .positions-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
+    .positions-table-head,.position-row{display:grid!important;grid-template-columns:120px 105px 150px 150px 150px 190px 190px;min-width:1055px;padding:12px 14px;gap:10px}
+    .positions-table-head>*,
+    .position-row>*{display:block!important;min-width:0}
+    .positions-table-head{position:relative}
+    .positions-list{min-width:1055px}
+    .positions-list.empty-state{min-width:100%;width:100%}
+    .position-row .status-pill{display:inline-flex!important}
+    .trade-dialog{padding:20px}.trade-count-ring{width:130px;height:130px}
+  }
+  `;
+  document.head.appendChild(style);
 
   const fmtTime=ts=>new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
   let backendTrades=[],mode='active',settling=new Set(),dialogTradeNo=null,dialogTimer=null,settleExpiredTrade=null;
@@ -142,6 +168,3 @@
   }
 })();
 ;
-
-/* ===== homepage-ui.js ===== */
-(()=>{const token=localStorage.getItem('dapps:token'),demoId=new URLSearchParams(location.search).get('demo');const auth=document.querySelector('.top-auth-v3'),accountLink=document.querySelector('.tech-cta .secondary');if(token||demoId){if(auth)auth.style.display='none';if(accountLink){accountLink.textContent=demoId?'Simulation Account':'My Account';accountLink.href=demoId?'profile.html?demo='+encodeURIComponent(demoId):'profile.html'}}let f='all';function home(){const e=document.getElementById('home-market-list');if(!e)return;const set=markets.filter(m=>f==='all'||m.type===f).slice(0,8);e.innerHTML=set.map(m=>`<button class="home-market-row" data-symbol="${m.symbol}"><span class="coin-icon small">${tradeIconHTML(m)}</span><span class="home-market-name"><strong>${m.symbol}</strong><small>${m.name}</small></span><strong>${fmt(m.price,decimals(m.price))}</strong><span class="${m.change>=0?'positive':'negative'}">${m.change>=0?'+':''}${Number(m.change||0).toFixed(2)}%</span><span></span><b>›</b></button>`).join('');e.querySelectorAll('button').forEach(r=>r.onclick=()=>{const m=markets.find(x=>x.symbol===r.dataset.symbol);selectMarket(m);navigate('trade')})}home();window.addEventListener('dapps:markets-updated',home);document.querySelectorAll('[data-home-filter]').forEach(b=>b.onclick=()=>{f=b.dataset.homeFilter;home()});const go=p=>{if(demoId){if(p==='deposit.html'||p==='withdraw.html')return;location.href=p==='profile.html'?'profile.html?demo='+encodeURIComponent(demoId):p;return}location.href=token?p:'login.html'};document.getElementById('home-deposit').onclick=()=>go('deposit.html');document.getElementById('home-withdraw').onclick=()=>go('withdraw.html');document.getElementById('home-support').onclick=()=>go('support.html');document.querySelector('.avatar-btn').onclick=()=>go('profile.html')})();
