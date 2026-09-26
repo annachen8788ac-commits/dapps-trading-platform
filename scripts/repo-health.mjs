@@ -102,13 +102,49 @@ if(duplicateRoutes.length){
   for(const [route,owners] of duplicateRoutes)failures.push(`duplicate route ${route}: ${owners.join(', ')}`);
 }
 
+function cssEmptyRuleCount(source){
+  const css=source.replace(/\/\*[\s\S]*?\*\//g,'');
+  let count=0;
+  const walk=(start,end)=>{
+    let i=start;
+    while(i<end){
+      while(i<end&&/\s/.test(css[i]))i++;
+      if(i>=end)break;
+      let open=i;
+      while(open<end&&css[open]!=='{'&&css[open]!==';')open++;
+      if(open>=end)break;
+      if(css[open]===';'){i=open+1;continue}
+      const header=css.slice(i,open).trim();
+      let depth=1,close=open+1,quote=null,escape=false;
+      for(;close<end;close++){
+        const ch=css[close];
+        if(quote){
+          if(escape)escape=false;
+          else if(ch==='\\')escape=true;
+          else if(ch===quote)quote=null;
+          continue;
+        }
+        if(ch==="'"||ch==='"'){quote=ch;continue}
+        if(ch==='{')depth++;
+        else if(ch==='}'&&--depth===0)break;
+      }
+      const body=css.slice(open+1,close);
+      const low=header.toLowerCase();
+      if(low.startsWith('@media')||low.startsWith('@supports')||low.startsWith('@container')||low.startsWith('@layer'))walk(open+1,close);
+      else if(header&&!header.startsWith('@')&&body.trim()==='')count++;
+      i=close+1;
+    }
+  };
+  walk(0,css.length);
+  return count;
+}
+
 for(const p of ['assets/css/app.css','assets/css/utility-ui.css','assets/css/account.css','assets/css/wallet.css','admin-panel/public/admin-brand.css']){
   const css=read(p);
   let depth=0;
   for(const ch of css){if(ch==='{')depth++;else if(ch==='}')depth--;}
   check(depth===0,`CSS braces are balanced: ${p}`);
-  const stripped=css.replace(/\/\*[\s\S]*?\*\//g,'');
-  check(!/[^{}]+\{\s*\}/.test(stripped),`CSS contains no empty rule: ${p}`);
+  check(cssEmptyRuleCount(css)===0,`CSS contains no empty rule: ${p}`);
 }
 
 const backendPkg=JSON.parse(read('backend/package.json'));
