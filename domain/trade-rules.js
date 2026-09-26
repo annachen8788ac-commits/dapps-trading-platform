@@ -111,23 +111,7 @@
     };
   });
 
-  placeBtn.onclick = () => {
-    const amount = Number(amountInput.value) || 0;
-    const min = minForDuration();
-    const nextMin = nextMinForDuration();
-    if(amount < min){ validateTrade(); showToast(`Order blocked: minimum for ${duration}s is ${fmt(min,0)} USDT.`); return; }
-    if(nextMin!=null && amount>=nextMin){ validateTrade(); showToast(`Order blocked: ${fmt(nextMin,0)} USDT starts the next duration tier.`); return; }
-    if(amount > balance){ validateTrade(); showToast('Order blocked: insufficient available balance.'); return; }
-    const rate = rateForDuration();
-    balance -= amount;
-    activeTrades.push({id:Date.now(),market:currentMarket,dir:direction,entry:currentMarket.price,amount,duration,profitRate:rate,end:Date.now()+duration*1000});
-    updateBalances(); renderPositions();
-    amountInput.value='';
-    if(typeof updatePotential==='function')updatePotential();
-    validateTrade();
-    showToast(`${direction==='up'?'Up':'Down'} ${duration}s ${isSimulation()?'simulation ':''}trade opened · +${rate}% potential profit.`);
-  };
-
+  // Trade execution is owned by platform-ui.js; this module only validates and presents eligibility.
   const originalUpdateBalances = window.updateBalances;
   if(typeof originalUpdateBalances === 'function'){
     window.updateBalances = function(){ const result = originalUpdateBalances(); validateTrade(); return result; };
