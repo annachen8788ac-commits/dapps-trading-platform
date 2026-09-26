@@ -48,7 +48,7 @@ const markets = [
 window.markets=markets;
 const demoSessionId=new URLSearchParams(location.search).get('demo');
 const isDemoSession=Boolean(demoSessionId);
-let currentMarket=markets[0],direction='up',duration=60,balance=isDemoSession?50000:0,totalPledged=0,selectedPledge={product:'Flexible',min:100};
+let currentMarket=markets[0],direction=null,duration=60,balance=isDemoSession?50000:0,totalPledged=0,selectedPledge={product:'Flexible',min:100};
 const profitRates=window.DAppsTradeSpec.rates;
 const minimumTradeAmounts=window.DAppsTradeSpec.minimums;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
