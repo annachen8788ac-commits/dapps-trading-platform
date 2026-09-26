@@ -21,7 +21,7 @@ if(!JWT_SECRET||!ADMIN_JWT_SECRET)throw new Error('JWT_SECRET and ADMIN_JWT_SECR
 const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(x=>x.trim()).filter(Boolean);
 const trustedFrontendOrigins = new Set(['https://futures.dappsplatformusa.com']);
 const demoSessions=new Map();
-const DEMO_SESSION_TTL_MS=20000;
+const DEMO_SESSION_TTL_MS=45000;
 function validDemoSessionId(value){const id=String(value||'').trim();return /^[A-Za-z0-9-]{12,80}$/.test(id)?id:null}
 function pruneDemoSessions(){const cutoff=Date.now()-DEMO_SESSION_TTL_MS;for(const[id,s]of demoSessions)if(Number(s.lastSeen||0)<cutoff)demoSessions.delete(id)}
 function demoSessionView(s){return{sessionId:s.sessionId,label:s.label,createdAt:new Date(s.createdAt).toISOString(),lastSeen:new Date(s.lastSeen).toISOString(),page:s.page||'trade',balance:Number(s.balance||0),activeTrades:Number(s.activeTrades||0),pledged:Number(s.pledged||0),pledgeCount:Number(s.pledgeCount||0),control:s.control||'auto',forceQueue:Array.isArray(s.forceQueue)?s.forceQueue:[]}}
