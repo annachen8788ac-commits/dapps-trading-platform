@@ -45,7 +45,7 @@ function openDetail(i){
     :x.asset==='BTC'
       ?'Only send BTC to this Bitcoin address.'
       :'This address supports the selected asset on compatible EVM networks.';
-  $('#qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(x.address);
+  $('#qrImage').src=x.qrImageDataUrl||('https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(x.address));
   $('#quickHome').classList.add('hidden');$('#depositDetail').classList.add('active');updateBalance(x.asset);renderSubmit();
 }
 function closeDetail(){selectedQuick=null;$('#depositDetail').classList.remove('active');$('#quickHome').classList.remove('hidden');updateBalance('USDT')}
