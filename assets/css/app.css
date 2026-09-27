@@ -998,3 +998,15 @@ body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!importan
     grid-column:1!important;
   }
 }
+
+
+/* 2026-09-27: narrow desktop pledge cards stack full width (721-900 only) */
+@media (min-width:721px) and (max-width:900px){
+  #page-pledge .pledge-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #page-pledge .pledge-card{
+    width:100%!important;
+    min-width:0!important;
+  }
+}
