@@ -6,7 +6,7 @@
 <section id="loginView" class="login hidden"><div class="login-card"><div class="brand">DApps 管理后台</div><div class="muted" style="margin-top:6px">登录后处理身份认证。</div><div class="field"><label>邮箱</label><input id="email" type="email"></div><div class="field"><label>密码</label><input id="password" type="password"></div><button id="loginBtn" class="btn ghost" style="width:100%;margin-top:16px">登录</button><div id="loginError" class="error"></div></div></section>
 <section id="appView" class="hidden"><header class="top"><div><div class="brand">身份审核</div><div class="muted" id="adminMeta">身份认证审核队列</div></div><div class="actions"><button class="btn ghost" onclick="location.href='/'">管理首页</button><button class="btn ghost" onclick="location.href='/wallet'">资金管理</button><button id="logoutBtn" class="btn ghost">退出登录</button></div></header><main class="main">
 <div class="panel"><div class="bar"><div><b>身份认证申请</b><div class="muted" style="margin-top:4px">状态可直接修改为待审核、已通过或已拒绝，保存后客户端立即读取最新状态。</div></div><div class="actions"><select id="statusFilter"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option></select><button id="refreshBtn" class="btn ghost">刷新</button></div></div><div class="table-wrap"><table><thead><tr><th>用户</th><th>法定姓名</th><th>国家/地区</th><th>证件</th><th>状态</th><th>提交时间</th><th>操作</th></tr></thead><tbody id="queueBody"></tbody></table></div></div>
-<div id="detailPanel" class="panel hidden"><div class="bar"><div><b id="detailTitle">认证详情</b><div class="muted" id="detailSub"></div></div><span id="detailStatus" class="badge"></span></div><div class="grid" style="margin-top:14px"><div id="identityInfo"></div><div id="accountInfo"></div></div><div class="docs" style="margin-top:16px"><div class="doc"><b>证件正面</b><img id="frontImg" alt="证件正面"></div><div class="doc"><b>证件背面</b><img id="backImg" alt="证件背面"><div id="noBack" class="muted hidden">无需提交 / 未提交</div></div></div><div class="review"><div><div class="muted" style="margin-bottom:6px">审核备注</div><textarea id="reviewNote" placeholder="通过可留空；拒绝建议填写原因"></textarea></div><div class="status-control"><label>审核状态</label><select id="reviewStatus"><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option></select></div><button id="saveStatusBtn" class="btn primary">保存状态</button></div></div>
+<div id="detailPanel" class="panel hidden"><div class="bar"><div><b id="detailTitle">认证详情</b><div class="muted" id="detailSub"></div></div><span id="detailStatus" class="badge"></span></div><div class="grid" style="margin-top:14px"><div id="identityInfo"></div><div id="accountInfo"></div></div><div class="docs" style="margin-top:16px"><div class="doc"><b>证件正面</b><div id="frontLoading" class="muted">打开后加载证件</div><img id="frontImg" class="hidden" alt="证件正面"></div><div class="doc"><b>证件背面</b><div id="backLoading" class="muted">打开后加载证件</div><img id="backImg" class="hidden" alt="证件背面"><div id="noBack" class="muted hidden">无需提交 / 未提交</div></div></div><div class="review"><div><div class="muted" style="margin-bottom:6px">审核备注</div><textarea id="reviewNote" placeholder="通过可留空；拒绝建议填写原因"></textarea></div><div class="status-control"><label>审核状态</label><select id="reviewStatus"><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option></select></div><button id="saveStatusBtn" class="btn primary">保存状态</button></div></div>
 </main></section>
 <script>
 const $=s=>document.querySelector(s);let currentId=null,queueRequestSeq=0;
@@ -16,13 +16,121 @@ function showLogin(){$('#appView').classList.add('hidden');$('#loginView').class
 function showApp(admin){$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');$('#adminMeta').textContent=`${admin.displayName} · ${admin.role}`;loadQueue();}
 $('#loginBtn').onclick=async()=>{try{const {r,d}=await raw('/session/login',{method:'POST',body:JSON.stringify({email:$('#email').value,password:$('#password').value})});if(!r.ok)throw new Error(d.error||'登录失败');showApp(d.admin);}catch(e){$('#loginError').textContent=e.message;}};
 $('#logoutBtn').onclick=async()=>{await fetch('/session/logout',{method:'POST'});showLogin();};
-$('#statusFilter').onchange=loadQueue;$('#refreshBtn').onclick=loadQueue;
+$('#statusFilter').onchange=loadQueue;
+$('#refreshBtn').onclick=async()=>{
+  const b=$('#refreshBtn');
+  b.disabled=true;
+  b.textContent='刷新中...';
+  const ok=await loadQueue();
+  b.textContent=ok===false?'刷新失败':'刷新成功 ✓';
+  setTimeout(()=>{b.textContent='刷新';b.disabled=false},1400);
+};
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
-function dt(v){return v?new Date(v).toLocaleString('zh-CN',{timeZone:'America/New_York',timeZoneName:'short',hour12:false}):'—';}function zhStatus(s){return s==='approved'?'已通过':s==='rejected'?'已拒绝':s==='pending'?'待审核':s;}
-async function loadQueue(){const seq=++queueRequestSeq;try{const status=$('#statusFilter').value;const d=await api('/kyc'+(status?'?status='+encodeURIComponent(status):''));if(seq!==queueRequestSeq)return;const items=status?d.items.filter(x=>x.status===status):d.items;$('#queueBody').innerHTML=items.map(x=>`<tr><td><b>${esc(x.user.publicId)}</b><br><span class="muted">${esc(x.user.displayName)}</span></td><td>${esc(x.fullName)}</td><td>${esc(x.country)}</td><td>${esc(String(x.documentType).replaceAll('_',' '))}<br><span class="muted">${esc(x.documentNumber)}</span></td><td><span class="badge ${esc(x.status)}">${zhStatus(x.status)}</span></td><td>${dt(x.submittedAt)}</td><td><button class="btn ghost" onclick="openKyc('${x.id}')">查看/修改</button></td></tr>`).join('')||'<tr><td colspan="7" class="muted">暂无身份认证申请</td></tr>';}catch(e){if(seq===queueRequestSeq)alert(e.message)}}
-window.openKyc=async id=>{try{const d=await api('/kyc/'+id);const x=d.item;window.adminMarkNotification?.('kyc',id,x.submittedAt||new Date().toISOString());currentId=id;$('#detailPanel').classList.remove('hidden');$('#detailTitle').textContent=x.fullName;$('#detailSub').textContent=`${x.user.publicId} · ${x.user.displayName}`;$('#detailStatus').textContent=zhStatus(x.status);$('#detailStatus').className='badge '+x.status;$('#reviewStatus').value=x.status;$('#identityInfo').innerHTML=`<div class="kv"><span>法定姓名</span><b>${esc(x.fullName)}</b></div><div class="kv"><span>国家/地区</span><b>${esc(x.country)}</b></div><div class="kv"><span>证件</span><b>${esc(String(x.documentType).replaceAll('_',' '))}</b></div><div class="kv"><span>证件号码</span><b>${esc(x.documentNumber)}</b></div>`;$('#accountInfo').innerHTML=`<div class="kv"><span>账户ID</span><b>${esc(x.user.publicId)}</b></div><div class="kv"><span>显示名称</span><b>${esc(x.user.displayName)}</b></div><div class="kv"><span>登录账号</span><b>${esc(x.user.identifier)}</b></div><div class="kv"><span>提交时间</span><b>${dt(x.submittedAt)}</b></div><div class="kv"><span>审核时间</span><b>${dt(x.reviewedAt)}</b></div>`;$('#frontImg').src=x.documentFront||'';if(x.documentBack){$('#backImg').src=x.documentBack;$('#backImg').classList.remove('hidden');$('#noBack').classList.add('hidden')}else{$('#backImg').src='';$('#backImg').classList.add('hidden');$('#noBack').classList.remove('hidden')}$('#reviewNote').value=x.reviewNote||'';$('#detailPanel').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){alert(e.message)}};
-window.adminEscapeBack=()=>{if(!currentId||$('#detailPanel').classList.contains('hidden'))return false;currentId=null;$('#detailPanel').classList.add('hidden');document.querySelector('#queueBody')?.closest('.panel')?.scrollIntoView({behavior:'smooth',block:'start'});return true};$('#saveStatusBtn').onclick=async()=>{if(!currentId)return;const status=$('#reviewStatus').value,note=$('#reviewNote').value.trim();if(status==='rejected'&&!note&&!confirm('未填写拒绝原因，仍然保存为已拒绝？'))return;if(!confirm(`确认将状态改为“${zhStatus(status)}”？`))return;try{const d=await api('/kyc/'+currentId+'/review',{method:'POST',body:JSON.stringify({status,note})});$('#detailStatus').textContent=zhStatus(d.status);$('#detailStatus').className='badge '+d.status;await loadQueue();await openKyc(currentId);alert('状态已更新。');}catch(e){alert(e.message)}};
-window.addEventListener('focus',()=>{loadQueue();if(currentId)openKyc(currentId)});
-setInterval(()=>{if(!document.hidden){loadQueue();if(currentId)openKyc(currentId)}},15000);
+function dt(v){return v?new Date(v).toLocaleString('zh-CN',{timeZone:'America/New_York',timeZoneName:'short',hour12:false}):'—';}
+function zhStatus(s){return s==='approved'?'已通过':s==='rejected'?'已拒绝':s==='pending'?'待审核':s;}
+async function loadQueue(){
+  const seq=++queueRequestSeq;
+  try{
+    const status=$('#statusFilter').value;
+    const d=await api('/kyc'+(status?'?status='+encodeURIComponent(status):''));
+    if(seq!==queueRequestSeq)return true;
+    const items=status?d.items.filter(x=>x.status===status):d.items;
+    $('#queueBody').innerHTML=items.map(x=>`<tr><td><b>${esc(x.user.publicId)}</b><br><span class="muted">${esc(x.user.displayName)}</span></td><td>${esc(x.fullName)}</td><td>${esc(x.country)}</td><td>${esc(String(x.documentType).replaceAll('_',' '))}<br><span class="muted">${esc(x.documentNumber)}</span></td><td><span class="badge ${esc(x.status)}">${zhStatus(x.status)}</span></td><td>${dt(x.submittedAt)}</td><td><button class="btn ghost" onclick="openKyc('${x.id}',this)">查看/修改</button></td></tr>`).join('')||'<tr><td colspan="7" class="muted">暂无身份认证申请</td></tr>';
+    return true;
+  }catch(e){
+    if(seq===queueRequestSeq)alert(e.message);
+    return false;
+  }
+}
+window.openKyc=async(id,btn)=>{
+  const originalText=btn?.textContent||'查看/修改';
+  currentId=id;
+  $('#detailPanel').classList.remove('hidden');
+  $('#detailTitle').textContent='加载中...';
+  $('#detailSub').textContent='正在读取认证资料';
+  $('#detailStatus').textContent='';
+  $('#identityInfo').innerHTML='<div class="muted">正在加载...</div>';
+  $('#accountInfo').innerHTML='';
+  $('#reviewNote').value='';
+  $('#frontImg').classList.add('hidden');$('#frontImg').removeAttribute('src');
+  $('#backImg').classList.add('hidden');$('#backImg').removeAttribute('src');
+  $('#noBack').classList.add('hidden');
+  $('#frontLoading').textContent='证件加载中...';$('#frontLoading').classList.remove('hidden');
+  $('#backLoading').textContent='证件加载中...';$('#backLoading').classList.remove('hidden');
+  $('#detailPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  if(btn){btn.disabled=true;btn.textContent='加载中...';}
+  try{
+    const d=await api('/kyc/'+id);
+    if(currentId!==id)return;
+    const x=d.item;
+    window.adminMarkNotification?.('kyc',id,x.submittedAt||new Date().toISOString());
+    $('#detailTitle').textContent=x.fullName;
+    $('#detailSub').textContent=`${x.user.publicId} · ${x.user.displayName}`;
+    $('#detailStatus').textContent=zhStatus(x.status);
+    $('#detailStatus').className='badge '+x.status;
+    $('#reviewStatus').value=x.status;
+    $('#identityInfo').innerHTML=`<div class="kv"><span>法定姓名</span><b>${esc(x.fullName)}</b></div><div class="kv"><span>国家/地区</span><b>${esc(x.country)}</b></div><div class="kv"><span>证件</span><b>${esc(String(x.documentType).replaceAll('_',' '))}</b></div><div class="kv"><span>证件号码</span><b>${esc(x.documentNumber)}</b></div>`;
+    $('#accountInfo').innerHTML=`<div class="kv"><span>账户ID</span><b>${esc(x.user.publicId)}</b></div><div class="kv"><span>显示名称</span><b>${esc(x.user.displayName)}</b></div><div class="kv"><span>登录账号</span><b>${esc(x.user.identifier)}</b></div><div class="kv"><span>提交时间</span><b>${dt(x.submittedAt)}</b></div><div class="kv"><span>审核时间</span><b>${dt(x.reviewedAt)}</b></div>`;
+    $('#reviewNote').value=x.reviewNote||'';
+
+    if(x.hasDocumentFront){
+      api('/kyc/'+id+'/document/front').then(img=>{
+        if(currentId!==id)return;
+        $('#frontImg').src=img.data;
+        $('#frontImg').classList.remove('hidden');
+        $('#frontLoading').classList.add('hidden');
+      }).catch(()=>{if(currentId===id)$('#frontLoading').textContent='证件加载失败';});
+    }else{
+      $('#frontLoading').textContent='未提交证件正面';
+    }
+
+    if(x.hasDocumentBack){
+      api('/kyc/'+id+'/document/back').then(img=>{
+        if(currentId!==id)return;
+        $('#backImg').src=img.data;
+        $('#backImg').classList.remove('hidden');
+        $('#backLoading').classList.add('hidden');
+      }).catch(()=>{if(currentId===id)$('#backLoading').textContent='证件加载失败';});
+    }else{
+      $('#backLoading').classList.add('hidden');
+      $('#noBack').classList.remove('hidden');
+    }
+  }catch(e){
+    if(currentId===id){
+      $('#detailTitle').textContent='加载失败';
+      $('#detailSub').textContent=e.message;
+      alert(e.message);
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=originalText;}
+  }
+};
+window.adminEscapeBack=()=>{
+  if(!currentId||$('#detailPanel').classList.contains('hidden'))return false;
+  currentId=null;
+  $('#detailPanel').classList.add('hidden');
+  document.querySelector('#queueBody')?.closest('.panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+  return true;
+};
+$('#saveStatusBtn').onclick=async()=>{
+  if(!currentId)return;
+  const b=$('#saveStatusBtn'),status=$('#reviewStatus').value,note=$('#reviewNote').value.trim();
+  b.disabled=true;
+  b.textContent='保存中...';
+  try{
+    const d=await api('/kyc/'+currentId+'/review',{method:'POST',body:JSON.stringify({status,note})});
+    $('#detailStatus').textContent=zhStatus(d.status);
+    $('#detailStatus').className='badge '+d.status;
+    await loadQueue();
+    b.textContent='保存成功 ✓';
+    setTimeout(()=>{b.textContent='保存状态';b.disabled=false},1200);
+  }catch(e){
+    b.textContent='保存失败';
+    setTimeout(()=>{b.textContent='保存状态';b.disabled=false},1200);
+    alert(e.message);
+  }
+};
+window.addEventListener('focus',()=>{loadQueue();});
+setInterval(()=>{if(!document.hidden)loadQueue();},15000);
 (async()=>{try{const {r,d}=await raw('/session/me');if(!r.ok)throw 0;showApp(d.admin);const target=new URLSearchParams(location.search).get('id');if(target)setTimeout(()=>openKyc(target),0);}catch{showLogin();}})();
 </script></body></html>
