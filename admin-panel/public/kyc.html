@@ -115,6 +115,7 @@ window.adminEscapeBack=()=>{
 $('#saveStatusBtn').onclick=async()=>{
   if(!currentId)return;
   const b=$('#saveStatusBtn'),status=$('#reviewStatus').value,note=$('#reviewNote').value.trim();
+  if(status!=='rejected'&&!confirm(`确认将状态改为“${zhStatus(status)}”？`))return;
   b.disabled=true;
   b.textContent='保存中...';
   try{
