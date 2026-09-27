@@ -985,3 +985,14 @@ body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!importan
     transform:translateX(-50%)!important;
   }
 }
+
+
+/* 2026-09-27: narrow desktop trade grid fix (721-900 only) */
+@media (min-width:721px) and (max-width:900px){
+  #page-trade .trade-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #page-trade .short-trade-card{
+    grid-column:auto!important;
+  }
+}
