@@ -53,7 +53,7 @@
   async function syncWalletBalance(){
     if(demoMode){syncSimulationBalance();return;}const token=localStorage.getItem('dapps:token');if(!token){if(typeof balance!=='undefined'){balance=0;if(typeof updateBalances==='function')updateBalances()}return;}const API=window.DAppsPlatformConfig.apiBase;
     try{
-      const [wr,ar]=await Promise.all([fetch(API+'/api/wallet',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}}),fetch(API+'/api/assets',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}})]);const wd=wr.ok?await wr.json():null,ad=ar.ok?await ar.json():{assets:[]};const assets=ad.assets||[];
+      const [wr,ar]=await Promise.all([fetch(API+'/api/wallet',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}}),fetch(API+'/api/assets',{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/json'}})]);if(wr.status===401||ar.status===401){localStorage.removeItem('dapps:token');localStorage.removeItem('dapps:user');location.replace('login.html');return}const wd=wr.ok?await wr.json():null,ad=ar.ok?await ar.json():{assets:[]};const assets=ad.assets||[];
       if(typeof balance!=='undefined'){balance=Number(wd?.balance?.available)||0;updateBalances()}
       renderPortfolioAssets(assets);
       const liquidValue=assets.reduce((s,a)=>s+(a.valueUsd==null?(a.asset==='USDT'?Number(a.available||0)+Number(a.locked||0):0):Number(a.valueUsd||0)),0);const pledged=Number(typeof totalPledged!=='undefined'?totalPledged:0)||0;const totalValue=liquidValue+pledged;
