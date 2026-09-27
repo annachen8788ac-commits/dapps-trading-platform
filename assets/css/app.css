@@ -977,8 +977,8 @@ body.platform-ui .shell>.top .brand-real-logo>span{display:inline-block!importan
 }
 
 
-/* 2026-09-27: desktop home hero centering fix (901-1100 only) */
-@media (min-width:901px) and (max-width:1100px){
+/* 2026-09-27: desktop home hero logo centering fix (721-1100 only) */
+@media (min-width:721px) and (max-width:1100px){
   #page-home .tech-logo-stage{
     left:50%!important;
     right:auto!important;
