@@ -73,7 +73,11 @@ window.openKyc=async(id,btn)=>{
     $('#accountInfo').innerHTML=`<div class="kv"><span>账户ID</span><b>${esc(x.user.publicId)}</b></div><div class="kv"><span>显示名称</span><b>${esc(x.user.displayName)}</b></div><div class="kv"><span>登录账号</span><b>${esc(x.user.identifier)}</b></div><div class="kv"><span>提交时间</span><b>${dt(x.submittedAt)}</b></div><div class="kv"><span>审核时间</span><b>${dt(x.reviewedAt)}</b></div>`;
     $('#reviewNote').value=x.reviewNote||'';
 
-    if(x.hasDocumentFront){
+    if(x.documentFront){
+      $('#frontImg').src=x.documentFront;
+      $('#frontImg').classList.remove('hidden');
+      $('#frontLoading').classList.add('hidden');
+    }else if(x.hasDocumentFront){
       api('/kyc/'+id+'/document/front').then(img=>{
         if(currentId!==id)return;
         $('#frontImg').src=img.data;
@@ -84,7 +88,11 @@ window.openKyc=async(id,btn)=>{
       $('#frontLoading').textContent='未提交证件正面';
     }
 
-    if(x.hasDocumentBack){
+    if(x.documentBack){
+      $('#backImg').src=x.documentBack;
+      $('#backImg').classList.remove('hidden');
+      $('#backLoading').classList.add('hidden');
+    }else if(x.hasDocumentBack){
       api('/kyc/'+id+'/document/back').then(img=>{
         if(currentId!==id)return;
         $('#backImg').src=img.data;
