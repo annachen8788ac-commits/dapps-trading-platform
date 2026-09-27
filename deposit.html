@@ -40,7 +40,11 @@ function openDetail(i){
   $('#detailTitle').textContent=x.label;
   $('#address').textContent=x.address;
   $('#minimum').textContent=`Minimum: ${fmt(x.minimumAmount,x.asset)} ${x.asset}`;
-  $('#networkNote').textContent=`Only send ${x.asset} using the ${x.network} network.`;
+  $('#networkNote').textContent=x.asset==='USDT'
+    ?`Only send USDT using the ${x.network} network.`
+    :x.asset==='BTC'
+      ?'Only send BTC to this Bitcoin address.'
+      :'This address supports the selected asset on compatible EVM networks.';
   $('#qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(x.address);
   $('#quickHome').classList.add('hidden');$('#depositDetail').classList.add('active');updateBalance(x.asset);renderSubmit();
 }
