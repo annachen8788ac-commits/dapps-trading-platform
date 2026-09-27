@@ -101,8 +101,17 @@ async function initializeDatabase(){
     updated_by UUID REFERENCES admins(id) ON DELETE SET NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   for(const [d,m,r] of [[30,200,21],[60,1000,29],[90,10000,37],[180,50000,45],[360,250000,53]])
     await pool.query(`INSERT INTO trade_products(duration_seconds,minimum_amount,profit_rate) VALUES($1,$2,$3) ON CONFLICT(duration_seconds) DO NOTHING`,[d,m,r]);
-  for(const item of [['flexible','Flexible',0,4.8,100],['30-day','30-Day',30,6.5,500],['90-day','90-Day',90,8.2,1000]])
-    await pool.query(`INSERT INTO pledge_products(product_code,product_name,term_days,apy,minimum_amount) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_code) DO NOTHING`,item);
+  const pledgeAdminProducts=[
+    ['1-day','1-Day',1,.30,1000],
+    ['7-day','7-Day',7,.36,10000],
+    ['15-day','15-Day',15,.40,50000],
+    ['30-day','30-Day',30,.42,100000],
+    ['90-day','90-Day',90,.48,500000]
+  ];
+  for(const item of pledgeAdminProducts)
+    await pool.query(`INSERT INTO pledge_products(product_code,product_name,term_days,apy,minimum_amount,enabled) VALUES($1,$2,$3,$4,$5,TRUE)
+      ON CONFLICT(product_code) DO UPDATE SET product_name=EXCLUDED.product_name,term_days=EXCLUDED.term_days,apy=EXCLUDED.apy,minimum_amount=EXCLUDED.minimum_amount`,item);
+  await pool.query(`DELETE FROM pledge_products WHERE product_code='flexible'`);
   const marketSymbols=marketControlCodes.map(code=>code+'/USDT');
   for(let i=0;i<marketSymbols.length;i++)await pool.query(`INSERT INTO market_settings(symbol,display_name,sort_order) VALUES($1,$1,$2) ON CONFLICT(symbol) DO NOTHING`,[marketSymbols[i],i+1]);
   await pool.query(`INSERT INTO platform_settings(setting_key,setting_value) VALUES('general',$1::jsonb) ON CONFLICT(setting_key) DO NOTHING`,[JSON.stringify({platformName:'DApps Platform',announcement:'',maintenanceMode:false})]);
