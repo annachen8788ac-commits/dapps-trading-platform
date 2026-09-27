@@ -45,3 +45,16 @@ input:focus,select:focus,textarea:focus,.search:focus{border-color:rgba(55,160,2
 
 /* Layout containment: keep dense admin content inside the viewport. */
 .main,.panel,.card{min-width:0}.table-wrap,.table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table,.table table{min-width:max-content}img,svg,canvas{max-width:100%}
+
+
+/* Destructive user action */
+.row-actions .danger-action{
+  color:#ff9aa7!important;
+  border-color:rgba(255,92,110,.34)!important;
+  background:rgba(120,20,34,.18)!important;
+}
+.row-actions .danger-action:hover{
+  color:#ffd7dd!important;
+  border-color:rgba(255,92,110,.62)!important;
+  background:rgba(150,24,42,.28)!important;
+}
