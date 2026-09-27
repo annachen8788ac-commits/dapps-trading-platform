@@ -7,8 +7,8 @@ const makeRef=prefix=>`${prefix}-${new Date().toISOString().slice(0,10).replaceA
 // Public wallet networks are intentionally limited to BTC plus TRC20/ERC20.
 const walletNetworkMatrix={
   BTC:['BTC'],
-  ETH:['TRC20','ERC20'],
-  USDC:['TRC20','ERC20'],
+  ETH:['ERC20'],
+  USDC:['ERC20'],
   USDT:['TRC20','ERC20']
 };
 const supportedWalletPair=(asset,network)=>walletNetworkMatrix[asset]?.includes(network);
@@ -35,16 +35,14 @@ export async function initializeWalletSchema(pool){
   await pool.query(`ALTER TABLE deposit_channels ADD COLUMN IF NOT EXISTS withdraw_enabled BOOLEAN NOT NULL DEFAULT TRUE`);
   await pool.query(`ALTER TABLE wallet_ledger ALTER COLUMN amount TYPE NUMERIC(36,18), ALTER COLUMN available_after TYPE NUMERIC(36,18), ALTER COLUMN locked_after TYPE NUMERIC(36,18)`);
   const channelSeeds=[
-    ['BTC','BTC','CONFIGURE_IN_ADMIN',0.0001,false,true,10],
-    ['ETH','TRC20','CONFIGURE_IN_ADMIN',0.001,false,true,20],
-    ['ETH','ERC20','CONFIGURE_IN_ADMIN',0.001,false,true,21],
-    ['USDC','TRC20','CONFIGURE_IN_ADMIN',10,false,true,30],
-    ['USDC','ERC20','CONFIGURE_IN_ADMIN',10,false,true,31],
-    ['USDT','TRC20','CONFIGURE_IN_ADMIN',10,false,true,40],
-    ['USDT','ERC20','CONFIGURE_IN_ADMIN',10,false,true,41]
+    ['BTC','BTC','CONFIGURE_IN_ADMIN',0.0001,false,true,30],
+    ['ETH','ERC20','CONFIGURE_IN_ADMIN',0.001,false,true,50],
+    ['USDC','ERC20','CONFIGURE_IN_ADMIN',10,false,true,40],
+    ['USDT','ERC20','CONFIGURE_IN_ADMIN',10,false,true,10],
+    ['USDT','TRC20','CONFIGURE_IN_ADMIN',10,false,true,20]
   ];
   for(const row of channelSeeds)await pool.query(`INSERT INTO deposit_channels(asset,network,address,minimum_amount,enabled,withdraw_enabled,sort_order) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(asset,network) DO NOTHING`,row);
-  await pool.query(`DELETE FROM deposit_channels WHERE NOT ((asset='BTC' AND network='BTC') OR (asset IN ('ETH','USDC','USDT') AND network IN ('TRC20','ERC20')))`);
+  await pool.query(`DELETE FROM deposit_channels WHERE NOT ((asset='BTC' AND network='BTC') OR (asset='ETH' AND network='ERC20') OR (asset='USDC' AND network='ERC20') OR (asset='USDT' AND network IN ('TRC20','ERC20')))`);
   await pool.query(`CREATE TABLE IF NOT EXISTS deposit_requests (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),request_no VARCHAR(32) UNIQUE NOT NULL,user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,asset VARCHAR(16) NOT NULL DEFAULT 'USDT',network VARCHAR(32) NOT NULL,deposit_address VARCHAR(240) NOT NULL,amount NUMERIC(36,18) NOT NULL,tx_reference VARCHAR(160),proof_data_url TEXT NOT NULL,proof_filename VARCHAR(180),status VARCHAR(20) NOT NULL DEFAULT 'pending',review_note VARCHAR(300),reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_requests_status_created ON deposit_requests(status,created_at DESC)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS withdrawal_requests (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),request_no VARCHAR(32) UNIQUE NOT NULL,user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,asset VARCHAR(16) NOT NULL DEFAULT 'USDT',network VARCHAR(32) NOT NULL,destination_address VARCHAR(240) NOT NULL,amount NUMERIC(36,18) NOT NULL,status VARCHAR(20) NOT NULL DEFAULT 'pending',review_note VARCHAR(300),reviewed_by UUID REFERENCES admins(id) ON DELETE SET NULL,reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
