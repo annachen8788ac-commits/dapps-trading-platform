@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
 const money=v=>Number(Number(v).toFixed(2));
+const DAY_MS=24*60*60*1000;
+const SETTLEMENT_SCAN_MS=30*1000;
+let settlementTimer=null;
 const makeRef=()=>`PLG-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomInt(100000,999999)}`;
 const PRODUCTS={
   '1-day':{name:'1-Day Pledge',termDays:1,dailyRate:.30,minimum:1000},
@@ -51,17 +54,18 @@ async function settleUser(pool,userId){
     const now=Date.now();
     for(const o of q.rows){
       const started=new Date(o.started_at).getTime();
-      const elapsed=Math.max(0,Math.floor((now-started)/86400000));
+      const elapsed=Math.max(0,Math.floor((now-started)/DAY_MS));
       const dueDays=Math.min(Number(o.term_days),elapsed);
       const already=Number(o.settled_days)||0;
-      const newDays=Math.max(0,dueDays-already);
-      if(newDays>0){
-        const profit=money(Number(o.principal)*Number(o.daily_rate)/100*newDays);
-        await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[profit,userId]);
+      const dailyProfit=money(Number(o.principal)*Number(o.daily_rate)/100);
+
+      for(let day=already+1;day<=dueDays;day++){
+        await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,updated_at=NOW() WHERE user_id=$2`,[dailyProfit,userId]);
         const b=(await client.query(`SELECT available_balance,locked_balance FROM account_balances WHERE user_id=$1`,[userId])).rows[0];
-        await client.query(`INSERT INTO wallet_ledger(user_id,entry_type,amount,available_after,locked_after,reference_type,reference_id,note) VALUES($1,'pledge_daily_profit',$2,$3,$4,'pledge',$5,$6)`,[userId,profit,b.available_balance,b.locked_balance,o.order_no,`${newDays} day pledge profit settled`]);
-        await client.query(`UPDATE pledge_orders SET settled_days=$1,total_profit=total_profit+$2,updated_at=NOW() WHERE id=$3`,[dueDays,profit,o.id]);
+        await client.query(`INSERT INTO wallet_ledger(user_id,entry_type,amount,available_after,locked_after,reference_type,reference_id,note) VALUES($1,'pledge_daily_profit',$2,$3,$4,'pledge',$5,$6)`,[userId,dailyProfit,b.available_balance,b.locked_balance,o.order_no,`Pledge daily profit settled — day ${day}/${o.term_days}`]);
+        await client.query(`UPDATE pledge_orders SET settled_days=$1,total_profit=total_profit+$2,updated_at=NOW() WHERE id=$3`,[day,dailyProfit,o.id]);
       }
+
       if(dueDays>=Number(o.term_days)){
         const principal=money(o.principal);
         await client.query(`UPDATE account_balances SET available_balance=available_balance+$1,locked_balance=GREATEST(0,locked_balance-$1),updated_at=NOW() WHERE user_id=$2`,[principal,userId]);
@@ -75,7 +79,27 @@ async function settleUser(pool,userId){
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 }
 
+async function settleDuePledges(pool){
+  const q=await pool.query(`
+    SELECT DISTINCT user_id
+    FROM pledge_orders
+    WHERE status='active'
+      AND settled_days < term_days
+      AND started_at + ((settled_days + 1) * INTERVAL '1 day') <= NOW()
+  `);
+  for(const row of q.rows){
+    try{await settleUser(pool,row.user_id)}
+    catch(e){console.error('Automatic pledge settlement failed',row.user_id,e)}
+  }
+}
+
 export function registerPledgeRoutes(app,{pool,auth}){
+  if(!settlementTimer){
+    const runSettlement=()=>settleDuePledges(pool).catch(e=>console.error('Automatic pledge settlement scan failed',e));
+    runSettlement();
+    settlementTimer=setInterval(runSettlement,SETTLEMENT_SCAN_MS);
+    settlementTimer.unref?.();
+  }
   app.get('/api/pledge/products',async(req,res)=>{
     res.json({products:Object.entries(PRODUCTS).map(([code,p])=>({code,...p}))});
   });
