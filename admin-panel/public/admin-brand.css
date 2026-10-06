@@ -58,3 +58,19 @@ input:focus,select:focus,textarea:focus,.search:focus{border-color:rgba(55,160,2
   border-color:rgba(255,92,110,.62)!important;
   background:rgba(150,24,42,.28)!important;
 }
+
+
+/* Keep the desktop admin sidebar contained in the viewport.
+   The expanded navigation is taller than the dashboard content; without
+   its own scroll area it overflows the 100vh sticky sidebar and makes the
+   whole page scroll past the sidebar background. */
+@media(min-width:901px){
+  .shell{min-height:100vh!important;align-items:stretch!important}
+  .side{
+    height:100vh!important;
+    min-height:100vh!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain;
+  }
+}
